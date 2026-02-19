@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LearnerProfile {
+  id                Int      @id @default(1)
+  targetLanguage    String
+  nativeLanguage    String
+  dailyNewItemLimit Int      @default(10)
+  targetRetention   Float    @default(0.90)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model LexicalItem {
+  id              Int           @id @default(autoincrement())
+  surfaceForm     String
+  reading         String?
+  meaning         String
+  partOfSpeech    String?
+  masteryState    String        @default("unseen")
+  recognitionFsrs Json
+  productionFsrs  Json
+  firstSeen       DateTime      @default(now())
+  lastReviewed    DateTime?
+  exposureCount   Int           @default(0)
+  productionCount Int           @default(0)
+  tags            String[]
+  source          String        @default("manual")
+  reviewEvents    ReviewEvent[]
+}
+
+model GrammarItem {
+  id              Int           @id @default(autoincrement())
+  patternId       String        @unique
+  name            String
+  description     String?
+  jlptLevel       String?
+  masteryState    String        @default("unseen")
+  recognitionFsrs Json
+  productionFsrs  Json
+  firstSeen       DateTime      @default(now())
+  lastReviewed    DateTime?
+  reviewEvents    ReviewEvent[]
+}
+
+model ReviewEvent {
+  id            Int          @id @default(autoincrement())
+  itemType      String
+  grade         String
+  modality      String
+  timestamp     DateTime     @default(now())
+  sessionId     String?
+  lexicalItem   LexicalItem? @relation(fields: [lexicalItemId], references: [id])
+  lexicalItemId Int?
+  grammarItem   GrammarItem? @relation(fields: [grammarItemId], references: [id])
+  grammarItemId Int?
+}
+
+model ConversationSession {
+  id              String   @id @default(uuid())
+  timestamp       DateTime @default(now())
+  durationSeconds Int?
+  transcript      Json
+  targetsPlanned  Json
+  targetsHit      Json
+  errorsLogged    Json
+  avoidanceEvents Json
+  sessionPlan     Json
+}
+
+model TomInference {
+  id            Int      @id @default(autoincrement())
+  type          String
+  itemIds       Int[]
+  confidence    Float
+  description   String
+  firstDetected DateTime @default(now())
+  lastUpdated   DateTime @updatedAt
+  resolved      Boolean  @default(false)
+}
