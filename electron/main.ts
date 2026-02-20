@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { disconnectDb } from './db'
@@ -18,12 +18,21 @@ import { createLogger } from './logger'
 
 const log = createLogger('app')
 
+function getWindowBounds(): { width: number; height: number } {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize
+  return {
+    width: Math.min(1280, width),
+    height: Math.min(900, height),
+  }
+}
+
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
+  const { width, height } = getWindowBounds()
 
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width,
+    height,
     minWidth: 800,
     minHeight: 600,
     ...(isMac && {
@@ -45,7 +54,7 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  log.info('Window created', { platform: process.platform, dev: is.dev })
+  log.info('Window created', { platform: process.platform, dev: is.dev, width, height })
 }
 
 app.whenReady().then(() => {
