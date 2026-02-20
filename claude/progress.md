@@ -128,29 +128,62 @@ All modules are pure TypeScript with zero Electron/React/Prisma dependencies.
 
 ---
 
+## Session 2: Supabase Setup & Migration (2026-02-19)
+
+### What Was Done
+- Started Docker Desktop
+- Ran `npx supabase start` — pulled all Docker images and started local Supabase instance
+- Ran `npx prisma migrate dev --name init` — applied initial migration, created all 6 tables
+- Verified tables exist via `docker exec` psql query
+
+### Local Supabase Services Running
+| Service | URL |
+|---|---|
+| Studio (DB browser) | http://127.0.0.1:54323 |
+| Postgres | postgresql://postgres:postgres@127.0.0.1:54322/postgres |
+| REST API | http://127.0.0.1:54321/rest/v1 |
+| GraphQL | http://127.0.0.1:54321/graphql/v1 |
+| Edge Functions | http://127.0.0.1:54321/functions/v1 |
+| Mailpit | http://127.0.0.1:54324 |
+
+### Database Tables Created
+- `LearnerProfile`
+- `LexicalItem`
+- `GrammarItem`
+- `ReviewEvent`
+- `ConversationSession`
+- `TomInference`
+- `_prisma_migrations` (Prisma internal)
+
+### Migration File
+- `prisma/migrations/20260220001444_init/migration.sql`
+
+---
+
 ## Current Project State
 
 ### What's Working
 - Full build pipeline (TypeScript → electron-vite → production bundles)
-- Prisma client generated from schema
+- Local Supabase running with all 6 tables migrated
+- Prisma client generated and connected to local Postgres
 - All core business logic implemented and type-safe
 - IPC handlers wired (reviews and wordbank fully implemented, conversation stubbed)
 - React renderer with routing, sidebar navigation, and data hooks
+- `npm run dev` is ready to launch the app
 
 ### What's Not Yet Working
-- **Supabase not started** — need Docker Desktop running, then `npx supabase start` + `npx prisma migrate dev --name init`
 - **Conversation partner** — Claude API integration is stubbed in `electron/ipc/conversation.ts`
 - **Review UI** — Page exists but the card review interface isn't built yet
 - **Onboarding flow** — No placement test or initial setup UI
-- **Production build launch** — Untested (dev mode should work once DB is up)
+- **Word bank UI** — Page exists but detail views not implemented
+- **Insights UI** — Page is a placeholder
 
 ### Next Steps (Priority Order)
-1. Start Docker + Supabase, run initial migration
-2. Build the SRS review card UI (the daily anchor habit)
-3. Integrate Claude API for conversation partner
-4. Build onboarding/placement flow
-5. Build word bank detail views
-6. Build insights/ToM display page
+1. Build the SRS review card UI (the daily anchor habit)
+2. Integrate Claude API for conversation partner
+3. Build onboarding/placement flow
+4. Build word bank detail views
+5. Build insights/ToM display page
 
 ### File Tree (35 source files)
 ```
