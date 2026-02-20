@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Box, Heading, Text, Card, Flex, Button } from '@radix-ui/themes'
 import type { ReviewSummary } from '@shared/types'
+import { useFrontier } from '../../hooks/use-frontier'
+import { DailyBrief } from './daily-brief'
 import { FrontierContainer } from './frontier/frontier-container'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<ReviewSummary | null>(null)
   const [dueCount, setDueCount] = useState(0)
+  const { data: frontierData } = useFrontier()
 
   useEffect(() => {
     window.linguist.reviewGetSummary().then(setSummary)
@@ -59,6 +62,8 @@ export function DashboardPage() {
           </Flex>
         </Card>
       </Flex>
+
+      {frontierData && <DailyBrief frontier={frontierData} />}
 
       <FrontierContainer />
     </Box>

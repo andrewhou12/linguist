@@ -13,6 +13,8 @@ import type {
   PragmaticState,
   ContextLogEntry,
   FrontierData,
+  TomBrief,
+  NarrativeDraft,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -106,6 +108,10 @@ interface LinguistApi {
 
   // Dashboard
   dashboardGetFrontier: () => Promise<FrontierData | null>
+
+  // Narrative
+  narrativeBuildDraft: (frontier: FrontierData, brief: TomBrief | null) => Promise<NarrativeDraft>
+  narrativePolish: (draft: NarrativeDraft) => Promise<string>
 }
 
 declare global {

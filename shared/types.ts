@@ -81,6 +81,10 @@ export const IPC_CHANNELS = {
 
   // Dashboard
   DASHBOARD_GET_FRONTIER: 'dashboard:get-frontier',
+
+  // Narrative
+  NARRATIVE_BUILD_DRAFT: 'narrative:build-draft',
+  NARRATIVE_POLISH: 'narrative:polish',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -349,6 +353,27 @@ export interface FrontierData {
   profile: ExpandedLearnerProfile
   items: FrontierItem[]
   masteryDistribution: Record<string, number>
+}
+
+// ── Narrative Brief Types ──
+
+export interface NarrativeDraft {
+  level: string
+  levelCoverage: number
+  frontierLevel: string
+  frontierCoverage: number
+  strongest: string
+  strongestValue: number
+  weakest: string
+  weakestValue: number
+  totalItems: number
+  activeItems: number
+  streak: number
+  gapCount: number
+  avoidanceCount: number
+  confusionCount: number
+  regressionCount: number
+  templateText: string
 }
 
 export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {

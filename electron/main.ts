@@ -12,6 +12,7 @@ import { registerCurriculumHandlers } from './ipc/curriculum'
 import { registerPragmaticHandlers } from './ipc/pragmatics'
 import { registerContextLogHandlers } from './ipc/context-log'
 import { registerDashboardHandlers } from './ipc/dashboard'
+import { registerNarrativeHandlers } from './ipc/narrative'
 
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
@@ -50,6 +51,7 @@ app.whenReady().then(() => {
   registerPragmaticHandlers()
   registerContextLogHandlers()
   registerDashboardHandlers()
+  registerNarrativeHandlers()
 
   createWindow()
 
