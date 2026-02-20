@@ -58,7 +58,11 @@ Respond with ONLY valid JSON matching this schema:
 }
 
 export function parseAnalysis(raw: string): ExpandedPostSessionAnalysis {
-  const parsed = JSON.parse(raw)
+  let cleaned = raw.trim()
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
+  }
+  const parsed = JSON.parse(cleaned)
   return {
     targetsHit: parsed.targets_hit ?? [],
     errorsLogged: (parsed.errors_logged ?? []).map(

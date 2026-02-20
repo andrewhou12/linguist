@@ -106,9 +106,14 @@ export function registerCurriculumHandlers(): void {
 
         return { itemId: created.id, itemType: 'lexical' }
       } else {
-        const created = await db.grammarItem.create({
-          data: {
-            patternId: currItem.patternId ?? `grammar_${Date.now()}`,
+        const patternId = currItem.patternId ?? `grammar_${Date.now()}`
+        const created = await db.grammarItem.upsert({
+          where: { patternId },
+          update: {
+            masteryState: 'introduced',
+          },
+          create: {
+            patternId,
             name: currItem.surfaceForm ?? currItem.patternId ?? '',
             description: currItem.meaning,
             cefrLevel: currItem.cefrLevel,

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Box, Heading, Text, Card, Flex, Button, Badge } from '@radix-ui/themes'
 import { X, RefreshCw, ArrowRight } from 'lucide-react'
 import type { KnowledgeBubble, CurriculumRecommendation } from '@shared/types'
+import { LevelProgressBar } from '../dashboard/frontier/components/level-progress-bar'
 
 interface SessionPreviewProps {
   bubble: KnowledgeBubble | null
@@ -43,25 +44,51 @@ export function SessionPreview({
             <Text size="2" weight="medium" color="gray">
               Knowledge Frontier
             </Text>
-            <Flex gap="4" align="center">
-              <Text size="4" weight="bold">
-                {bubble.currentLevel}
-              </Text>
-              <ArrowRight size={16} style={{ color: 'var(--gray-9)' }} />
-              <Text size="4" weight="bold" color="blue">
-                {bubble.frontierLevel}
-              </Text>
+            <Flex direction="column" gap="1">
+              {bubble.levelBreakdowns
+                .filter((lb) => lb.totalReferenceItems > 0)
+                .map((lb) => (
+                  <LevelProgressBar
+                    key={lb.level}
+                    level={lb}
+                    isCurrent={lb.level === bubble.currentLevel}
+                    isFrontier={lb.level === bubble.frontierLevel}
+                    isAboveFrontier={
+                      bubble.levelBreakdowns.findIndex((b) => b.level === lb.level) >
+                      bubble.levelBreakdowns.findIndex((b) => b.level === bubble.frontierLevel)
+                    }
+                  />
+                ))}
             </Flex>
-            <Flex gap="4">
+            <Flex gap="3" align="center">
+              <Flex gap="2" align="center">
+                <Box
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 2,
+                    backgroundColor: 'var(--accent-9)',
+                  }}
+                />
+                <Text size="1" color="gray">production</Text>
+              </Flex>
+              <Flex gap="2" align="center">
+                <Box
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 2,
+                    backgroundColor: 'var(--accent-5)',
+                  }}
+                />
+                <Text size="1" color="gray">recognition</Text>
+              </Flex>
+            </Flex>
+            {bubble.gapsInCurrentLevel.length > 0 && (
               <Text size="2" color="gray">
-                Coverage: {Math.round(bubble.overallCoverage * 100)}%
+                Gaps: {bubble.gapsInCurrentLevel.length} items in {bubble.currentLevel} remaining
               </Text>
-              {bubble.gapsInCurrentLevel.length > 0 && (
-                <Text size="2" color="gray">
-                  Gaps: {bubble.gapsInCurrentLevel.length} items
-                </Text>
-              )}
-            </Flex>
+            )}
           </Flex>
         </Card>
       )}

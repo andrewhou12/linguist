@@ -62,7 +62,11 @@ Respond with ONLY valid JSON matching this schema:
 // ── Response parsing ──
 
 export function parsePragmaticAnalysis(raw: string): PragmaticAnalysisResult {
-  const parsed = JSON.parse(raw)
+  let cleaned = raw.trim()
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
+  }
+  const parsed = JSON.parse(cleaned)
   return {
     casualCorrect: parsed.casual_correct ?? 0,
     casualTotal: parsed.casual_total ?? 0,

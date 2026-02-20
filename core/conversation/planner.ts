@@ -100,7 +100,12 @@ Respond with only valid JSON matching this schema:
 }
 
 export function parseSessionPlan(raw: string): ExpandedSessionPlan {
-  const parsed = JSON.parse(raw)
+  // Strip markdown fences if the LLM wraps the JSON in ```json ... ```
+  let cleaned = raw.trim()
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
+  }
+  const parsed = JSON.parse(cleaned)
   return {
     targetVocabulary: parsed.target_vocabulary ?? [],
     targetGrammar: parsed.target_grammar ?? [],
