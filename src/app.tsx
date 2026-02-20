@@ -6,6 +6,7 @@ import { ReviewPage } from './pages/review'
 import { LearnPage } from './pages/learn'
 import { KnowledgePage } from './pages/knowledge'
 import { ChatPage } from './pages/chat'
+import { SettingsPage } from './pages/settings'
 
 export function App() {
   return (
@@ -19,6 +20,7 @@ export function App() {
             <Route path="/learn" element={<LearnPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </AppShell>
       </HashRouter>

@@ -7,8 +7,10 @@ import {
   GraduationCap,
   BookOpen,
   MessageCircle,
+  Settings,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { UserMenu } from './user-menu'
 
 interface NavItem {
   to: string
@@ -23,6 +25,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
   { to: '/chat', label: 'Chat', icon: MessageCircle },
 ]
+
+const navLinkStyle = (isActive: boolean): CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '8px 12px',
+  borderRadius: 'var(--radius-2)',
+  textDecoration: 'none',
+  color: isActive ? 'var(--accent-11)' : 'var(--gray-11)',
+  backgroundColor: isActive ? 'var(--accent-3)' : 'transparent',
+  fontWeight: isActive ? 600 : 400,
+  WebkitAppRegion: 'no-drag',
+})
 
 const isMac = window.platform === 'darwin'
 const TITLEBAR_HEIGHT = 52
@@ -45,49 +60,62 @@ export function AppShell({ children }: { children: ReactNode }) {
             style={{ height: TITLEBAR_HEIGHT, flexShrink: 0 }}
           />
         )}
-        <div style={{ padding: 16, paddingTop: isMac ? 0 : 16, flex: 1 }}>
+        <div style={{ padding: 16, paddingTop: isMac ? 0 : 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Text size="5" weight="bold" mb="4" asChild>
             <h1 style={{ margin: 0 }}>Linguist</h1>
           </Text>
-          <Flex direction="column" gap="1" mt="4">
+          <Flex direction="column" gap="1" mt="4" style={{ flex: 1 }}>
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-2)',
-                  textDecoration: 'none',
-                  color: isActive
-                    ? 'var(--accent-11)'
-                    : 'var(--gray-11)',
-                  backgroundColor: isActive
-                    ? 'var(--accent-3)'
-                    : 'transparent',
-                  fontWeight: isActive ? 600 : 400,
-                  WebkitAppRegion: 'no-drag',
-                } as CSSProperties)}
+                style={({ isActive }) => navLinkStyle(isActive)}
               >
                 <item.icon size={18} />
                 {item.label}
               </NavLink>
             ))}
           </Flex>
+
+          {/* Settings at bottom */}
+          <NavLink
+            to="/settings"
+            style={({ isActive }) => navLinkStyle(isActive)}
+          >
+            <Settings size={18} />
+            Settings
+          </NavLink>
         </div>
       </nav>
-      <Box
-        p="6"
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          paddingTop: isMac ? TITLEBAR_HEIGHT : undefined,
-        }}
+
+      <Flex
+        direction="column"
+        style={{ flex: 1, overflow: 'hidden' }}
       >
-        {children}
-      </Box>
+        {/* Top bar with user menu */}
+        <Flex
+          align="center"
+          justify="end"
+          px="6"
+          style={{
+            height: isMac ? TITLEBAR_HEIGHT : 48,
+            flexShrink: 0,
+            WebkitAppRegion: isMac ? 'drag' : undefined,
+          } as CSSProperties}
+        >
+          <Box style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+            <UserMenu />
+          </Box>
+        </Flex>
+
+        <Box
+          px="6"
+          pb="6"
+          style={{ flex: 1, overflow: 'auto' }}
+        >
+          {children}
+        </Box>
+      </Flex>
     </Flex>
   )
 }

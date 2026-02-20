@@ -27,6 +27,7 @@ function createWindow(): void {
       titleBarStyle: 'hiddenInset',
       trafficLightPosition: { x: 16, y: 18 },
     }),
+    acceptFirstMouse: true,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       contextIsolation: true,
