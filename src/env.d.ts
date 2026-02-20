@@ -13,6 +13,7 @@ import type {
   PragmaticState,
   ContextLogEntry,
   FrontierData,
+  WeeklyStats,
   NarrativeDraft,
   ChatMessage,
   PostSessionAnalysis,
@@ -102,6 +103,7 @@ interface LinguistApi {
 
   // Dashboard
   dashboardGetFrontier: () => Promise<FrontierData | null>
+  dashboardGetWeeklyStats: () => Promise<WeeklyStats>
 
   // Narrative
   narrativeBuildDraft: (frontier: FrontierData, brief: TomBrief | null) => Promise<NarrativeDraft>

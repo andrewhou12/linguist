@@ -81,6 +81,7 @@ export const IPC_CHANNELS = {
 
   // Dashboard
   DASHBOARD_GET_FRONTIER: 'dashboard:get-frontier',
+  DASHBOARD_GET_WEEKLY_STATS: 'dashboard:get-weekly-stats',
 
   // Narrative
   NARRATIVE_BUILD_DRAFT: 'narrative:build-draft',
@@ -341,6 +342,17 @@ export interface ExpandedSessionPlan extends SessionPlan {
     patternId: string
     novelContext: string
   }>
+}
+
+// ── Dashboard Weekly Stats ──
+
+export interface WeeklyStats {
+  reviewsThisWeek: number
+  accuracyThisWeek: number
+  sessionsThisWeek: number
+  currentStreak: number
+  longestStreak: number
+  itemsLearned: number // new items that moved past "introduced" this week
 }
 
 // ── Dashboard Frontier Types ──
