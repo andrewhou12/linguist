@@ -1,62 +1,152 @@
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/types'
-import type { TomBrief } from '@shared/types'
+import type { ExpandedTomBrief, FsrsState, PragmaticState } from '@shared/types'
 import { getDb } from '../db'
 import {
-  generateDailyBrief,
+  generateExpandedDailyBrief,
   type ItemReviewHistory,
   type ErrorRecord,
+  type ModalityItemData,
+  type GrammarTransferData,
 } from '@core/tom/analyzer'
+
+async function gatherAnalysisData() {
+  const db = getDb()
+
+  // Gather item review histories
+  const lexicalItems = await db.lexicalItem.findMany({
+    where: { masteryState: { not: 'unseen' } },
+    include: { reviewEvents: { orderBy: { timestamp: 'desc' }, take: 10 } },
+  })
+
+  const grammarItems = await db.grammarItem.findMany({
+    where: { masteryState: { not: 'unseen' } },
+    include: { reviewEvents: { orderBy: { timestamp: 'desc' }, take: 10 } },
+  })
+
+  // Count conversation sessions per item for sessionsInCurrentState approximation
+  const conversationSessions = await db.conversationSession.findMany({
+    orderBy: { timestamp: 'desc' },
+    take: 50,
+  })
+  const totalSessionCount = conversationSessions.length
+
+  const items: ItemReviewHistory[] = [
+    ...lexicalItems.map((item) => ({
+      itemId: item.id,
+      masteryState: item.masteryState as ItemReviewHistory['masteryState'],
+      productionCount: item.productionCount,
+      conversationProductionCount: item.speakingProductions + item.writingProductions,
+      sessionsInCurrentState: Math.min(totalSessionCount, 10), // approximate
+      recentGrades: item.reviewEvents.map(
+        (e) => e.grade as ItemReviewHistory['recentGrades'][number]
+      ),
+    })),
+    ...grammarItems.map((item) => ({
+      itemId: item.id,
+      masteryState: item.masteryState as ItemReviewHistory['masteryState'],
+      productionCount: 0,
+      conversationProductionCount: item.speakingProductions + item.writingProductions,
+      sessionsInCurrentState: Math.min(totalSessionCount, 10),
+      recentGrades: item.reviewEvents.map(
+        (e) => e.grade as ItemReviewHistory['recentGrades'][number]
+      ),
+    })),
+  ]
+
+  // Gather error records
+  const recentErrors = await db.reviewEvent.findMany({
+    where: { grade: { in: ['again', 'hard'] } },
+    orderBy: { timestamp: 'desc' },
+    take: 100,
+  })
+
+  const errors: ErrorRecord[] = recentErrors
+    .filter((e) => e.sessionId)
+    .map((e) => ({
+      itemId: e.lexicalItemId ?? e.grammarItemId ?? 0,
+      sessionId: e.sessionId!,
+      errorType: e.grade,
+    }))
+
+  // Modality data for gap detection
+  const modalityData: ModalityItemData[] = [
+    ...lexicalItems.map((item) => ({
+      itemId: item.id,
+      recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
+      productionFsrs: item.productionFsrs as unknown as FsrsState,
+      readingExposures: item.readingExposures,
+      listeningExposures: item.listeningExposures,
+      speakingProductions: item.speakingProductions,
+      writingProductions: item.writingProductions,
+    })),
+    ...grammarItems.map((item) => ({
+      itemId: item.id,
+      recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
+      productionFsrs: item.productionFsrs as unknown as FsrsState,
+      readingExposures: item.readingExposures,
+      listeningExposures: item.listeningExposures,
+      speakingProductions: item.speakingProductions,
+      writingProductions: item.writingProductions,
+    })),
+  ]
+
+  // Grammar transfer data
+  const grammarTransferData: GrammarTransferData[] = grammarItems.map((item) => ({
+    itemId: item.id,
+    patternId: item.patternId,
+    masteryState: item.masteryState as GrammarTransferData['masteryState'],
+    contextCount: item.contextCount,
+  }))
+
+  // Pragmatic profile
+  let pragmaticState: PragmaticState | null = null
+  const pragProfile = await db.pragmaticProfile.findUnique({ where: { id: 1 } })
+  if (pragProfile) {
+    pragmaticState = {
+      casualAccuracy: pragProfile.casualAccuracy,
+      politeAccuracy: pragProfile.politeAccuracy,
+      registerSlipCount: pragProfile.registerSlipCount,
+      preferredRegister: pragProfile.preferredRegister,
+      circumlocutionCount: pragProfile.circumlocutionCount,
+      silenceEvents: pragProfile.silenceEvents,
+      l1FallbackCount: pragProfile.l1FallbackCount,
+      averageSpeakingPace: pragProfile.averageSpeakingPace,
+      hesitationRate: pragProfile.hesitationRate,
+      avoidedGrammarPatterns: pragProfile.avoidedGrammarPatterns,
+      avoidedVocabIds: pragProfile.avoidedVocabIds,
+    }
+  }
+
+  return { items, errors, modalityData, grammarTransferData, pragmaticState }
+}
 
 export function registerTomHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.TOM_RUN_ANALYSIS, async (): Promise<void> => {
     const db = getDb()
+    const { items, errors, modalityData, grammarTransferData, pragmaticState } =
+      await gatherAnalysisData()
 
-    // Gather item review histories
-    const lexicalItems = await db.lexicalItem.findMany({
-      where: { masteryState: { not: 'unseen' } },
-      include: { reviewEvents: { orderBy: { timestamp: 'desc' }, take: 10 } },
+    const brief = generateExpandedDailyBrief({
+      items,
+      errors,
+      modalityData,
+      grammarTransferData,
+      pragmaticState,
+      recommendedDifficulty: 'N5',
     })
 
-    const items: ItemReviewHistory[] = lexicalItems.map((item) => ({
-      itemId: item.id,
-      masteryState: item.masteryState as ItemReviewHistory['masteryState'],
-      productionCount: item.productionCount,
-      conversationProductionCount: 0, // TODO: compute from conversation sessions
-      sessionsInCurrentState: 0, // TODO: compute from session history
-      recentGrades: item.reviewEvents.map(
-        (e) => e.grade as ItemReviewHistory['recentGrades'][number]
-      ),
-    }))
-
-    // Gather error records
-    const recentErrors = await db.reviewEvent.findMany({
-      where: { grade: { in: ['again', 'hard'] } },
-      orderBy: { timestamp: 'desc' },
-      take: 100,
+    // Store inferences in DB — clear old unresolved ones first, then create fresh
+    await db.tomInference.updateMany({
+      where: { resolved: false },
+      data: { resolved: true },
     })
 
-    const errors: ErrorRecord[] = recentErrors
-      .filter((e) => e.sessionId)
-      .map((e) => ({
-        itemId: e.lexicalItemId ?? e.grammarItemId ?? 0,
-        sessionId: e.sessionId!,
-        errorType: e.grade,
-      }))
-
-    const brief = generateDailyBrief(items, errors, 'N5')
-
-    // Store inferences in DB
     for (const avoidance of brief.avoidancePatterns) {
-      await db.tomInference.upsert({
-        where: { id: 0 }, // Will create new
-        create: {
+      await db.tomInference.create({
+        data: {
           type: 'avoidance',
           itemIds: [avoidance.itemId],
-          confidence: 0.7,
-          description: `Item avoided for ${avoidance.sessionsAvoided} sessions`,
-        },
-        update: {
           confidence: 0.7,
           description: `Item avoided for ${avoidance.sessionsAvoided} sessions`,
         },
@@ -84,42 +174,62 @@ export function registerTomHandlers(): void {
         },
       })
     }
+
+    for (const gap of brief.modalityGaps) {
+      await db.tomInference.create({
+        data: {
+          type: 'modality_gap',
+          itemIds: [],
+          confidence: 0.75,
+          description: `${gap.modality} modality gap: ${gap.currentLevel} vs strongest ${gap.strongestLevel}`,
+        },
+      })
+    }
+
+    for (const transfer of brief.transferGaps) {
+      await db.tomInference.create({
+        data: {
+          type: 'transfer_gap',
+          itemIds: [transfer.itemId],
+          confidence: 0.65,
+          description: `Grammar pattern ${transfer.patternId} needs novel context (${transfer.contextCount}/${transfer.needed})`,
+        },
+      })
+    }
+
+    // Update learner profile pattern summaries
+    const profile = await db.learnerProfile.findUnique({ where: { id: 1 } })
+    if (profile) {
+      await db.learnerProfile.update({
+        where: { id: 1 },
+        data: {
+          errorPatternSummary: {
+            confusionPairs: brief.confusionPairs.length,
+            regressions: brief.regressions.length,
+            modalityGaps: brief.modalityGaps.map((g) => g.modality),
+          },
+          avoidancePatternSummary: {
+            avoidanceCount: brief.avoidancePatterns.length,
+            transferGaps: brief.transferGaps.length,
+            avoidedItems: brief.avoidancePatterns.map((a) => a.itemId),
+          },
+        },
+      })
+    }
   })
 
-  ipcMain.handle(IPC_CHANNELS.TOM_GET_BRIEF, async (): Promise<TomBrief> => {
-    const db = getDb()
+  ipcMain.handle(IPC_CHANNELS.TOM_GET_BRIEF, async (): Promise<ExpandedTomBrief> => {
+    const { items, errors, modalityData, grammarTransferData, pragmaticState } =
+      await gatherAnalysisData()
 
-    const lexicalItems = await db.lexicalItem.findMany({
-      where: { masteryState: { not: 'unseen' } },
-      include: { reviewEvents: { orderBy: { timestamp: 'desc' }, take: 10 } },
+    return generateExpandedDailyBrief({
+      items,
+      errors,
+      modalityData,
+      grammarTransferData,
+      pragmaticState,
+      recommendedDifficulty: 'N5',
     })
-
-    const items: ItemReviewHistory[] = lexicalItems.map((item) => ({
-      itemId: item.id,
-      masteryState: item.masteryState as ItemReviewHistory['masteryState'],
-      productionCount: item.productionCount,
-      conversationProductionCount: 0,
-      sessionsInCurrentState: 0,
-      recentGrades: item.reviewEvents.map(
-        (e) => e.grade as ItemReviewHistory['recentGrades'][number]
-      ),
-    }))
-
-    const recentErrors = await db.reviewEvent.findMany({
-      where: { grade: { in: ['again', 'hard'] } },
-      orderBy: { timestamp: 'desc' },
-      take: 100,
-    })
-
-    const errors: ErrorRecord[] = recentErrors
-      .filter((e) => e.sessionId)
-      .map((e) => ({
-        itemId: e.lexicalItemId ?? e.grammarItemId ?? 0,
-        sessionId: e.sessionId!,
-        errorType: e.grade,
-      }))
-
-    return generateDailyBrief(items, errors, 'N5')
   })
 
   ipcMain.handle(

@@ -16,6 +16,8 @@ export enum MasteryState {
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
 export type ReviewModality = 'recognition' | 'production' | 'cloze'
 export type ItemType = 'lexical' | 'grammar'
+export type LearningModality = 'reading' | 'listening' | 'speaking' | 'writing'
+export type ContextType = 'srs_review' | 'conversation' | 'reading' | 'textbook' | 'drill'
 
 // ── FSRS ──
 
@@ -56,6 +58,26 @@ export const IPC_CHANNELS = {
   TOM_RUN_ANALYSIS: 'tom:run-analysis',
   TOM_GET_BRIEF: 'tom:get-brief',
   TOM_GET_INFERENCES: 'tom:get-inferences',
+
+  // Profile
+  PROFILE_GET: 'profile:get',
+  PROFILE_UPDATE: 'profile:update',
+  PROFILE_RECALCULATE: 'profile:recalculate',
+
+  // Curriculum
+  CURRICULUM_GET_BUBBLE: 'curriculum:get-bubble',
+  CURRICULUM_GET_RECOMMENDATIONS: 'curriculum:get-recommendations',
+  CURRICULUM_INTRODUCE_ITEM: 'curriculum:introduce-item',
+  CURRICULUM_SKIP_ITEM: 'curriculum:skip-item',
+  CURRICULUM_REGENERATE: 'curriculum:regenerate',
+
+  // Pragmatics
+  PRAGMATIC_GET_STATE: 'pragmatic:get-state',
+  PRAGMATIC_UPDATE: 'pragmatic:update',
+
+  // Context Log
+  CONTEXT_LOG_LIST: 'context-log:list',
+  CONTEXT_LOG_ADD: 'context-log:add',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -68,6 +90,8 @@ export interface ReviewSubmission {
   grade: ReviewGrade
   modality: ReviewModality
   sessionId?: string
+  productionWeight?: number
+  contextType?: ContextType
 }
 
 export interface ReviewQueueItem {
@@ -156,4 +180,173 @@ export interface PostSessionAnalysis {
     contextQuote: string
   }>
   overallAssessment: string
+}
+
+// ── Expanded Knowledge Model Types ──
+
+export interface ExpandedLearnerProfile {
+  id: number
+  targetLanguage: string
+  nativeLanguage: string
+  dailyNewItemLimit: number
+  targetRetention: number
+  computedLevel: string
+  comprehensionCeiling: string
+  productionCeiling: string
+  readingLevel: number
+  listeningLevel: number
+  speakingLevel: number
+  writingLevel: number
+  totalSessions: number
+  totalReviewEvents: number
+  currentStreak: number
+  longestStreak: number
+  lastActiveDate: string | null
+  errorPatternSummary: Record<string, unknown>
+  avoidancePatternSummary: Record<string, unknown>
+}
+
+export interface ModalityBreakdown {
+  reading: number
+  listening: number
+  speaking: number
+  writing: number
+}
+
+export interface LevelBreakdown {
+  level: string
+  totalReferenceItems: number
+  knownItems: number
+  productionReady: number
+  coverage: number
+}
+
+export interface KnowledgeBubble {
+  levelBreakdowns: LevelBreakdown[]
+  currentLevel: string
+  frontierLevel: string
+  gapsInCurrentLevel: Array<{
+    itemType: ItemType
+    surfaceForm?: string
+    patternId?: string
+    reason: string
+  }>
+  overallCoverage: number
+}
+
+export interface CurriculumRecommendation {
+  itemType: ItemType
+  surfaceForm?: string
+  reading?: string
+  meaning?: string
+  patternId?: string
+  jlptLevel?: string
+  frequencyRank?: number
+  priority: number
+  reason: string
+  prerequisitesMet: boolean
+}
+
+export interface PragmaticState {
+  casualAccuracy: number
+  politeAccuracy: number
+  registerSlipCount: number
+  preferredRegister: string
+  circumlocutionCount: number
+  silenceEvents: number
+  l1FallbackCount: number
+  averageSpeakingPace: number | null
+  hesitationRate: number | null
+  avoidedGrammarPatterns: string[]
+  avoidedVocabIds: number[]
+}
+
+export interface ContextLogEntry {
+  id: number
+  contextType: ContextType
+  modality: LearningModality
+  wasProduction: boolean
+  wasSuccessful: boolean | null
+  contextQuote: string | null
+  sessionId: string | null
+  timestamp: string
+  lexicalItemId: number | null
+  grammarItemId: number | null
+}
+
+export interface ExpandedItemDetail extends WordBankEntry {
+  contextTypes: string[]
+  contextCount: number
+  readingExposures: number
+  listeningExposures: number
+  speakingProductions: number
+  writingProductions: number
+  frequencyRank: number | null
+  jlptLevel: string | null
+  productionWeight: number
+}
+
+export interface ExpandedTomBrief extends TomBrief {
+  modalityGaps: Array<{
+    modality: LearningModality
+    currentLevel: number
+    strongestLevel: number
+    gap: number
+  }>
+  transferGaps: Array<{
+    itemId: number
+    patternId: string
+    contextCount: number
+    needed: number
+  }>
+  pragmaticInsights: {
+    registerAccuracy: { casual: number; polite: number }
+    strategyCount: { circumlocution: number; l1Fallback: number; silence: number }
+    avoidedPatterns: string[]
+  }
+  curriculumSuggestions: Array<{
+    itemType: ItemType
+    reason: string
+    priority: number
+  }>
+}
+
+export interface ExpandedSessionPlan extends SessionPlan {
+  pragmaticTargets: {
+    targetRegister: 'casual' | 'polite'
+    registerFocusAreas: string[]
+    encourageCircumlocution: boolean
+  }
+  curriculumNewItems: Array<{
+    itemType: ItemType
+    surfaceForm?: string
+    patternId?: string
+    reason: string
+  }>
+  transferTestTargets: Array<{
+    itemId: number
+    patternId: string
+    novelContext: string
+  }>
+}
+
+export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {
+  registerAccuracy: {
+    correctRegisterUses: number
+    registerSlips: number
+    targetRegister: string
+  }
+  strategyEvents: {
+    circumlocutions: Array<{ contextQuote: string; targetItem?: string }>
+    l1Fallbacks: Array<{ contextQuote: string; intendedMeaning?: string }>
+    silenceEvents: number
+  }
+  contextLogs: Array<{
+    itemId: number
+    itemType: ItemType
+    contextType: ContextType
+    modality: LearningModality
+    wasProduction: boolean
+    wasSuccessful: boolean
+  }>
 }

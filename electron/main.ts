@@ -7,6 +7,10 @@ import { registerReviewHandlers } from './ipc/reviews'
 import { registerWordbankHandlers } from './ipc/wordbank'
 import { registerConversationHandlers } from './ipc/conversation'
 import { registerTomHandlers } from './ipc/tom'
+import { registerProfileHandlers } from './ipc/profile'
+import { registerCurriculumHandlers } from './ipc/curriculum'
+import { registerPragmaticHandlers } from './ipc/pragmatics'
+import { registerContextLogHandlers } from './ipc/context-log'
 
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
@@ -40,6 +44,10 @@ app.whenReady().then(() => {
   registerWordbankHandlers()
   registerConversationHandlers()
   registerTomHandlers()
+  registerProfileHandlers()
+  registerCurriculumHandlers()
+  registerPragmaticHandlers()
+  registerContextLogHandlers()
 
   createWindow()
 

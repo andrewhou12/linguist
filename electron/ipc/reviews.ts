@@ -5,14 +5,17 @@ import type {
   ReviewQueueItem,
   ReviewSummary,
   FsrsState,
+  LearningModality,
 } from '@shared/types'
 import type { Prisma } from '@prisma/client'
 import { getDb } from '../db'
 import { computeReviewQueue, scheduleReview } from '@core/fsrs/scheduler'
 import { computeNextMasteryState } from '@core/mastery/state-machine'
+import { recalculateProfile } from '@core/profile/calculator'
 import { MasteryState } from '@shared/types'
 
 const MAX_QUEUE_SIZE = 200
+let reviewCount = 0
 
 export function registerReviewHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.REVIEW_GET_QUEUE, async (): Promise<ReviewQueueItem[]> => {
@@ -57,6 +60,8 @@ export function registerReviewHandlers(): void {
     IPC_CHANNELS.REVIEW_SUBMIT,
     async (_event, submission: ReviewSubmission): Promise<{ newMasteryState: string }> => {
       const db = getDb()
+      const prodWeight = submission.productionWeight ?? (submission.modality === 'production' ? 0.5 : 1.0)
+      const contextType = submission.contextType ?? 'srs_review'
 
       // Log the review event
       await db.reviewEvent.create({
@@ -65,6 +70,24 @@ export function registerReviewHandlers(): void {
           grade: submission.grade,
           modality: submission.modality,
           sessionId: submission.sessionId,
+          productionWeight: prodWeight,
+          contextType,
+          lexicalItemId: submission.itemType === 'lexical' ? submission.itemId : null,
+          grammarItemId: submission.itemType === 'grammar' ? submission.itemId : null,
+        },
+      })
+
+      // Determine modality for context log
+      const modality: LearningModality =
+        submission.modality === 'production' ? 'writing' : 'reading'
+
+      // Create ItemContextLog entry
+      await db.itemContextLog.create({
+        data: {
+          contextType,
+          modality,
+          wasProduction: submission.modality === 'production',
+          wasSuccessful: submission.grade === 'good' || submission.grade === 'easy',
           lexicalItemId: submission.itemType === 'lexical' ? submission.itemId : null,
           grammarItemId: submission.itemType === 'grammar' ? submission.itemId : null,
         },
@@ -81,14 +104,36 @@ export function registerReviewHandlers(): void {
         const currentFsrs = item[fsrsField] as unknown as FsrsState
         const { nextState } = scheduleReview(currentFsrs, submission.grade)
 
-        const hasProduction = item.productionCount > 0 || submission.modality === 'production'
+        // Accumulate production weight
+        const newProductionWeight =
+          item.productionWeight +
+          (submission.modality === 'production' ? prodWeight : 0)
+
+        const hasProduction = newProductionWeight >= 1.0 || item.productionCount > 0
+
+        // Update contextTypes if srs_review not already present
+        const updatedContextTypes = item.contextTypes.includes(contextType)
+          ? item.contextTypes
+          : [...item.contextTypes, contextType]
+
         const newMastery = computeNextMasteryState({
           currentState: item.masteryState as MasteryState,
           grade: submission.grade,
           modality: submission.modality,
           hasProductionEvidence: hasProduction,
           productionCount: item.productionCount,
+          productionWeight: newProductionWeight,
+          contextCount: updatedContextTypes.length,
+          novelContextCount: 0, // lexical items don't track novel contexts
         })
+
+        // Build modality counter updates
+        const modalityUpdates: Record<string, { increment: number }> = {}
+        if (modality === 'reading') {
+          modalityUpdates.readingExposures = { increment: 1 }
+        } else if (modality === 'writing') {
+          modalityUpdates.writingProductions = { increment: 1 }
+        }
 
         await db.lexicalItem.update({
           where: { id: submission.itemId },
@@ -97,11 +142,23 @@ export function registerReviewHandlers(): void {
             masteryState: newMastery,
             lastReviewed: new Date(),
             exposureCount: { increment: 1 },
+            productionWeight: newProductionWeight,
+            contextTypes: updatedContextTypes,
+            contextCount: updatedContextTypes.length,
+            ...modalityUpdates,
             ...(submission.modality === 'production'
               ? { productionCount: { increment: 1 } }
               : {}),
           },
         })
+
+        // Trigger async profile recalculation every 10 reviews
+        reviewCount++
+        if (reviewCount % 10 === 0) {
+          triggerProfileRecalculation().catch(() => {
+            // Profile recalculation is best-effort
+          })
+        }
 
         return { newMasteryState: newMastery }
       } else {
@@ -111,13 +168,31 @@ export function registerReviewHandlers(): void {
         const currentFsrs = item[fsrsField] as unknown as FsrsState
         const { nextState } = scheduleReview(currentFsrs, submission.grade)
 
+        const newProductionWeight =
+          item.productionWeight +
+          (submission.modality === 'production' ? prodWeight : 0)
+
+        const updatedContextTypes = item.contextTypes.includes(contextType)
+          ? item.contextTypes
+          : [...item.contextTypes, contextType]
+
         const newMastery = computeNextMasteryState({
           currentState: item.masteryState as MasteryState,
           grade: submission.grade,
           modality: submission.modality,
-          hasProductionEvidence: submission.modality === 'production',
+          hasProductionEvidence: newProductionWeight >= 1.0,
           productionCount: 0,
+          productionWeight: newProductionWeight,
+          contextCount: updatedContextTypes.length,
+          novelContextCount: item.novelContextCount,
         })
+
+        const modalityUpdates: Record<string, { increment: number }> = {}
+        if (modality === 'reading') {
+          modalityUpdates.readingExposures = { increment: 1 }
+        } else if (modality === 'writing') {
+          modalityUpdates.writingProductions = { increment: 1 }
+        }
 
         await db.grammarItem.update({
           where: { id: submission.itemId },
@@ -125,8 +200,17 @@ export function registerReviewHandlers(): void {
             [fsrsField]: nextState as unknown as Prisma.InputJsonValue,
             masteryState: newMastery,
             lastReviewed: new Date(),
+            productionWeight: newProductionWeight,
+            contextTypes: updatedContextTypes,
+            contextCount: updatedContextTypes.length,
+            ...modalityUpdates,
           },
         })
+
+        reviewCount++
+        if (reviewCount % 10 === 0) {
+          triggerProfileRecalculation().catch(() => {})
+        }
 
         return { newMasteryState: newMastery }
       }
@@ -149,8 +233,67 @@ export function registerReviewHandlers(): void {
     return {
       totalReviewed: todayReviews.length,
       accuracy: todayReviews.length > 0 ? correctCount / todayReviews.length : 0,
-      newItemsAdded: 0, // TODO: track in session
-      masteryChanges: [], // TODO: track in session
+      newItemsAdded: 0,
+      masteryChanges: [],
     }
+  })
+}
+
+async function triggerProfileRecalculation(): Promise<void> {
+  const db = getDb()
+
+  const lexicalItems = await db.lexicalItem.findMany({
+    where: { masteryState: { not: 'unseen' } },
+  })
+  const grammarItems = await db.grammarItem.findMany({
+    where: { masteryState: { not: 'unseen' } },
+  })
+
+  const items = [
+    ...lexicalItems.map((item) => ({
+      id: item.id,
+      itemType: 'lexical' as const,
+      jlptLevel: item.jlptLevel,
+      masteryState: item.masteryState,
+      recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
+      productionFsrs: item.productionFsrs as unknown as FsrsState,
+      writingProductions: item.writingProductions,
+      readingExposures: item.readingExposures,
+      listeningExposures: item.listeningExposures,
+      speakingProductions: item.speakingProductions,
+    })),
+    ...grammarItems.map((item) => ({
+      id: item.id,
+      itemType: 'grammar' as const,
+      jlptLevel: item.jlptLevel,
+      masteryState: item.masteryState,
+      recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
+      productionFsrs: item.productionFsrs as unknown as FsrsState,
+      writingProductions: item.writingProductions,
+      readingExposures: item.readingExposures,
+      listeningExposures: item.listeningExposures,
+      speakingProductions: item.speakingProductions,
+    })),
+  ]
+
+  const profile = await db.learnerProfile.findUniqueOrThrow({ where: { id: 1 } })
+  const totalReviewEvents = await db.reviewEvent.count()
+
+  const update = recalculateProfile({
+    items,
+    totalReviewEvents,
+    lastActiveDate: new Date().toISOString(),
+    previousStreak: profile.currentStreak,
+    previousLongestStreak: profile.longestStreak,
+    previousLastActiveDate: profile.lastActiveDate?.toISOString() ?? null,
+  })
+
+  await db.learnerProfile.update({
+    where: { id: 1 },
+    data: {
+      ...update,
+      totalReviewEvents,
+      lastActiveDate: new Date(),
+    },
   })
 }

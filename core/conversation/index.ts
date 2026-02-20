@@ -1,6 +1,7 @@
 export {
   buildPlanningPrompt,
   buildConversationSystemPrompt,
+  parseSessionPlan,
   type LearnerSummary,
 } from './planner'
 

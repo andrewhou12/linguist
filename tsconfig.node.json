@@ -20,6 +20,7 @@
   "include": [
     "electron/**/*.ts",
     "core/**/*.ts",
+    "core/**/*.json",
     "shared/**/*.ts",
     "electron.vite.config.ts"
   ]

@@ -6,6 +6,9 @@ export interface MasteryContext {
   modality: 'recognition' | 'production' | 'cloze'
   hasProductionEvidence: boolean // true if item has any logged production event
   productionCount: number
+  productionWeight: number // accumulated production weight (drill=0.5, conversation=1.0)
+  contextCount: number // distinct context types the item has been seen in
+  novelContextCount: number // contexts different from where item was first learned (grammar only)
 }
 
 const PROMOTION_MAP: Partial<Record<MasteryState, MasteryState>> = {
@@ -14,9 +17,9 @@ const PROMOTION_MAP: Partial<Record<MasteryState, MasteryState>> = {
   [MasteryState.Apprentice1]: MasteryState.Apprentice2,
   [MasteryState.Apprentice2]: MasteryState.Apprentice3,
   [MasteryState.Apprentice3]: MasteryState.Apprentice4,
-  [MasteryState.Apprentice4]: MasteryState.Journeyman, // gated by production evidence
-  [MasteryState.Journeyman]: MasteryState.Expert,
-  [MasteryState.Expert]: MasteryState.Master,
+  [MasteryState.Apprentice4]: MasteryState.Journeyman, // gated by production weight
+  [MasteryState.Journeyman]: MasteryState.Expert, // gated by context breadth
+  [MasteryState.Expert]: MasteryState.Master, // grammar: gated by novel context (transfer)
   [MasteryState.Master]: MasteryState.Burned,
 }
 
@@ -31,7 +34,7 @@ const DEMOTION_MAP: Partial<Record<MasteryState, MasteryState>> = {
 }
 
 export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
-  const { currentState, grade, hasProductionEvidence } = ctx
+  const { currentState, grade } = ctx
 
   // Demotion on "again"
   if (grade === 'again') {
@@ -49,13 +52,25 @@ export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
     return currentState
   }
 
-  // Critical rule: cannot advance past apprentice_4 without production evidence
-  if (
-    currentState === MasteryState.Apprentice4 &&
-    nextState === MasteryState.Journeyman &&
-    !hasProductionEvidence
-  ) {
-    return MasteryState.Apprentice4
+  // Gate: apprentice_4 → journeyman requires productionWeight >= 1.0
+  if (currentState === MasteryState.Apprentice4 && nextState === MasteryState.Journeyman) {
+    if (ctx.productionWeight < 1.0) {
+      return MasteryState.Apprentice4
+    }
+  }
+
+  // Gate: journeyman → expert requires contextCount >= 3
+  if (currentState === MasteryState.Journeyman && nextState === MasteryState.Expert) {
+    if (ctx.contextCount < 3) {
+      return MasteryState.Journeyman
+    }
+  }
+
+  // Gate: expert → master (grammar) requires novelContextCount >= 2
+  if (currentState === MasteryState.Expert && nextState === MasteryState.Master) {
+    if (ctx.novelContextCount < 2) {
+      return MasteryState.Expert
+    }
   }
 
   return nextState

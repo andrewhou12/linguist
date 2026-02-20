@@ -8,58 +8,95 @@ datasource db {
 }
 
 model LearnerProfile {
-  id                Int      @id @default(1)
-  targetLanguage    String
-  nativeLanguage    String
-  dailyNewItemLimit Int      @default(10)
-  targetRetention   Float    @default(0.90)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                      Int      @id @default(1)
+  targetLanguage          String
+  nativeLanguage          String
+  dailyNewItemLimit       Int      @default(10)
+  targetRetention         Float    @default(0.90)
+  computedLevel           String   @default("N5")
+  comprehensionCeiling    String   @default("N5")
+  productionCeiling       String   @default("N5")
+  readingLevel            Float    @default(0)
+  listeningLevel          Float    @default(0)
+  speakingLevel           Float    @default(0)
+  writingLevel            Float    @default(0)
+  totalSessions           Int      @default(0)
+  totalReviewEvents       Int      @default(0)
+  currentStreak           Int      @default(0)
+  longestStreak           Int      @default(0)
+  lastActiveDate          DateTime?
+  errorPatternSummary     Json     @default("{}")
+  avoidancePatternSummary Json     @default("{}")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model LexicalItem {
-  id              Int           @id @default(autoincrement())
-  surfaceForm     String
-  reading         String?
-  meaning         String
-  partOfSpeech    String?
-  masteryState    String        @default("unseen")
-  recognitionFsrs Json
-  productionFsrs  Json
-  firstSeen       DateTime      @default(now())
-  lastReviewed    DateTime?
-  exposureCount   Int           @default(0)
-  productionCount Int           @default(0)
-  tags            String[]
-  source          String        @default("manual")
-  reviewEvents    ReviewEvent[]
+  id                  Int              @id @default(autoincrement())
+  surfaceForm         String
+  reading             String?
+  meaning             String
+  partOfSpeech        String?
+  masteryState        String           @default("unseen")
+  recognitionFsrs     Json
+  productionFsrs      Json
+  firstSeen           DateTime         @default(now())
+  lastReviewed        DateTime?
+  exposureCount       Int              @default(0)
+  productionCount     Int              @default(0)
+  tags                String[]
+  source              String           @default("manual")
+  contextTypes        String[]         @default([])
+  contextCount        Int              @default(0)
+  readingExposures    Int              @default(0)
+  listeningExposures  Int              @default(0)
+  speakingProductions Int              @default(0)
+  writingProductions  Int              @default(0)
+  frequencyRank       Int?
+  jlptLevel           String?
+  productionWeight    Float            @default(0)
+  reviewEvents        ReviewEvent[]
+  contextLogs         ItemContextLog[]
 }
 
 model GrammarItem {
-  id              Int           @id @default(autoincrement())
-  patternId       String        @unique
-  name            String
-  description     String?
-  jlptLevel       String?
-  masteryState    String        @default("unseen")
-  recognitionFsrs Json
-  productionFsrs  Json
-  firstSeen       DateTime      @default(now())
-  lastReviewed    DateTime?
-  reviewEvents    ReviewEvent[]
+  id                  Int              @id @default(autoincrement())
+  patternId           String           @unique
+  name                String
+  description         String?
+  jlptLevel           String?
+  masteryState        String           @default("unseen")
+  recognitionFsrs     Json
+  productionFsrs      Json
+  firstSeen           DateTime         @default(now())
+  lastReviewed        DateTime?
+  contextTypes        String[]         @default([])
+  contextCount        Int              @default(0)
+  readingExposures    Int              @default(0)
+  listeningExposures  Int              @default(0)
+  speakingProductions Int              @default(0)
+  writingProductions  Int              @default(0)
+  frequencyRank       Int?
+  productionWeight    Float            @default(0)
+  novelContextCount   Int              @default(0)
+  prerequisiteIds     String[]         @default([])
+  reviewEvents        ReviewEvent[]
+  contextLogs         ItemContextLog[]
 }
 
 model ReviewEvent {
-  id            Int          @id @default(autoincrement())
-  itemType      String
-  grade         String
-  modality      String
-  timestamp     DateTime     @default(now())
-  sessionId     String?
-  lexicalItem   LexicalItem? @relation(fields: [lexicalItemId], references: [id])
-  lexicalItemId Int?
-  grammarItem   GrammarItem? @relation(fields: [grammarItemId], references: [id])
-  grammarItemId Int?
+  id               Int          @id @default(autoincrement())
+  itemType         String
+  grade            String
+  modality         String
+  timestamp        DateTime     @default(now())
+  sessionId        String?
+  productionWeight Float        @default(1.0)
+  contextType      String?
+  lexicalItem      LexicalItem? @relation(fields: [lexicalItemId], references: [id])
+  lexicalItemId    Int?
+  grammarItem      GrammarItem? @relation(fields: [grammarItemId], references: [id])
+  grammarItemId    Int?
 }
 
 model ConversationSession {
@@ -83,4 +120,57 @@ model TomInference {
   firstDetected DateTime @default(now())
   lastUpdated   DateTime @updatedAt
   resolved      Boolean  @default(false)
+}
+
+model ItemContextLog {
+  id            Int          @id @default(autoincrement())
+  contextType   String       // "srs_review" | "conversation" | "reading" | "textbook" | "drill"
+  modality      String       // "reading" | "listening" | "speaking" | "writing"
+  wasProduction Boolean      @default(false)
+  wasSuccessful Boolean?
+  contextQuote  String?
+  sessionId     String?
+  timestamp     DateTime     @default(now())
+  lexicalItem   LexicalItem? @relation(fields: [lexicalItemId], references: [id])
+  lexicalItemId Int?
+  grammarItem   GrammarItem? @relation(fields: [grammarItemId], references: [id])
+  grammarItemId Int?
+
+  @@index([lexicalItemId, timestamp])
+  @@index([grammarItemId, timestamp])
+}
+
+model PragmaticProfile {
+  id                    Int      @id @default(1)
+  casualAccuracy        Float    @default(0)
+  politeAccuracy        Float    @default(0)
+  registerSlipCount     Int      @default(0)
+  preferredRegister     String   @default("polite")
+  circumlocutionCount   Int      @default(0)
+  silenceEvents         Int      @default(0)
+  l1FallbackCount       Int      @default(0)
+  averageSpeakingPace   Float?
+  hesitationRate        Float?
+  avoidedGrammarPatterns String[] @default([])
+  avoidedVocabIds       Int[]    @default([])
+  updatedAt             DateTime @updatedAt
+}
+
+model CurriculumItem {
+  id              Int       @id @default(autoincrement())
+  itemType        String    // "lexical" | "grammar"
+  referenceItemId Int?
+  surfaceForm     String?
+  reading         String?
+  meaning         String?
+  patternId       String?
+  jlptLevel       String?
+  frequencyRank   Int?
+  priority        Float     @default(0)
+  reason          String
+  status          String    @default("queued") // "queued" | "introduced" | "skipped"
+  queuedAt        DateTime  @default(now())
+  introducedAt    DateTime?
+
+  @@index([status, priority])
 }
