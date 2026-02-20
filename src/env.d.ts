@@ -57,6 +57,7 @@ interface LinguistApi {
 declare global {
   interface Window {
     linguist: LinguistApi
+    platform: 'darwin' | 'win32' | 'linux'
   }
 }
 

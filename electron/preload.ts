@@ -20,3 +20,4 @@ for (const [key, channel] of Object.entries(IPC_CHANNELS)) {
 }
 
 contextBridge.exposeInMainWorld('linguist', api)
+contextBridge.exposeInMainWorld('platform', process.platform)

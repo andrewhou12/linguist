@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router'
 import { Box, Flex, Text } from '@radix-ui/themes'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -10,21 +10,30 @@ const NAV_ITEMS = [
   { to: '/insights', label: 'Insights' },
 ] as const
 
+const isMac = window.platform === 'darwin'
+const TITLEBAR_HEIGHT = 52
+
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <Flex style={{ height: '100vh' }}>
-      <Box
-        asChild
-        p="4"
+      <nav
         style={{
           width: 200,
           borderRight: '1px solid var(--gray-6)',
           flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <nav>
+        {isMac && (
+          <div
+            className="titlebar-drag-region"
+            style={{ height: TITLEBAR_HEIGHT, flexShrink: 0 }}
+          />
+        )}
+        <div style={{ padding: 16, paddingTop: isMac ? 0 : 16, flex: 1 }}>
           <Text size="5" weight="bold" mb="4" asChild>
-            <h1>Linguist</h1>
+            <h1 style={{ margin: 0 }}>Linguist</h1>
           </Text>
           <Flex direction="column" gap="1" mt="4">
             {NAV_ITEMS.map((item) => (
@@ -43,15 +52,23 @@ export function AppShell({ children }: { children: ReactNode }) {
                     ? 'var(--accent-3)'
                     : 'transparent',
                   fontWeight: isActive ? 600 : 400,
-                })}
+                  WebkitAppRegion: 'no-drag',
+                } as CSSProperties)}
               >
                 {item.label}
               </NavLink>
             ))}
           </Flex>
-        </nav>
-      </Box>
-      <Box p="6" style={{ flex: 1, overflow: 'auto' }}>
+        </div>
+      </nav>
+      <Box
+        p="6"
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          paddingTop: isMac ? TITLEBAR_HEIGHT : undefined,
+        }}
+      >
         {children}
       </Box>
     </Flex>
