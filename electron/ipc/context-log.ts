@@ -2,6 +2,9 @@ import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/types'
 import type { ContextLogEntry, ContextType, LearningModality } from '@shared/types'
 import { getDb } from '../db'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:context-log')
 
 export function registerContextLogHandlers(): void {
   ipcMain.handle(
@@ -15,6 +18,7 @@ export function registerContextLogHandlers(): void {
         offset?: number
       }
     ): Promise<{ entries: ContextLogEntry[]; total: number }> => {
+      log.info('contextLog:list started', { itemId: params.itemId, itemType: params.itemType })
       const db = getDb()
       const where =
         params.itemType === 'lexical'
@@ -31,6 +35,7 @@ export function registerContextLogHandlers(): void {
         db.itemContextLog.count({ where }),
       ])
 
+      log.info('contextLog:list completed', { itemId: params.itemId, entries: entries.length, total })
       return {
         entries: entries.map((e) => ({
           id: e.id,
@@ -64,6 +69,12 @@ export function registerContextLogHandlers(): void {
         sessionId?: string
       }
     ): Promise<ContextLogEntry> => {
+      log.info('contextLog:add started', {
+        itemId: params.itemId,
+        itemType: params.itemType,
+        contextType: params.contextType,
+        modality: params.modality,
+      })
       const db = getDb()
 
       const entry = await db.itemContextLog.create({
@@ -78,6 +89,8 @@ export function registerContextLogHandlers(): void {
           grammarItemId: params.itemType === 'grammar' ? params.itemId : null,
         },
       })
+
+      log.info('contextLog:add completed', { entryId: entry.id })
 
       // Update item's contextTypes and contextCount
       if (params.itemType === 'lexical') {

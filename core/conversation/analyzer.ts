@@ -7,6 +7,9 @@ import type {
   LearningModality,
   ItemType,
 } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:analyzer')
 
 export function buildAnalysisPrompt(
   transcript: ConversationMessage[],
@@ -58,11 +61,19 @@ Respond with ONLY valid JSON matching this schema:
 }
 
 export function parseAnalysis(raw: string): ExpandedPostSessionAnalysis {
+  log.debug('Parsing post-session analysis', { rawLength: raw.length })
   let cleaned = raw.trim()
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
   }
   const parsed = JSON.parse(cleaned)
+  log.debug('Analysis parsed successfully', {
+    targetsHit: parsed.targets_hit?.length ?? 0,
+    errors: parsed.errors_logged?.length ?? 0,
+    avoidance: parsed.avoidance_events?.length ?? 0,
+    newItems: parsed.new_items_encountered?.length ?? 0,
+    contextLogs: parsed.context_logs?.length ?? 0,
+  })
   return {
     targetsHit: parsed.targets_hit ?? [],
     errorsLogged: (parsed.errors_logged ?? []).map(

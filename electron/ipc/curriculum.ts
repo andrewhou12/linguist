@@ -12,19 +12,26 @@ import { computeKnowledgeBubble } from '@core/curriculum/bubble'
 import { generateRecommendations } from '@core/curriculum/recommender'
 import { createInitialFsrsState } from '@core/fsrs/scheduler'
 import { gatherBubbleItems } from './_helpers/gather-items'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:curriculum')
 
 export function registerCurriculumHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.CURRICULUM_GET_BUBBLE,
     async (): Promise<KnowledgeBubble> => {
+      log.info('curriculum:getBubble started')
       const items = await gatherBubbleItems()
-      return computeKnowledgeBubble(items)
+      const bubble = computeKnowledgeBubble(items)
+      log.info('curriculum:getBubble completed', { currentLevel: bubble.currentLevel, frontierLevel: bubble.frontierLevel, totalItems: items.length })
+      return bubble
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.CURRICULUM_GET_RECOMMENDATIONS,
     async (): Promise<CurriculumRecommendation[]> => {
+      log.info('curriculum:getRecommendations started')
       const db = getDb()
       const items = await gatherBubbleItems()
       const bubble = computeKnowledgeBubble(items)
@@ -65,6 +72,7 @@ export function registerCurriculumHandlers(): void {
         rec.id = created.id
       }
 
+      log.info('curriculum:getRecommendations completed', { count: recommendations.length })
       return recommendations
     }
   )
@@ -75,6 +83,7 @@ export function registerCurriculumHandlers(): void {
       _event,
       curriculumItemId: number
     ): Promise<{ itemId: number; itemType: ItemType }> => {
+      log.info('curriculum:introduceItem started', { curriculumItemId })
       const db = getDb()
 
       const currItem = await db.curriculumItem.findUniqueOrThrow({
@@ -104,6 +113,7 @@ export function registerCurriculumHandlers(): void {
           data: { status: 'introduced', introducedAt: new Date() },
         })
 
+        log.info('curriculum:introduceItem completed', { itemId: created.id, itemType: 'lexical' })
         return { itemId: created.id, itemType: 'lexical' }
       } else {
         const patternId = currItem.patternId ?? `grammar_${Date.now()}`
@@ -129,6 +139,7 @@ export function registerCurriculumHandlers(): void {
           data: { status: 'introduced', introducedAt: new Date() },
         })
 
+        log.info('curriculum:introduceItem completed', { itemId: created.id, itemType: 'grammar' })
         return { itemId: created.id, itemType: 'grammar' }
       }
     }
@@ -137,6 +148,7 @@ export function registerCurriculumHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.CURRICULUM_SKIP_ITEM,
     async (_event, curriculumItemId: number): Promise<void> => {
+      log.info('curriculum:skipItem', { curriculumItemId })
       const db = getDb()
       await db.curriculumItem.update({
         where: { id: curriculumItemId },
@@ -148,6 +160,7 @@ export function registerCurriculumHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.CURRICULUM_REGENERATE,
     async (): Promise<CurriculumRecommendation[]> => {
+      log.info('curriculum:regenerate started')
       const db = getDb()
 
       // Clear old queued items
@@ -194,6 +207,7 @@ export function registerCurriculumHandlers(): void {
         rec.id = created.id
       }
 
+      log.info('curriculum:regenerate completed', { count: recommendations.length })
       return recommendations
     }
   )

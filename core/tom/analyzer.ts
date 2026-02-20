@@ -8,6 +8,9 @@ import type {
   PragmaticState,
   ItemType,
 } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:tom')
 
 // ── Input types for ToM analysis ──
 
@@ -237,12 +240,22 @@ export function generateDailyBrief(
 export function generateExpandedDailyBrief(input: ExpandedBriefInput): ExpandedTomBrief {
   const { items, errors, modalityData, grammarTransferData, pragmaticState, recommendedDifficulty } = input
 
+  log.debug('Running all 5 ToM detectors', { items: items.length, errors: errors.length })
+
   // Run all 5 detectors
   const avoidance = detectAvoidance(items)
   const confusionPairs = detectConfusionPairs(errors)
   const regressions = detectRegression(items)
   const modalityGaps = detectModalityGap(modalityData)
   const transferGaps = detectTransferGap(grammarTransferData)
+
+  log.debug('Detector results', {
+    avoidance: avoidance.length,
+    confusionPairs: confusionPairs.length,
+    regressions: regressions.length,
+    modalityGaps: modalityGaps.length,
+    transferGaps: transferGaps.length,
+  })
 
   const priorityTargets: TomBrief['priorityTargets'] = [
     ...avoidance.map((a) => ({

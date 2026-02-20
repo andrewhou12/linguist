@@ -13,12 +13,16 @@ import { computeReviewQueue, scheduleReview } from '@core/fsrs/scheduler'
 import { computeNextMasteryState } from '@core/mastery/state-machine'
 import { recalculateProfile } from '@core/profile/calculator'
 import { MasteryState } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:reviews')
 
 const MAX_QUEUE_SIZE = 200
 let reviewCount = 0
 
 export function registerReviewHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.REVIEW_GET_QUEUE, async (): Promise<ReviewQueueItem[]> => {
+    log.info('review:getQueue started')
     const db = getDb()
 
     const lexicalItems = await db.lexicalItem.findMany({
@@ -53,12 +57,22 @@ export function registerReviewHandlers(): void {
     ]
 
     const queue = computeReviewQueue(allItems)
-    return queue.slice(0, MAX_QUEUE_SIZE)
+    const result = queue.slice(0, MAX_QUEUE_SIZE)
+    log.info('review:getQueue completed', { totalItems: allItems.length, dueItems: queue.length, returned: result.length })
+    return result
   })
 
   ipcMain.handle(
     IPC_CHANNELS.REVIEW_SUBMIT,
     async (_event, submission: ReviewSubmission): Promise<{ newMasteryState: string }> => {
+      log.info('review:submit started', {
+        itemId: submission.itemId,
+        itemType: submission.itemType,
+        grade: submission.grade,
+        modality: submission.modality,
+      })
+
+      try {
       const db = getDb()
       const prodWeight = submission.productionWeight ?? (submission.modality === 'production' ? 0.5 : 1.0)
       const contextType = submission.contextType ?? 'srs_review'
@@ -127,6 +141,16 @@ export function registerReviewHandlers(): void {
           novelContextCount: 0, // lexical items don't track novel contexts
         })
 
+        if (newMastery !== item.masteryState) {
+          log.info('Mastery transition', {
+            itemId: submission.itemId,
+            itemType: 'lexical',
+            from: item.masteryState,
+            to: newMastery,
+            grade: submission.grade,
+          })
+        }
+
         // Build modality counter updates
         const modalityUpdates: Record<string, { increment: number }> = {}
         if (modality === 'reading') {
@@ -155,11 +179,13 @@ export function registerReviewHandlers(): void {
         // Trigger async profile recalculation every 10 reviews
         reviewCount++
         if (reviewCount % 10 === 0) {
-          triggerProfileRecalculation().catch(() => {
-            // Profile recalculation is best-effort
+          log.info('Triggering profile recalculation', { reviewCount })
+          triggerProfileRecalculation().catch((err) => {
+            log.error('Profile recalculation failed', { error: err instanceof Error ? err.message : String(err) })
           })
         }
 
+        log.info('review:submit completed', { itemId: submission.itemId, newMasteryState: newMastery })
         return { newMasteryState: newMastery }
       } else {
         const item = await db.grammarItem.findUniqueOrThrow({
@@ -187,6 +213,16 @@ export function registerReviewHandlers(): void {
           novelContextCount: item.novelContextCount,
         })
 
+        if (newMastery !== item.masteryState) {
+          log.info('Mastery transition', {
+            itemId: submission.itemId,
+            itemType: 'grammar',
+            from: item.masteryState,
+            to: newMastery,
+            grade: submission.grade,
+          })
+        }
+
         const modalityUpdates: Record<string, { increment: number }> = {}
         if (modality === 'reading') {
           modalityUpdates.readingExposures = { increment: 1 }
@@ -209,15 +245,24 @@ export function registerReviewHandlers(): void {
 
         reviewCount++
         if (reviewCount % 10 === 0) {
-          triggerProfileRecalculation().catch(() => {})
+          log.info('Triggering profile recalculation', { reviewCount })
+          triggerProfileRecalculation().catch((err) => {
+            log.error('Profile recalculation failed', { error: err instanceof Error ? err.message : String(err) })
+          })
         }
 
+        log.info('review:submit completed', { itemId: submission.itemId, newMasteryState: newMastery })
         return { newMasteryState: newMastery }
+      }
+      } catch (err) {
+        log.error('review:submit failed', { itemId: submission.itemId, error: err instanceof Error ? err.message : String(err) })
+        throw err
       }
     }
   )
 
   ipcMain.handle(IPC_CHANNELS.REVIEW_GET_SUMMARY, async (): Promise<ReviewSummary> => {
+    log.info('review:getSummary started')
     const db = getDb()
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -230,9 +275,12 @@ export function registerReviewHandlers(): void {
       (r) => r.grade === 'good' || r.grade === 'easy'
     ).length
 
+    const accuracy = todayReviews.length > 0 ? correctCount / todayReviews.length : 0
+    log.info('review:getSummary completed', { totalReviewed: todayReviews.length, accuracy: Math.round(accuracy * 100) })
+
     return {
       totalReviewed: todayReviews.length,
-      accuracy: todayReviews.length > 0 ? correctCount / todayReviews.length : 0,
+      accuracy,
       newItemsAdded: 0,
       masteryChanges: [],
     }
@@ -240,6 +288,7 @@ export function registerReviewHandlers(): void {
 }
 
 async function triggerProfileRecalculation(): Promise<void> {
+  log.debug('Profile recalculation triggered')
   const db = getDb()
 
   const lexicalItems = await db.lexicalItem.findMany({

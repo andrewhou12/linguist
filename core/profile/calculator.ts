@@ -1,4 +1,7 @@
 import type { FsrsState } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:profile')
 
 // ── Input types ──
 
@@ -69,6 +72,7 @@ function getRetrievability(fsrs: FsrsState): number {
 
 export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdate {
   const { items } = input
+  log.debug('Recalculating profile', { itemCount: items.length, totalReviews: input.totalReviewEvents })
 
   // Group items by CEFR level
   const byLevel = new Map<string, ProfileItemInput[]>()
@@ -142,7 +146,7 @@ export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdat
     input.previousLastActiveDate
   )
 
-  return {
+  const result = {
     computedLevel,
     comprehensionCeiling,
     productionCeiling,
@@ -153,6 +157,15 @@ export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdat
     currentStreak: streak.current,
     longestStreak: Math.max(streak.current, input.previousLongestStreak),
   }
+
+  log.debug('Profile recalculated', {
+    computedLevel,
+    comprehensionCeiling,
+    productionCeiling,
+    streak: streak.current,
+  })
+
+  return result
 }
 
 function computeStreak(

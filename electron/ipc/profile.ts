@@ -3,15 +3,23 @@ import { IPC_CHANNELS } from '@shared/types'
 import type { ExpandedLearnerProfile, FsrsState } from '@shared/types'
 import { getDb } from '../db'
 import { recalculateProfile, type ProfileItemInput } from '@core/profile/calculator'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:profile')
 
 export function registerProfileHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.PROFILE_GET,
     async (): Promise<ExpandedLearnerProfile | null> => {
+      log.info('profile:get started')
       const db = getDb()
       const profile = await db.learnerProfile.findUnique({ where: { id: 1 } })
-      if (!profile) return null
+      if (!profile) {
+        log.warn('profile:get - no profile found')
+        return null
+      }
 
+      log.info('profile:get completed', { level: profile.computedLevel, streak: profile.currentStreak })
       return {
         id: profile.id,
         targetLanguage: profile.targetLanguage,
@@ -47,6 +55,7 @@ export function registerProfileHandlers(): void {
         nativeLanguage: string
       }>
     ): Promise<ExpandedLearnerProfile> => {
+      log.info('profile:update', { fields: Object.keys(updates) })
       const db = getDb()
       const profile = await db.learnerProfile.update({
         where: { id: 1 },
@@ -78,6 +87,8 @@ export function registerProfileHandlers(): void {
   )
 
   ipcMain.handle(IPC_CHANNELS.PROFILE_RECALCULATE, async (): Promise<ExpandedLearnerProfile> => {
+    log.info('profile:recalculate started')
+    const elapsed = log.timer()
     const db = getDb()
 
     const lexicalItems = await db.lexicalItem.findMany({
@@ -133,6 +144,14 @@ export function registerProfileHandlers(): void {
         totalReviewEvents,
         lastActiveDate: new Date(),
       },
+    })
+
+    log.info('profile:recalculate completed', {
+      computedLevel: update.computedLevel,
+      comprehensionCeiling: update.comprehensionCeiling,
+      productionCeiling: update.productionCeiling,
+      streak: update.currentStreak,
+      elapsedMs: elapsed(),
     })
 
     return {

@@ -8,6 +8,9 @@ import {
   Rating,
 } from 'ts-fsrs'
 import type { FsrsState, ReviewGrade, ReviewQueueItem } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:fsrs')
 
 const GRADE_MAP: Record<ReviewGrade, Grade> = {
   again: Rating.Again,
@@ -32,8 +35,17 @@ export function scheduleReview(
   const now = new Date()
   const result: RecordLogItem = scheduler.repeat(card, now)[GRADE_MAP[grade]]
 
+  const nextState = cardToFsrsState(result.card)
+  log.debug('Schedule review', {
+    grade,
+    previousStability: state.stability,
+    newStability: nextState.stability,
+    interval: result.card.scheduled_days,
+    nextDue: nextState.due,
+  })
+
   return {
-    nextState: cardToFsrsState(result.card),
+    nextState,
     interval: result.card.scheduled_days,
   }
 }
@@ -91,6 +103,7 @@ export function computeReviewQueue(
   // Sort by most overdue first
   queue.sort((a, b) => b.overdueDays - a.overdueDays)
 
+  log.debug('Review queue computed', { totalItems: items.length, dueItems: queue.length })
   return queue
 }
 

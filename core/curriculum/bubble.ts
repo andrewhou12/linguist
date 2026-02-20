@@ -1,5 +1,8 @@
 import type { ItemType, KnowledgeBubble, LevelBreakdown } from '@shared/types'
 import { loadJapaneseReferenceCorpus } from './reference-data'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:bubble')
 
 // ── Input types ──
 
@@ -26,6 +29,7 @@ const PRODUCTION_READY_STATES = new Set(['journeyman', 'expert', 'master', 'burn
 const COVERAGE_THRESHOLD = 0.8
 
 export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubble {
+  log.debug('Computing knowledge bubble', { totalItems: items.length })
   const corpus = loadJapaneseReferenceCorpus()
 
   // Count reference items per level
@@ -122,6 +126,13 @@ export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubbl
   const totalKnown = items.filter((i) => KNOWN_THRESHOLD_STATES.has(i.masteryState)).length
   const totalRef = Array.from(refCountByLevel.values()).reduce((a, b) => a + b, 0)
   const overallCoverage = totalRef > 0 ? Math.round((totalKnown / totalRef) * 100) / 100 : 0
+
+  log.debug('Knowledge bubble computed', {
+    currentLevel,
+    frontierLevel,
+    overallCoverage,
+    gapsInCurrentLevel: gapsInCurrentLevel.length + missingVocab.length + missingGrammar.length,
+  })
 
   return {
     levelBreakdowns,

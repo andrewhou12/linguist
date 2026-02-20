@@ -2,6 +2,9 @@ import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/types'
 import type { ExpandedTomBrief, FsrsState, PragmaticState } from '@shared/types'
 import { getDb } from '../db'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:tom')
 import {
   generateExpandedDailyBrief,
   type ItemReviewHistory,
@@ -11,6 +14,7 @@ import {
 } from '@core/tom/analyzer'
 
 async function gatherAnalysisData() {
+  log.debug('Gathering ToM analysis data')
   const db = getDb()
 
   // Gather item review histories
@@ -118,11 +122,16 @@ async function gatherAnalysisData() {
     }
   }
 
+  log.debug('Analysis data gathered', { items: items.length, errors: errors.length, modalityItems: modalityData.length, grammarItems: grammarTransferData.length })
   return { items, errors, modalityData, grammarTransferData, pragmaticState }
 }
 
 export function registerTomHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.TOM_RUN_ANALYSIS, async (): Promise<void> => {
+    log.info('tom:runAnalysis started')
+    const elapsed = log.timer()
+
+    try {
     const db = getDb()
     const { items, errors, modalityData, grammarTransferData, pragmaticState } =
       await gatherAnalysisData()
@@ -134,6 +143,14 @@ export function registerTomHandlers(): void {
       grammarTransferData,
       pragmaticState,
       recommendedDifficulty: 'A1',
+    })
+
+    log.info('ToM brief generated', {
+      avoidance: brief.avoidancePatterns.length,
+      confusionPairs: brief.confusionPairs.length,
+      regressions: brief.regressions.length,
+      modalityGaps: brief.modalityGaps.length,
+      transferGaps: brief.transferGaps.length,
     })
 
     // Store inferences in DB — clear old unresolved ones first, then create fresh
@@ -216,13 +233,20 @@ export function registerTomHandlers(): void {
         },
       })
     }
+
+    log.info('tom:runAnalysis completed', { elapsedMs: elapsed() })
+    } catch (err) {
+      log.error('tom:runAnalysis failed', { error: err instanceof Error ? err.message : String(err) })
+      throw err
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.TOM_GET_BRIEF, async (): Promise<ExpandedTomBrief> => {
+    log.info('tom:getBrief started')
     const { items, errors, modalityData, grammarTransferData, pragmaticState } =
       await gatherAnalysisData()
 
-    return generateExpandedDailyBrief({
+    const brief = generateExpandedDailyBrief({
       items,
       errors,
       modalityData,
@@ -230,6 +254,8 @@ export function registerTomHandlers(): void {
       pragmaticState,
       recommendedDifficulty: 'A1',
     })
+    log.info('tom:getBrief completed', { priorityTargets: brief.priorityTargets.length })
+    return brief
   })
 
   ipcMain.handle(
@@ -244,12 +270,14 @@ export function registerTomHandlers(): void {
         resolved: boolean
       }>
     > => {
+      log.info('tom:getInferences started')
       const db = getDb()
       const inferences = await db.tomInference.findMany({
         where: { resolved: false },
         orderBy: { lastUpdated: 'desc' },
       })
 
+      log.info('tom:getInferences completed', { count: inferences.length })
       return inferences.map((i) => ({
         id: i.id,
         type: i.type,

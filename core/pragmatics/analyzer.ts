@@ -2,6 +2,9 @@ import type {
   ConversationMessage,
   PragmaticState,
 } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:pragmatics')
 
 // ── Prompt building ──
 
@@ -62,11 +65,17 @@ Respond with ONLY valid JSON matching this schema:
 // ── Response parsing ──
 
 export function parsePragmaticAnalysis(raw: string): PragmaticAnalysisResult {
+  log.debug('Parsing pragmatic analysis', { rawLength: raw.length })
   let cleaned = raw.trim()
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
   }
   const parsed = JSON.parse(cleaned)
+  log.debug('Pragmatic analysis parsed', {
+    registerSlips: parsed.register_slips ?? 0,
+    circumlocutions: parsed.circumlocutions?.length ?? 0,
+    l1Fallbacks: parsed.l1_fallbacks?.length ?? 0,
+  })
   return {
     casualCorrect: parsed.casual_correct ?? 0,
     casualTotal: parsed.casual_total ?? 0,
@@ -98,6 +107,10 @@ export function updatePragmaticState(
   current: PragmaticState,
   result: PragmaticAnalysisResult
 ): PragmaticState {
+  log.debug('Updating pragmatic state', {
+    currentCasualAccuracy: current.casualAccuracy,
+    currentPoliteAccuracy: current.politeAccuracy,
+  })
   // Compute session accuracies
   const sessionCasualAccuracy =
     result.casualTotal > 0 ? result.casualCorrect / result.casualTotal : current.casualAccuracy

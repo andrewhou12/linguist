@@ -4,15 +4,22 @@ import type { FrontierData, FrontierItem } from '@shared/types'
 import { getDb } from '../db'
 import { computeKnowledgeBubble } from '@core/curriculum/bubble'
 import { gatherBubbleItems, toExpandedProfile } from './_helpers/gather-items'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:dashboard')
 
 export function registerDashboardHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.DASHBOARD_GET_FRONTIER,
     async (): Promise<FrontierData | null> => {
+      log.info('dashboard:getFrontier started')
       const db = getDb()
 
       const profile = await db.learnerProfile.findUnique({ where: { id: 1 } })
-      if (!profile) return null
+      if (!profile) {
+        log.warn('dashboard:getFrontier - no profile found')
+        return null
+      }
 
       const bubbleItems = await gatherBubbleItems()
       const bubble = computeKnowledgeBubble(bubbleItems)
@@ -31,6 +38,12 @@ export function registerDashboardHandlers(): void {
         masteryDistribution[item.masteryState] =
           (masteryDistribution[item.masteryState] ?? 0) + 1
       }
+
+      log.info('dashboard:getFrontier completed', {
+        totalItems: items.length,
+        currentLevel: bubble.currentLevel,
+        masteryDistribution,
+      })
 
       return {
         bubble,

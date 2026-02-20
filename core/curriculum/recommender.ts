@@ -10,6 +10,9 @@ import {
 } from './reference-data'
 import type { ExpandedBriefInput } from '@core/tom/analyzer'
 import { generateExpandedDailyBrief } from '@core/tom/analyzer'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:recommender')
 
 // ── Input types ──
 
@@ -44,6 +47,13 @@ export function generateRecommendations(
   input: RecommendationInput
 ): CurriculumRecommendation[] {
   const { bubble, knownSurfaceForms, knownPatternIds, dailyNewItemLimit, tomBriefInput } = input
+  log.debug('Generating recommendations', {
+    currentLevel: bubble.currentLevel,
+    frontierLevel: bubble.frontierLevel,
+    knownVocab: knownSurfaceForms.size,
+    knownGrammar: knownPatternIds.size,
+    dailyLimit: dailyNewItemLimit,
+  })
   const corpus = loadJapaneseReferenceCorpus()
 
   // Get ToM brief for scoring
@@ -100,7 +110,14 @@ export function generateRecommendations(
   // Sort by score descending, filter out unmet prerequisites, take limit
   candidates.sort((a, b) => b.score - a.score)
 
-  return candidates.slice(0, dailyNewItemLimit).map((c) => ({
+  const results = candidates.slice(0, dailyNewItemLimit)
+  log.debug('Recommendations generated', {
+    totalCandidates: candidates.length,
+    returned: results.length,
+    topScore: results[0]?.score ?? 0,
+  })
+
+  return results.map((c) => ({
     itemType: c.itemType,
     surfaceForm: c.surfaceForm,
     reading: c.reading,

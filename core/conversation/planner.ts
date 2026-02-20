@@ -7,6 +7,9 @@ import type {
   PragmaticState,
   CurriculumRecommendation,
 } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:planner')
 
 export interface LearnerSummary {
   targetLanguage: string
@@ -100,12 +103,18 @@ Respond with only valid JSON matching this schema:
 }
 
 export function parseSessionPlan(raw: string): ExpandedSessionPlan {
+  log.debug('Parsing session plan', { rawLength: raw.length })
   // Strip markdown fences if the LLM wraps the JSON in ```json ... ```
   let cleaned = raw.trim()
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
   }
   const parsed = JSON.parse(cleaned)
+  log.debug('Session plan parsed successfully', {
+    targetVocab: parsed.target_vocabulary?.length ?? 0,
+    targetGrammar: parsed.target_grammar?.length ?? 0,
+    focus: parsed.session_focus,
+  })
   return {
     targetVocabulary: parsed.target_vocabulary ?? [],
     targetGrammar: parsed.target_grammar ?? [],

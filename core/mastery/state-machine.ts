@@ -1,4 +1,7 @@
 import { MasteryState, type ReviewGrade } from '@shared/types'
+import { createLogger } from '../logger'
+
+const log = createLogger('core:mastery')
 
 export interface MasteryContext {
   currentState: MasteryState
@@ -38,7 +41,11 @@ export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
 
   // Demotion on "again"
   if (grade === 'again') {
-    return DEMOTION_MAP[currentState] ?? currentState
+    const demoted = DEMOTION_MAP[currentState] ?? currentState
+    if (demoted !== currentState) {
+      log.debug('Mastery demotion', { from: currentState, to: demoted, grade })
+    }
+    return demoted
   }
 
   // No promotion on "hard" — stay in same state
@@ -55,6 +62,10 @@ export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
   // Gate: apprentice_4 → journeyman requires productionWeight >= 1.0
   if (currentState === MasteryState.Apprentice4 && nextState === MasteryState.Journeyman) {
     if (ctx.productionWeight < 1.0) {
+      log.debug('Promotion gate blocked: apprentice_4 → journeyman', {
+        productionWeight: ctx.productionWeight,
+        required: 1.0,
+      })
       return MasteryState.Apprentice4
     }
   }
@@ -62,6 +73,10 @@ export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
   // Gate: journeyman → expert requires contextCount >= 3
   if (currentState === MasteryState.Journeyman && nextState === MasteryState.Expert) {
     if (ctx.contextCount < 3) {
+      log.debug('Promotion gate blocked: journeyman → expert', {
+        contextCount: ctx.contextCount,
+        required: 3,
+      })
       return MasteryState.Journeyman
     }
   }
@@ -69,8 +84,16 @@ export function computeNextMasteryState(ctx: MasteryContext): MasteryState {
   // Gate: expert → master (grammar) requires novelContextCount >= 2
   if (currentState === MasteryState.Expert && nextState === MasteryState.Master) {
     if (ctx.novelContextCount < 2) {
+      log.debug('Promotion gate blocked: expert → master', {
+        novelContextCount: ctx.novelContextCount,
+        required: 2,
+      })
       return MasteryState.Expert
     }
+  }
+
+  if (nextState !== currentState) {
+    log.debug('Mastery promotion', { from: currentState, to: nextState, grade })
   }
 
   return nextState

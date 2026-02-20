@@ -12,6 +12,9 @@ import type {
 import type { Prisma } from '@prisma/client'
 import { MasteryState } from '@shared/types'
 import { getDb } from '../db'
+import { createLogger } from '../logger'
+
+const log = createLogger('ipc:conversation')
 import {
   buildPlanningPrompt,
   buildConversationSystemPrompt,
@@ -43,6 +46,7 @@ const activeSessions = new Map<
 >()
 
 async function buildLearnerSummary(): Promise<LearnerSummary> {
+  log.debug('Building learner summary')
   const db = getDb()
   const profile = await db.learnerProfile.findUniqueOrThrow({ where: { id: 1 } })
 
@@ -142,6 +146,14 @@ async function buildLearnerSummary(): Promise<LearnerSummary> {
     tags: item.tags,
     source: item.source,
   }))
+
+  log.info('Learner summary built', {
+    level: profile.computedLevel,
+    activeItems: wordBankEntries.length,
+    stableItems: stableCount,
+    burnedItems: burnedCount,
+    curriculumNewItems: curriculumNewItems.length,
+  })
 
   return {
     targetLanguage: profile.targetLanguage,
@@ -267,55 +279,73 @@ export function registerConversationHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.CONVERSATION_PLAN,
     async (): Promise<ExpandedSessionPlan> => {
-      const learner = await buildLearnerSummary()
-      const brief = await buildExpandedTomBrief()
+      log.info('conversation:plan started')
+      const elapsed = log.timer()
 
-      const planningPrompt = buildPlanningPrompt(learner, brief)
+      try {
+        const learner = await buildLearnerSummary()
+        const brief = await buildExpandedTomBrief()
 
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: planningPrompt }],
-      })
+        const planningPrompt = buildPlanningPrompt(learner, brief)
 
-      const textContent = response.content.find((c) => c.type === 'text')
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text response from planning API')
-      }
+        const apiTimer = log.timer()
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: planningPrompt }],
+        })
+        log.info('API call: session planning', { model: 'claude-sonnet-4-20250514', elapsedMs: apiTimer() })
 
-      const plan = parseSessionPlan(textContent.text)
-      const db = getDb()
+        const textContent = response.content.find((c) => c.type === 'text')
+        if (!textContent || textContent.type !== 'text') {
+          throw new Error('No text response from planning API')
+        }
 
-      // Create conversation session
-      const session = await db.conversationSession.create({
-        data: {
-          transcript: [],
-          targetsPlanned: {
-            vocabulary: plan.targetVocabulary,
-            grammar: plan.targetGrammar,
+        const plan = parseSessionPlan(textContent.text)
+        const db = getDb()
+
+        // Create conversation session
+        const session = await db.conversationSession.create({
+          data: {
+            transcript: [],
+            targetsPlanned: {
+              vocabulary: plan.targetVocabulary,
+              grammar: plan.targetGrammar,
+            },
+            targetsHit: [],
+            errorsLogged: [],
+            avoidanceEvents: [],
+            sessionPlan: plan as unknown as Prisma.InputJsonValue,
           },
-          targetsHit: [],
-          errorsLogged: [],
-          avoidanceEvents: [],
-          sessionPlan: plan as unknown as Prisma.InputJsonValue,
-        },
-      })
+        })
 
-      const systemPrompt = buildConversationSystemPrompt(learner, plan, brief)
+        const systemPrompt = buildConversationSystemPrompt(learner, plan, brief)
 
-      activeSessions.set(session.id, {
-        plan,
-        systemPrompt,
-        messages: [],
-      })
+        activeSessions.set(session.id, {
+          plan,
+          systemPrompt,
+          messages: [],
+        })
 
-      // Increment total sessions
-      await db.learnerProfile.update({
-        where: { id: 1 },
-        data: { totalSessions: { increment: 1 } },
-      })
+        // Increment total sessions
+        await db.learnerProfile.update({
+          where: { id: 1 },
+          data: { totalSessions: { increment: 1 } },
+        })
 
-      return { ...plan, _sessionId: session.id } as ExpandedSessionPlan & { _sessionId: string }
+        log.info('conversation:plan completed', {
+          sessionId: session.id,
+          targetVocab: plan.targetVocabulary.length,
+          targetGrammar: plan.targetGrammar.length,
+          focus: plan.sessionFocus,
+          elapsedMs: elapsed(),
+        })
+
+        return { ...plan, _sessionId: session.id } as ExpandedSessionPlan & { _sessionId: string }
+      } catch (err) {
+        log.error('conversation:plan failed', { error: err instanceof Error ? err.message : String(err) })
+        throw err
+      }
     }
   )
 
@@ -326,93 +356,118 @@ export function registerConversationHandlers(): void {
       sessionId: string,
       message: string
     ): Promise<ConversationMessage> => {
-      const session = activeSessions.get(sessionId)
-      if (!session) {
-        throw new Error(`No active session: ${sessionId}`)
+      log.info('conversation:send started', { sessionId, turnCount: activeSessions.get(sessionId)?.messages.length ?? 0 })
+
+      try {
+        const session = activeSessions.get(sessionId)
+        if (!session) {
+          throw new Error(`No active session: ${sessionId}`)
+        }
+
+        // Add user message
+        const userMsg: ConversationMessage = {
+          role: 'user',
+          content: message,
+          timestamp: new Date().toISOString(),
+        }
+        session.messages.push(userMsg)
+
+        // Build API messages (keep last 30 turns)
+        const recentMessages = session.messages.slice(-30)
+        const apiMessages = recentMessages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+
+        const apiTimer = log.timer()
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 512,
+          system: session.systemPrompt,
+          messages: apiMessages,
+        })
+        log.info('API call: conversation send', { model: 'claude-sonnet-4-20250514', elapsedMs: apiTimer(), contextMessages: apiMessages.length })
+
+        const textContent = response.content.find((c) => c.type === 'text')
+        const assistantContent = textContent?.type === 'text' ? textContent.text : ''
+
+        const assistantMsg: ConversationMessage = {
+          role: 'assistant',
+          content: assistantContent,
+          timestamp: new Date().toISOString(),
+        }
+        session.messages.push(assistantMsg)
+
+        // Update transcript in DB
+        const db = getDb()
+        await db.conversationSession.update({
+          where: { id: sessionId },
+          data: { transcript: session.messages as unknown as Prisma.InputJsonValue },
+        })
+
+        log.info('conversation:send completed', { sessionId, responseLength: assistantContent.length })
+        return assistantMsg
+      } catch (err) {
+        log.error('conversation:send failed', { sessionId, error: err instanceof Error ? err.message : String(err) })
+        throw err
       }
-
-      // Add user message
-      const userMsg: ConversationMessage = {
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString(),
-      }
-      session.messages.push(userMsg)
-
-      // Build API messages (keep last 30 turns)
-      const recentMessages = session.messages.slice(-30)
-      const apiMessages = recentMessages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }))
-
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 512,
-        system: session.systemPrompt,
-        messages: apiMessages,
-      })
-
-      const textContent = response.content.find((c) => c.type === 'text')
-      const assistantContent = textContent?.type === 'text' ? textContent.text : ''
-
-      const assistantMsg: ConversationMessage = {
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: new Date().toISOString(),
-      }
-      session.messages.push(assistantMsg)
-
-      // Update transcript in DB
-      const db = getDb()
-      await db.conversationSession.update({
-        where: { id: sessionId },
-        data: { transcript: session.messages as unknown as Prisma.InputJsonValue },
-      })
-
-      return assistantMsg
     }
   )
 
   ipcMain.handle(
     IPC_CHANNELS.CONVERSATION_END,
     async (_event, sessionId: string): Promise<PostSessionAnalysis | null> => {
-      const db = getDb()
-      const session = activeSessions.get(sessionId)
+      log.info('conversation:end started', { sessionId })
+      const elapsed = log.timer()
 
-      // Update session duration
-      const dbSession = await db.conversationSession.findUnique({
-        where: { id: sessionId },
-      })
+      try {
+        const db = getDb()
+        const session = activeSessions.get(sessionId)
 
-      if (dbSession) {
-        const duration = Math.floor(
-          (Date.now() - dbSession.timestamp.getTime()) / 1000
-        )
-        await db.conversationSession.update({
+        // Update session duration
+        const dbSession = await db.conversationSession.findUnique({
           where: { id: sessionId },
-          data: { durationSeconds: duration },
         })
-      }
 
-      if (!session || session.messages.length === 0) {
-        activeSessions.delete(sessionId)
-        return null
-      }
+        if (dbSession) {
+          const duration = Math.floor(
+            (Date.now() - dbSession.timestamp.getTime()) / 1000
+          )
+          await db.conversationSession.update({
+            where: { id: sessionId },
+            data: { durationSeconds: duration },
+          })
+          log.info('Session duration recorded', { sessionId, durationSeconds: duration })
+        }
 
-      let result: PostSessionAnalysis | null = null
+        if (!session || session.messages.length === 0) {
+          log.info('conversation:end completed (no messages)', { sessionId })
+          activeSessions.delete(sessionId)
+          return null
+        }
 
-      // Run post-session analysis
-      const analysisPrompt = buildAnalysisPrompt(session.messages, session.plan)
-      const analysisResponse = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: analysisPrompt }],
-      })
+        let result: PostSessionAnalysis | null = null
 
-      const analysisText = analysisResponse.content.find((c) => c.type === 'text')
-      if (analysisText?.type === 'text') {
-        const analysis = parseAnalysis(analysisText.text)
+        // Run post-session analysis
+        const analysisPrompt = buildAnalysisPrompt(session.messages, session.plan)
+        const analysisTimer = log.timer()
+        const analysisResponse = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: analysisPrompt }],
+        })
+        log.info('API call: post-session analysis', { model: 'claude-sonnet-4-20250514', elapsedMs: analysisTimer() })
+
+        const analysisText = analysisResponse.content.find((c) => c.type === 'text')
+        if (analysisText?.type === 'text') {
+          const analysis = parseAnalysis(analysisText.text)
+          log.info('Analysis parsed', {
+            targetsHit: analysis.targetsHit.length,
+            errors: analysis.errorsLogged.length,
+            avoidance: analysis.avoidanceEvents.length,
+            newItems: analysis.newItemsEncountered.length,
+            contextLogs: analysis.contextLogs.length,
+          })
 
         result = {
           targetsHit: analysis.targetsHit,
@@ -537,11 +592,13 @@ export function registerConversationHandlers(): void {
           nativeLanguage: profile.nativeLanguage,
         })
 
+        const pragTimer = log.timer()
         const pragmaticResponse = await anthropic.messages.create({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
           messages: [{ role: 'user', content: pragmaticPrompt }],
         })
+        log.info('API call: pragmatic analysis', { model: 'claude-sonnet-4-20250514', elapsedMs: pragTimer() })
 
         const pragmaticText = pragmaticResponse.content.find((c) => c.type === 'text')
         if (pragmaticText?.type === 'text') {
@@ -590,11 +647,17 @@ export function registerConversationHandlers(): void {
         }
 
         // Trigger profile recalculation
+        log.info('Triggering profile recalculation after conversation end')
         await triggerProfileRecalculation()
       }
 
       activeSessions.delete(sessionId)
+      log.info('conversation:end completed', { sessionId, hasAnalysis: result !== null, elapsedMs: elapsed() })
       return result
+      } catch (err) {
+        log.error('conversation:end failed', { sessionId, error: err instanceof Error ? err.message : String(err) })
+        throw err
+      }
     }
   )
 
@@ -603,12 +666,14 @@ export function registerConversationHandlers(): void {
     async (): Promise<
       Array<{ id: string; timestamp: string; durationSeconds: number | null; sessionFocus: string }>
     > => {
+      log.info('conversation:list started')
       const db = getDb()
       const sessions = await db.conversationSession.findMany({
         orderBy: { timestamp: 'desc' },
         take: 20,
       })
 
+      log.info('conversation:list completed', { count: sessions.length })
       return sessions.map((s) => ({
         id: s.id,
         timestamp: s.timestamp.toISOString(),
@@ -620,6 +685,7 @@ export function registerConversationHandlers(): void {
 }
 
 async function triggerProfileRecalculation(): Promise<void> {
+  log.debug('Profile recalculation triggered')
   const db = getDb()
 
   const lexicalItems = await db.lexicalItem.findMany({

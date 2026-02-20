@@ -14,6 +14,9 @@ import { registerContextLogHandlers } from './ipc/context-log'
 import { registerDashboardHandlers } from './ipc/dashboard'
 import { registerNarrativeHandlers } from './ipc/narrative'
 import { registerChatHandlers } from './ipc/chat'
+import { createLogger } from './logger'
+
+const log = createLogger('app')
 
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
@@ -41,9 +44,13 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  log.info('Window created', { platform: process.platform, dev: is.dev })
 }
 
 app.whenReady().then(() => {
+  log.info('App ready, registering IPC handlers')
+
   registerReviewHandlers()
   registerWordbankHandlers()
   registerConversationHandlers()
@@ -56,21 +63,27 @@ app.whenReady().then(() => {
   registerNarrativeHandlers()
   registerChatHandlers()
 
+  log.info('All IPC handlers registered')
+
   createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
+      log.info('App activated, creating new window')
       createWindow()
     }
   })
 })
 
 app.on('window-all-closed', () => {
+  log.info('All windows closed')
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
 app.on('will-quit', async () => {
+  log.info('App will quit, disconnecting DB')
   await disconnectDb()
+  log.info('DB disconnected, quitting')
 })
