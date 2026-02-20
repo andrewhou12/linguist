@@ -5,7 +5,7 @@
       "reading": "たべる",
       "meaning": "to eat",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 42
     },
     {
@@ -13,7 +13,7 @@
       "reading": "のむ",
       "meaning": "to drink",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 58
     },
     {
@@ -21,7 +21,7 @@
       "reading": "いく",
       "meaning": "to go",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 3
     },
     {
@@ -29,7 +29,7 @@
       "reading": "くる",
       "meaning": "to come",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 7
     },
     {
@@ -37,7 +37,7 @@
       "reading": "みる",
       "meaning": "to see; to look at",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 12
     },
     {
@@ -45,7 +45,7 @@
       "reading": "きく",
       "meaning": "to listen; to ask",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 35
     },
     {
@@ -53,7 +53,7 @@
       "reading": "かく",
       "meaning": "to write",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 51
     },
     {
@@ -61,7 +61,7 @@
       "reading": "よむ",
       "meaning": "to read",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 63
     },
     {
@@ -69,7 +69,7 @@
       "reading": "はなす",
       "meaning": "to speak; to talk",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 29
     },
     {
@@ -77,7 +77,7 @@
       "reading": "かう",
       "meaning": "to buy",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 78
     },
     {
@@ -85,7 +85,7 @@
       "reading": "ひと",
       "meaning": "person; people",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 1
     },
     {
@@ -93,7 +93,7 @@
       "reading": "とき",
       "meaning": "time; when",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 5
     },
     {
@@ -101,7 +101,7 @@
       "reading": "ひ",
       "meaning": "day; sun",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 4
     },
     {
@@ -109,7 +109,7 @@
       "reading": "みず",
       "meaning": "water",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 88
     },
     {
@@ -117,7 +117,7 @@
       "reading": "がっこう",
       "meaning": "school",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 95
     },
     {
@@ -125,7 +125,7 @@
       "reading": "ともだち",
       "meaning": "friend",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 112
     },
     {
@@ -133,7 +133,7 @@
       "reading": "せんせい",
       "meaning": "teacher",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 130
     },
     {
@@ -141,7 +141,7 @@
       "reading": "おおきい",
       "meaning": "big; large",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 40
     },
     {
@@ -149,7 +149,7 @@
       "reading": "ちいさい",
       "meaning": "small; little",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 55
     },
     {
@@ -157,7 +157,7 @@
       "reading": "あたらしい",
       "meaning": "new",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 67
     },
     {
@@ -165,7 +165,7 @@
       "reading": "ふるい",
       "meaning": "old (things)",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 82
     },
     {
@@ -173,7 +173,7 @@
       "reading": "よい",
       "meaning": "good",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 9
     },
     {
@@ -181,7 +181,7 @@
       "reading": "いま",
       "meaning": "now",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 14
     },
     {
@@ -189,7 +189,7 @@
       "reading": "とても",
       "meaning": "very; extremely",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 75
     },
     {
@@ -197,7 +197,7 @@
       "reading": "まだ",
       "meaning": "still; not yet",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 44
     },
     {
@@ -205,7 +205,7 @@
       "reading": "もう",
       "meaning": "already; soon",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 30
     },
     {
@@ -213,7 +213,7 @@
       "reading": "でんしゃ",
       "meaning": "train",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 155
     },
     {
@@ -221,7 +221,7 @@
       "reading": "まいにち",
       "meaning": "every day",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 120
     },
     {
@@ -229,7 +229,7 @@
       "reading": "ひとつ",
       "meaning": "one (thing)",
       "partOfSpeech": "counter",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 22
     },
     {
@@ -237,7 +237,7 @@
       "reading": "なに",
       "meaning": "what",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 8
     },
     {
@@ -245,7 +245,7 @@
       "reading": "おねがいします",
       "meaning": "please (polite request)",
       "partOfSpeech": "expression",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 85
     },
     {
@@ -253,7 +253,7 @@
       "reading": "すみません",
       "meaning": "excuse me; I'm sorry",
       "partOfSpeech": "expression",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 90
     },
     {
@@ -261,7 +261,7 @@
       "reading": "ある",
       "meaning": "to exist (inanimate); to have",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 2
     },
     {
@@ -269,7 +269,7 @@
       "reading": "いる",
       "meaning": "to exist (animate); to be",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 6
     },
     {
@@ -277,7 +277,7 @@
       "reading": "する",
       "meaning": "to do",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 1
     },
     {
@@ -285,7 +285,7 @@
       "reading": "いう",
       "meaning": "to say",
       "partOfSpeech": "verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 10
     },
     {
@@ -293,7 +293,7 @@
       "reading": "いえ",
       "meaning": "house; home",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 48
     },
     {
@@ -301,7 +301,7 @@
       "reading": "たかい",
       "meaning": "high; expensive",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 52
     },
     {
@@ -309,7 +309,7 @@
       "reading": "やすい",
       "meaning": "cheap; inexpensive",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 105
     },
     {
@@ -317,7 +317,7 @@
       "reading": "おかね",
       "meaning": "money",
       "partOfSpeech": "noun",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 99
     },
     {
@@ -325,7 +325,7 @@
       "reading": "はしる",
       "meaning": "to run",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 140
     },
     {
@@ -333,7 +333,7 @@
       "reading": "とどける",
       "meaning": "to deliver; to report",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 280
     },
     {
@@ -341,7 +341,7 @@
       "reading": "とどく",
       "meaning": "to arrive; to reach",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 265
     },
     {
@@ -349,7 +349,7 @@
       "reading": "おくる",
       "meaning": "to send; to see off",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 175
     },
     {
@@ -357,7 +357,7 @@
       "reading": "かりる",
       "meaning": "to borrow",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 310
     },
     {
@@ -365,7 +365,7 @@
       "reading": "かす",
       "meaning": "to lend",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 325
     },
     {
@@ -373,7 +373,7 @@
       "reading": "かえす",
       "meaning": "to return (something)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 230
     },
     {
@@ -381,7 +381,7 @@
       "reading": "きめる",
       "meaning": "to decide",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 160
     },
     {
@@ -389,7 +389,7 @@
       "reading": "かわる",
       "meaning": "to change (intransitive)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 125
     },
     {
@@ -397,7 +397,7 @@
       "reading": "かえる",
       "meaning": "to change (transitive)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 145
     },
     {
@@ -405,7 +405,7 @@
       "reading": "けいけん",
       "meaning": "experience",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 210
     },
     {
@@ -413,7 +413,7 @@
       "reading": "しゃかい",
       "meaning": "society",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 185
     },
     {
@@ -421,7 +421,7 @@
       "reading": "ぶんか",
       "meaning": "culture",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 220
     },
     {
@@ -429,7 +429,7 @@
       "reading": "せいじ",
       "meaning": "politics",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 250
     },
     {
@@ -437,7 +437,7 @@
       "reading": "けいざい",
       "meaning": "economy; economics",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 195
     },
     {
@@ -445,7 +445,7 @@
       "reading": "もんだい",
       "meaning": "problem; question",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 60
     },
     {
@@ -453,7 +453,7 @@
       "reading": "いみ",
       "meaning": "meaning",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 115
     },
     {
@@ -461,7 +461,7 @@
       "reading": "ひつよう",
       "meaning": "necessary; essential",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 110
     },
     {
@@ -469,7 +469,7 @@
       "reading": "とくべつ",
       "meaning": "special",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 200
     },
     {
@@ -477,7 +477,7 @@
       "reading": "ゆうめい",
       "meaning": "famous",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 240
     },
     {
@@ -485,7 +485,7 @@
       "reading": "かんたん",
       "meaning": "simple; easy",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 255
     },
     {
@@ -493,7 +493,7 @@
       "reading": "ふくざつ",
       "meaning": "complicated; complex",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 290
     },
     {
@@ -501,7 +501,7 @@
       "reading": "さいきん",
       "meaning": "recently; lately",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 150
     },
     {
@@ -509,7 +509,7 @@
       "reading": "たぶん",
       "meaning": "probably; perhaps",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 180
     },
     {
@@ -517,7 +517,7 @@
       "reading": "やはり",
       "meaning": "as expected; after all",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 100
     },
     {
@@ -525,7 +525,7 @@
       "reading": "もちろん",
       "meaning": "of course",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 190
     },
     {
@@ -533,7 +533,7 @@
       "reading": "しあい",
       "meaning": "match; game; competition",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 270
     },
     {
@@ -541,7 +541,7 @@
       "reading": "よてい",
       "meaning": "plan; schedule",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 235
     },
     {
@@ -549,7 +549,7 @@
       "reading": "じゅんび",
       "meaning": "preparation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 245
     },
     {
@@ -557,7 +557,7 @@
       "reading": "ひさしぶり",
       "meaning": "long time no see; it's been a while",
       "partOfSpeech": "expression",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 300
     },
     {
@@ -565,7 +565,7 @@
       "reading": "いちまい",
       "meaning": "one flat/thin object",
       "partOfSpeech": "counter",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 285
     },
     {
@@ -573,7 +573,7 @@
       "reading": "さんさつ",
       "meaning": "three (books/volumes)",
       "partOfSpeech": "counter",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 305
     },
     {
@@ -581,7 +581,7 @@
       "reading": "ざんねん",
       "meaning": "regrettable; unfortunate",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 275
     },
     {
@@ -589,7 +589,7 @@
       "reading": "おせわになる",
       "meaning": "to be indebted to (someone)",
       "partOfSpeech": "expression",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 295
     },
     {
@@ -597,7 +597,7 @@
       "reading": "かんけい",
       "meaning": "relation; connection",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 135
     },
     {
@@ -605,7 +605,7 @@
       "reading": "ばあい",
       "meaning": "case; situation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 90
     },
     {
@@ -613,7 +613,7 @@
       "reading": "じじつ",
       "meaning": "fact; reality",
       "partOfSpeech": "noun",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 170
     },
     {
@@ -621,7 +621,7 @@
       "reading": "つづける",
       "meaning": "to continue (transitive)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 165
     },
     {
@@ -629,7 +629,7 @@
       "reading": "はじまる",
       "meaning": "to begin (intransitive)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 155
     },
     {
@@ -637,7 +637,7 @@
       "reading": "かわりに",
       "meaning": "instead of; in place of",
       "partOfSpeech": "expression",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 215
     },
     {
@@ -645,7 +645,7 @@
       "reading": "うける",
       "meaning": "to receive; to take (exam)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 85
     },
     {
@@ -653,7 +653,7 @@
       "reading": "つたえる",
       "meaning": "to convey; to tell",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 205
     },
     {
@@ -661,7 +661,7 @@
       "reading": "あつめる",
       "meaning": "to collect; to gather",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 260
     },
     {
@@ -669,7 +669,7 @@
       "reading": "みとめる",
       "meaning": "to recognize; to admit",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 215
     },
     {
@@ -677,7 +677,7 @@
       "reading": "しめす",
       "meaning": "to show; to indicate",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 130
     },
     {
@@ -685,7 +685,7 @@
       "reading": "もとめる",
       "meaning": "to seek; to request",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 170
     },
     {
@@ -693,7 +693,7 @@
       "reading": "くらべる",
       "meaning": "to compare",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 340
     },
     {
@@ -701,7 +701,7 @@
       "reading": "まもる",
       "meaning": "to protect; to observe (rules)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 280
     },
     {
@@ -709,7 +709,7 @@
       "reading": "ゆるす",
       "meaning": "to forgive; to permit",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 365
     },
     {
@@ -717,7 +717,7 @@
       "reading": "えいきょう",
       "meaning": "influence; effect",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 190
     },
     {
@@ -725,7 +725,7 @@
       "reading": "じょうきょう",
       "meaning": "situation; circumstances",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 165
     },
     {
@@ -733,7 +733,7 @@
       "reading": "かんきょう",
       "meaning": "environment",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 225
     },
     {
@@ -741,7 +741,7 @@
       "reading": "ぎじゅつ",
       "meaning": "technology; skill",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 180
     },
     {
@@ -749,7 +749,7 @@
       "reading": "じょうほう",
       "meaning": "information",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 120
     },
     {
@@ -757,7 +757,7 @@
       "reading": "せいど",
       "meaning": "system; institution",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 275
     },
     {
@@ -765,7 +765,7 @@
       "reading": "たいしょう",
       "meaning": "target; object (of study)",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 250
     },
     {
@@ -773,7 +773,7 @@
       "reading": "けっか",
       "meaning": "result; outcome",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 105
     },
     {
@@ -781,7 +781,7 @@
       "reading": "げんいん",
       "meaning": "cause; reason",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 295
     },
     {
@@ -789,7 +789,7 @@
       "reading": "もくてき",
       "meaning": "purpose; objective",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 240
     },
     {
@@ -797,7 +797,7 @@
       "reading": "せいかく",
       "meaning": "accurate; precise",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 350
     },
     {
@@ -805,7 +805,7 @@
       "reading": "てきせつ",
       "meaning": "appropriate; suitable",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 330
     },
     {
@@ -813,7 +813,7 @@
       "reading": "めいかく",
       "meaning": "clear; definite",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 370
     },
     {
@@ -821,7 +821,7 @@
       "reading": "じゅうよう",
       "meaning": "important; essential",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 115
     },
     {
@@ -829,7 +829,7 @@
       "reading": "じゅうぶん",
       "meaning": "enough; sufficient",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 145
     },
     {
@@ -837,7 +837,7 @@
       "reading": "じっさいに",
       "meaning": "actually; in reality",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 95
     },
     {
@@ -845,7 +845,7 @@
       "reading": "たしかに",
       "meaning": "certainly; indeed",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 175
     },
     {
@@ -853,7 +853,7 @@
       "reading": "すくなくとも",
       "meaning": "at least",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 310
     },
     {
@@ -861,7 +861,7 @@
       "reading": "なるべく",
       "meaning": "as much as possible",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 355
     },
     {
@@ -869,7 +869,7 @@
       "reading": "おつかれさまです",
       "meaning": "thank you for your hard work",
       "partOfSpeech": "expression",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 320
     },
     {
@@ -877,7 +877,7 @@
       "reading": "やくにたつ",
       "meaning": "to be useful; to be helpful",
       "partOfSpeech": "expression",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 305
     },
     {
@@ -885,7 +885,7 @@
       "reading": "いっぽん",
       "meaning": "one (long/cylindrical object)",
       "partOfSpeech": "counter",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 335
     },
     {
@@ -893,7 +893,7 @@
       "reading": "ぞうか",
       "meaning": "increase; growth",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 300
     },
     {
@@ -901,7 +901,7 @@
       "reading": "げんしょう",
       "meaning": "decrease; decline",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 315
     },
     {
@@ -909,7 +909,7 @@
       "reading": "そんざい",
       "meaning": "existence",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 200
     },
     {
@@ -917,7 +917,7 @@
       "reading": "しらべる",
       "meaning": "to investigate; to look up",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 245
     },
     {
@@ -925,7 +925,7 @@
       "reading": "ふくむ",
       "meaning": "to include; to contain",
       "partOfSpeech": "verb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 185
     },
     {
@@ -933,7 +933,7 @@
       "reading": "わりあい",
       "meaning": "ratio; proportion",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 285
     },
     {
@@ -941,7 +941,7 @@
       "reading": "きほん",
       "meaning": "foundation; basis",
       "partOfSpeech": "noun",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 155
     },
     {
@@ -949,7 +949,7 @@
       "reading": "きゅうに",
       "meaning": "suddenly; abruptly",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 270
     },
     {
@@ -957,7 +957,7 @@
       "reading": "それぞれ",
       "meaning": "each; respectively",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 210
     },
     {
@@ -965,7 +965,7 @@
       "reading": "いじ",
       "meaning": "maintenance; preservation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 310
     },
     {
@@ -973,7 +973,7 @@
       "reading": "こうけん",
       "meaning": "contribution",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 380
     },
     {
@@ -981,7 +981,7 @@
       "reading": "けいこう",
       "meaning": "tendency; trend",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 335
     },
     {
@@ -989,7 +989,7 @@
       "reading": "こんきょ",
       "meaning": "basis; grounds",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 425
     },
     {
@@ -997,7 +997,7 @@
       "reading": "がいねん",
       "meaning": "concept; notion",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 390
     },
     {
@@ -1005,7 +1005,7 @@
       "reading": "きじゅん",
       "meaning": "standard; criterion",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 315
     },
     {
@@ -1013,7 +1013,7 @@
       "reading": "ほうしん",
       "meaning": "policy; course of action",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 295
     },
     {
@@ -1021,7 +1021,7 @@
       "reading": "たいさく",
       "meaning": "countermeasure; strategy",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 270
     },
     {
@@ -1029,7 +1029,7 @@
       "reading": "せいか",
       "meaning": "result; achievement",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 350
     },
     {
@@ -1037,7 +1037,7 @@
       "reading": "てんかい",
       "meaning": "development; deployment",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 260
     },
     {
@@ -1045,7 +1045,7 @@
       "reading": "はあく",
       "meaning": "grasp; understanding",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 410
     },
     {
@@ -1053,7 +1053,7 @@
       "reading": "だとう",
       "meaning": "valid; reasonable",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 450
     },
     {
@@ -1061,7 +1061,7 @@
       "reading": "けんちょ",
       "meaning": "remarkable; conspicuous",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 480
     },
     {
@@ -1069,7 +1069,7 @@
       "reading": "ばくだい",
       "meaning": "enormous; vast",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 500
     },
     {
@@ -1077,7 +1077,7 @@
       "reading": "いちじるしい",
       "meaning": "remarkable; striking",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 420
     },
     {
@@ -1085,7 +1085,7 @@
       "reading": "ふまえる",
       "meaning": "to be based on; to take into account",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 355
     },
     {
@@ -1093,7 +1093,7 @@
       "reading": "みなす",
       "meaning": "to regard as; to consider",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 400
     },
     {
@@ -1101,7 +1101,7 @@
       "reading": "うながす",
       "meaning": "to urge; to encourage",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 345
     },
     {
@@ -1109,7 +1109,7 @@
       "reading": "くつがえす",
       "meaning": "to overturn; to reverse",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 470
     },
     {
@@ -1117,7 +1117,7 @@
       "reading": "おぎなう",
       "meaning": "to supplement; to compensate",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 430
     },
     {
@@ -1125,7 +1125,7 @@
       "reading": "ともなう",
       "meaning": "to accompany; to involve",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 285
     },
     {
@@ -1133,7 +1133,7 @@
       "reading": "はたす",
       "meaning": "to fulfill; to accomplish",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 320
     },
     {
@@ -1141,7 +1141,7 @@
       "reading": "いちがいに",
       "meaning": "unconditionally; sweepingly",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 460
     },
     {
@@ -1149,7 +1149,7 @@
       "reading": "おおむね",
       "meaning": "generally; roughly",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 435
     },
     {
@@ -1157,7 +1157,7 @@
       "reading": "かろうじて",
       "meaning": "barely; narrowly",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 490
     },
     {
@@ -1165,7 +1165,7 @@
       "reading": "いっぽうで",
       "meaning": "on the other hand",
       "partOfSpeech": "expression",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 155
     },
     {
@@ -1173,7 +1173,7 @@
       "reading": "ようするに",
       "meaning": "in short; to put it simply",
       "partOfSpeech": "expression",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 360
     },
     {
@@ -1181,7 +1181,7 @@
       "reading": "ぜんてい",
       "meaning": "premise; prerequisite",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 375
     },
     {
@@ -1189,7 +1189,7 @@
       "reading": "むじゅん",
       "meaning": "contradiction",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 395
     },
     {
@@ -1197,7 +1197,7 @@
       "reading": "ふきゅう",
       "meaning": "diffusion; spread",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 340
     },
     {
@@ -1205,7 +1205,7 @@
       "reading": "じったい",
       "meaning": "actual condition; reality",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 365
     },
     {
@@ -1213,7 +1213,7 @@
       "reading": "しさく",
       "meaning": "policy; measure",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 405
     },
     {
@@ -1221,7 +1221,7 @@
       "reading": "よぎなくされる",
       "meaning": "to be forced to; to have no choice but",
       "partOfSpeech": "expression",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 475
     },
     {
@@ -1229,7 +1229,7 @@
       "reading": "けんとう",
       "meaning": "examination; consideration",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 255
     },
     {
@@ -1237,7 +1237,7 @@
       "reading": "さくげん",
       "meaning": "reduction; curtailment",
       "partOfSpeech": "noun",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 385
     },
     {
@@ -1245,7 +1245,7 @@
       "reading": "おさえる",
       "meaning": "to suppress; to restrain",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 300
     },
     {
@@ -1253,7 +1253,7 @@
       "reading": "とらえる",
       "meaning": "to grasp; to perceive",
       "partOfSpeech": "verb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 330
     },
     {
@@ -1261,7 +1261,7 @@
       "reading": "ぼうだい",
       "meaning": "enormous; vast amount",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 440
     },
     {
@@ -1269,7 +1269,7 @@
       "reading": "いっそう",
       "meaning": "much more; even more",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 325
     },
     {
@@ -1277,7 +1277,7 @@
       "reading": "にわり",
       "meaning": "20 percent; two-tenths",
       "partOfSpeech": "counter",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 415
     },
     {
@@ -1285,7 +1285,7 @@
       "reading": "もたらす",
       "meaning": "to bring about; to cause",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 290
     },
     {
@@ -1293,7 +1293,7 @@
       "reading": "くつがえる",
       "meaning": "to be overturned; to be reversed",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 520
     },
     {
@@ -1301,7 +1301,7 @@
       "reading": "しのぐ",
       "meaning": "to endure; to surpass",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 560
     },
     {
@@ -1309,7 +1309,7 @@
       "reading": "たずさわる",
       "meaning": "to be engaged in; to participate",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 480
     },
     {
@@ -1317,7 +1317,7 @@
       "reading": "くじく",
       "meaning": "to crush; to dampen (spirits)",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 620
     },
     {
@@ -1325,7 +1325,7 @@
       "reading": "うれう",
       "meaning": "to grieve; to be anxious about",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 590
     },
     {
@@ -1333,7 +1333,7 @@
       "reading": "いましめる",
       "meaning": "to admonish; to warn",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 575
     },
     {
@@ -1341,7 +1341,7 @@
       "reading": "おもむく",
       "meaning": "to go; to proceed to",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 540
     },
     {
@@ -1349,7 +1349,7 @@
       "reading": "かいり",
       "meaning": "divergence; deviation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 610
     },
     {
@@ -1357,7 +1357,7 @@
       "reading": "きけつ",
       "meaning": "consequence; conclusion",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 580
     },
     {
@@ -1365,7 +1365,7 @@
       "reading": "しい",
       "meaning": "arbitrariness",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 640
     },
     {
@@ -1373,7 +1373,7 @@
       "reading": "そきゅう",
       "meaning": "retroaction; tracing back",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 650
     },
     {
@@ -1381,7 +1381,7 @@
       "reading": "とうた",
       "meaning": "selection; weeding out",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 570
     },
     {
@@ -1389,7 +1389,7 @@
       "reading": "そご",
       "meaning": "discrepancy; disagreement",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 630
     },
     {
@@ -1397,7 +1397,7 @@
       "reading": "ひっぱく",
       "meaning": "strain; pressure; tightness",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 555
     },
     {
@@ -1405,7 +1405,7 @@
       "reading": "ふせき",
       "meaning": "groundwork; preparation (strategic)",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 600
     },
     {
@@ -1413,7 +1413,7 @@
       "reading": "けんざいか",
       "meaning": "becoming apparent; manifestation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 535
     },
     {
@@ -1421,7 +1421,7 @@
       "reading": "はなはだしい",
       "meaning": "extreme; excessive",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 510
     },
     {
@@ -1429,7 +1429,7 @@
       "reading": "いちじるしく",
       "meaning": "remarkably; significantly",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 440
     },
     {
@@ -1437,7 +1437,7 @@
       "reading": "からくも",
       "meaning": "barely; by a narrow margin",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 625
     },
     {
@@ -1445,7 +1445,7 @@
       "reading": "ひっきょう",
       "meaning": "after all; in the end",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 660
     },
     {
@@ -1453,7 +1453,7 @@
       "reading": "もっぱら",
       "meaning": "exclusively; entirely",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 455
     },
     {
@@ -1461,7 +1461,7 @@
       "reading": "さもなければ",
       "meaning": "otherwise; or else",
       "partOfSpeech": "expression",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 545
     },
     {
@@ -1469,7 +1469,7 @@
       "reading": "とりわけ",
       "meaning": "especially; above all",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 415
     },
     {
@@ -1477,7 +1477,7 @@
       "reading": "けんちょな",
       "meaning": "remarkable; conspicuous",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 495
     },
     {
@@ -1485,7 +1485,7 @@
       "reading": "いかなる",
       "meaning": "any kind of; whatever",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 470
     },
     {
@@ -1493,7 +1493,7 @@
       "reading": "ふかけつ",
       "meaning": "indispensable; essential",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 445
     },
     {
@@ -1501,7 +1501,7 @@
       "reading": "たんてきに",
       "meaning": "frankly; directly; in a nutshell",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 585
     },
     {
@@ -1509,7 +1509,7 @@
       "reading": "いぜんとして",
       "meaning": "still; as before",
       "partOfSpeech": "expression",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 330
     },
     {
@@ -1517,7 +1517,7 @@
       "reading": "さっしん",
       "meaning": "reform; renovation",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 550
     },
     {
@@ -1525,7 +1525,7 @@
       "reading": "ほうかつ",
       "meaning": "comprehensive; inclusive",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 505
     },
     {
@@ -1533,7 +1533,7 @@
       "reading": "じょうせい",
       "meaning": "fostering; cultivating (atmosphere)",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 615
     },
     {
@@ -1541,7 +1541,7 @@
       "reading": "つたない",
       "meaning": "poor; unskillful; clumsy",
       "partOfSpeech": "adjective",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 605
     },
     {
@@ -1549,7 +1549,7 @@
       "reading": "おこたる",
       "meaning": "to neglect; to be negligent",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 530
     },
     {
@@ -1557,7 +1557,7 @@
       "reading": "うるおう",
       "meaning": "to be moist; to profit; to benefit",
       "partOfSpeech": "verb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 595
     },
     {
@@ -1565,7 +1565,7 @@
       "reading": "いつだつ",
       "meaning": "deviation; departure from the norm",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 565
     },
     {
@@ -1573,7 +1573,7 @@
       "reading": "しゅうれん",
       "meaning": "convergence; astringency",
       "partOfSpeech": "noun",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 645
     },
     {
@@ -1581,7 +1581,7 @@
       "reading": "あえて",
       "meaning": "daringly; deliberately",
       "partOfSpeech": "adverb",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 465
     },
     {
@@ -1589,7 +1589,7 @@
       "reading": "なにとぞ",
       "meaning": "please (very formal); I beg of you",
       "partOfSpeech": "expression",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 635
     },
     {
@@ -1597,7 +1597,7 @@
       "reading": "いっぴき",
       "meaning": "one (small animal)",
       "partOfSpeech": "counter",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 525
     }
   ],
@@ -1606,7 +1606,7 @@
       "patternId": "n5_desu",
       "name": "です",
       "description": "Polite copula - used to make polite statements",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 1,
       "prerequisiteIds": []
     },
@@ -1614,7 +1614,7 @@
       "patternId": "n5_masu",
       "name": "〜ます",
       "description": "Polite verb ending for non-past affirmative",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 2,
       "prerequisiteIds": []
     },
@@ -1622,7 +1622,7 @@
       "patternId": "n5_particle_wa",
       "name": "は (topic)",
       "description": "Topic marker particle - marks the topic of the sentence",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 3,
       "prerequisiteIds": []
     },
@@ -1630,7 +1630,7 @@
       "patternId": "n5_particle_ga",
       "name": "が (subject)",
       "description": "Subject marker particle - marks the grammatical subject",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 4,
       "prerequisiteIds": []
     },
@@ -1638,7 +1638,7 @@
       "patternId": "n5_particle_wo",
       "name": "を (object)",
       "description": "Object marker particle - marks the direct object of a verb",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 5,
       "prerequisiteIds": []
     },
@@ -1646,7 +1646,7 @@
       "patternId": "n5_particle_ni",
       "name": "に (location/time)",
       "description": "Particle indicating location, time, direction, or indirect object",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 6,
       "prerequisiteIds": []
     },
@@ -1654,7 +1654,7 @@
       "patternId": "n5_te_form",
       "name": "〜て form",
       "description": "Verb te-form used for connecting clauses, making requests, and progressive tense",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 8,
       "prerequisiteIds": ["n5_masu"]
     },
@@ -1662,7 +1662,7 @@
       "patternId": "n5_nai_form",
       "name": "〜ない form",
       "description": "Negative verb conjugation - plain negative form",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 9,
       "prerequisiteIds": ["n5_masu"]
     },
@@ -1670,7 +1670,7 @@
       "patternId": "n5_past_ta",
       "name": "〜た (past tense)",
       "description": "Past tense plain form for verbs and adjectives",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 7,
       "prerequisiteIds": ["n5_te_form"]
     },
@@ -1678,7 +1678,7 @@
       "patternId": "n5_adjective_i",
       "name": "い-adjective conjugation",
       "description": "Conjugation patterns for i-adjectives (negative, past, te-form)",
-      "jlptLevel": "N5",
+      "cefrLevel": "A1",
       "frequencyRank": 10,
       "prerequisiteIds": ["n5_desu"]
     },
@@ -1686,7 +1686,7 @@
       "patternId": "n4_te_iru",
       "name": "〜ている",
       "description": "Progressive/resultative - indicates ongoing action or resulting state",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 11,
       "prerequisiteIds": ["n5_te_form"]
     },
@@ -1694,7 +1694,7 @@
       "patternId": "n4_tai",
       "name": "〜たい",
       "description": "Desire form - expresses wanting to do something",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 14,
       "prerequisiteIds": ["n5_masu"]
     },
@@ -1702,7 +1702,7 @@
       "patternId": "n4_te_kudasai",
       "name": "〜てください",
       "description": "Polite request form - please do (something)",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 15,
       "prerequisiteIds": ["n5_te_form"]
     },
@@ -1710,7 +1710,7 @@
       "patternId": "n4_potential",
       "name": "〜られる / 〜える (potential)",
       "description": "Potential form - expresses ability to do something",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 16,
       "prerequisiteIds": ["n5_masu", "n5_nai_form"]
     },
@@ -1718,7 +1718,7 @@
       "patternId": "n4_conditional_ba",
       "name": "〜ば (conditional)",
       "description": "Conditional form - if/when something happens",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 18,
       "prerequisiteIds": ["n5_nai_form"]
     },
@@ -1726,7 +1726,7 @@
       "patternId": "n4_conditional_tara",
       "name": "〜たら (conditional)",
       "description": "Conditional form - if/when (more colloquial than ば)",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 17,
       "prerequisiteIds": ["n5_past_ta"]
     },
@@ -1734,7 +1734,7 @@
       "patternId": "n4_passive",
       "name": "〜られる (passive)",
       "description": "Passive voice - action is received or suffered by the subject",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 19,
       "prerequisiteIds": ["n5_nai_form"]
     },
@@ -1742,7 +1742,7 @@
       "patternId": "n4_causative",
       "name": "〜させる (causative)",
       "description": "Causative form - make/let someone do something",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 22,
       "prerequisiteIds": ["n5_nai_form"]
     },
@@ -1750,7 +1750,7 @@
       "patternId": "n4_te_shimau",
       "name": "〜てしまう",
       "description": "Completion/regret - doing something completely or accidentally",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 20,
       "prerequisiteIds": ["n5_te_form"]
     },
@@ -1758,7 +1758,7 @@
       "patternId": "n4_noni",
       "name": "〜のに",
       "description": "Despite; although - expresses contrast with disappointment or surprise",
-      "jlptLevel": "N4",
+      "cefrLevel": "A2",
       "frequencyRank": 21,
       "prerequisiteIds": ["n5_te_form", "n5_adjective_i"]
     },
@@ -1766,7 +1766,7 @@
       "patternId": "n3_you_ni_naru",
       "name": "〜ようになる",
       "description": "To come to; to reach the point where - describes gradual change",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 23,
       "prerequisiteIds": ["n5_nai_form", "n4_potential"]
     },
@@ -1774,7 +1774,7 @@
       "patternId": "n3_you_ni_suru",
       "name": "〜ようにする",
       "description": "To try to; to make sure to - describes deliberate effort",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 24,
       "prerequisiteIds": ["n5_nai_form", "n4_potential"]
     },
@@ -1782,7 +1782,7 @@
       "patternId": "n3_te_oku",
       "name": "〜ておく",
       "description": "To do in advance; to do for preparation",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 25,
       "prerequisiteIds": ["n5_te_form"]
     },
@@ -1790,7 +1790,7 @@
       "patternId": "n3_baai",
       "name": "〜場合（は）",
       "description": "In the case of; in the event that",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 26,
       "prerequisiteIds": ["n5_past_ta", "n5_nai_form"]
     },
@@ -1798,7 +1798,7 @@
       "patternId": "n3_tame_ni",
       "name": "〜ために",
       "description": "In order to; for the purpose of; because of",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 13,
       "prerequisiteIds": ["n5_nai_form"]
     },
@@ -1806,7 +1806,7 @@
       "patternId": "n3_to_iu",
       "name": "〜という",
       "description": "Called; named; that (quotative/explanatory)",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 12,
       "prerequisiteIds": ["n5_desu"]
     },
@@ -1814,7 +1814,7 @@
       "patternId": "n3_rashii",
       "name": "〜らしい",
       "description": "It seems like; apparently (based on evidence)",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 28,
       "prerequisiteIds": ["n5_desu", "n5_adjective_i"]
     },
@@ -1822,7 +1822,7 @@
       "patternId": "n3_you_da",
       "name": "〜ようだ",
       "description": "It appears; it seems (based on speaker's observation)",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 27,
       "prerequisiteIds": ["n5_desu"]
     },
@@ -1830,7 +1830,7 @@
       "patternId": "n3_nagara",
       "name": "〜ながら",
       "description": "While doing; although (simultaneous actions or contrast)",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 29,
       "prerequisiteIds": ["n5_masu"]
     },
@@ -1838,7 +1838,7 @@
       "patternId": "n3_causative_passive",
       "name": "〜させられる",
       "description": "Causative-passive - to be made to do something",
-      "jlptLevel": "N3",
+      "cefrLevel": "B1",
       "frequencyRank": 30,
       "prerequisiteIds": ["n4_passive", "n4_causative"]
     },
@@ -1846,7 +1846,7 @@
       "patternId": "n2_toshite",
       "name": "〜として",
       "description": "As; in the capacity of",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 31,
       "prerequisiteIds": ["n5_particle_ni"]
     },
@@ -1854,7 +1854,7 @@
       "patternId": "n2_ni_totte",
       "name": "〜にとって",
       "description": "For; from the perspective of",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 32,
       "prerequisiteIds": ["n5_particle_ni"]
     },
@@ -1862,7 +1862,7 @@
       "patternId": "n2_ni_oite",
       "name": "〜において / 〜における",
       "description": "In; at; regarding (formal location/context marker)",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 33,
       "prerequisiteIds": ["n5_particle_ni"]
     },
@@ -1870,7 +1870,7 @@
       "patternId": "n2_ni_taisuru",
       "name": "〜に対する / 〜に対して",
       "description": "Towards; regarding; in contrast to",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 34,
       "prerequisiteIds": ["n5_particle_ni"]
     },
@@ -1878,7 +1878,7 @@
       "patternId": "n2_tsutsumu",
       "name": "〜つつ / 〜つつある",
       "description": "While (literary); in the process of",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 37,
       "prerequisiteIds": ["n5_masu", "n3_nagara"]
     },
@@ -1886,7 +1886,7 @@
       "patternId": "n2_ni_kagirazu",
       "name": "〜に限らず",
       "description": "Not limited to; not just",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 39,
       "prerequisiteIds": ["n5_nai_form", "n5_particle_ni"]
     },
@@ -1894,7 +1894,7 @@
       "patternId": "n2_koto_wa_nai",
       "name": "〜ことはない",
       "description": "There is no need to; it never happens that",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 36,
       "prerequisiteIds": ["n5_nai_form"]
     },
@@ -1902,7 +1902,7 @@
       "patternId": "n2_mono_da",
       "name": "〜ものだ",
       "description": "Used to; it is natural that; should (general truth/nostalgia)",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 35,
       "prerequisiteIds": ["n5_past_ta"]
     },
@@ -1910,7 +1910,7 @@
       "patternId": "n2_wake_da",
       "name": "〜わけだ",
       "description": "That's why; it means that; no wonder",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 38,
       "prerequisiteIds": ["n5_desu"]
     },
@@ -1918,7 +1918,7 @@
       "patternId": "n2_zaru_wo_enai",
       "name": "〜ざるを得ない",
       "description": "Cannot help but; have no choice but to",
-      "jlptLevel": "N2",
+      "cefrLevel": "B2",
       "frequencyRank": 40,
       "prerequisiteIds": ["n5_nai_form", "n4_potential"]
     },
@@ -1926,7 +1926,7 @@
       "patternId": "n1_ni_hoka_naranai",
       "name": "〜にほかならない",
       "description": "Nothing but; none other than (emphatic assertion)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 41,
       "prerequisiteIds": ["n5_nai_form", "n5_desu"]
     },
@@ -1934,7 +1934,7 @@
       "patternId": "n1_wo_motte",
       "name": "〜をもって",
       "description": "By means of; with (formal instrumental)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 44,
       "prerequisiteIds": ["n5_particle_wo"]
     },
@@ -1942,7 +1942,7 @@
       "patternId": "n1_ni_kakawaru",
       "name": "〜に関わる / 〜に関わらず",
       "description": "Concerning; regardless of",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 42,
       "prerequisiteIds": ["n5_particle_ni", "n5_nai_form"]
     },
@@ -1950,7 +1950,7 @@
       "patternId": "n1_towa_ie",
       "name": "〜とはいえ",
       "description": "Although; even though; having said that",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 43,
       "prerequisiteIds": ["n4_conditional_ba", "n3_to_iu"]
     },
@@ -1958,7 +1958,7 @@
       "patternId": "n1_made_mo_nai",
       "name": "〜までもない",
       "description": "There is no need to (go so far as to)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 47,
       "prerequisiteIds": ["n5_nai_form", "n2_koto_wa_nai"]
     },
@@ -1966,7 +1966,7 @@
       "patternId": "n1_taru",
       "name": "〜たる",
       "description": "As (befitting); being (archaic/formal attributive)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 49,
       "prerequisiteIds": ["n2_toshite"]
     },
@@ -1974,7 +1974,7 @@
       "patternId": "n1_wo_yogi_nakusareru",
       "name": "〜を余儀なくされる",
       "description": "To be forced to; to be compelled to (formal)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 48,
       "prerequisiteIds": ["n4_passive", "n2_zaru_wo_enai"]
     },
@@ -1982,7 +1982,7 @@
       "patternId": "n1_koso_are",
       "name": "〜こそあれ",
       "description": "There may be (X), but (emphasizes contrast)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 50,
       "prerequisiteIds": ["n4_conditional_ba"]
     },
@@ -1990,7 +1990,7 @@
       "patternId": "n1_ni_taeru",
       "name": "〜に堪える / 〜に堪えない",
       "description": "To be worth; to withstand / unbearable",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 46,
       "prerequisiteIds": ["n5_particle_ni", "n5_nai_form"]
     },
@@ -1998,7 +1998,7 @@
       "patternId": "n1_izure_ni_seyo",
       "name": "〜いずれにせよ",
       "description": "In any case; at any rate (formal)",
-      "jlptLevel": "N1",
+      "cefrLevel": "C1",
       "frequencyRank": 45,
       "prerequisiteIds": ["n4_conditional_ba", "n2_ni_kagirazu"]
     }

@@ -247,7 +247,7 @@ export interface CurriculumRecommendation {
   reading?: string
   meaning?: string
   patternId?: string
-  jlptLevel?: string
+  cefrLevel?: string
   frequencyRank?: number
   priority: number
   reason: string
@@ -289,7 +289,7 @@ export interface ExpandedItemDetail extends WordBankEntry {
   speakingProductions: number
   writingProductions: number
   frequencyRank: number | null
-  jlptLevel: string | null
+  cefrLevel: string | null
   productionWeight: number
 }
 
@@ -344,7 +344,7 @@ export interface FrontierItem {
   itemType: ItemType
   surfaceForm?: string
   patternId?: string
-  jlptLevel: string
+  cefrLevel: string
   masteryState: string
 }
 

@@ -7,7 +7,7 @@ interface RadarLevelsViewProps {
   data: FrontierData
 }
 
-const LEVEL_ORDER = ['N5', 'N4', 'N3', 'N2', 'N1']
+const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 export function RadarLevelsView({ data }: RadarLevelsViewProps) {
   const { bubble, profile } = data

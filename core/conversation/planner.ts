@@ -104,7 +104,7 @@ export function parseSessionPlan(raw: string): ExpandedSessionPlan {
   return {
     targetVocabulary: parsed.target_vocabulary ?? [],
     targetGrammar: parsed.target_grammar ?? [],
-    difficultyLevel: parsed.difficulty_level ?? 'N5',
+    difficultyLevel: parsed.difficulty_level ?? 'A1',
     register: parsed.register ?? 'polite',
     sessionFocus: parsed.session_focus ?? '',
     pragmaticTargets: {

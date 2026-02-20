@@ -93,7 +93,7 @@ async function buildLearnerSummary(): Promise<LearnerSummary> {
       id: i.id,
       itemType: 'lexical' as const,
       surfaceForm: i.surfaceForm,
-      jlptLevel: i.jlptLevel,
+      cefrLevel: i.cefrLevel,
       masteryState: i.masteryState,
       productionWeight: i.productionWeight,
     })),
@@ -101,7 +101,7 @@ async function buildLearnerSummary(): Promise<LearnerSummary> {
       id: i.id,
       itemType: 'grammar' as const,
       patternId: i.patternId,
-      jlptLevel: i.jlptLevel,
+      cefrLevel: i.cefrLevel,
       masteryState: i.masteryState,
       productionWeight: i.productionWeight,
     })),
@@ -256,7 +256,7 @@ async function buildExpandedTomBrief(): Promise<ReturnType<typeof generateExpand
       contextCount: item.contextCount,
     })),
     pragmaticState,
-    recommendedDifficulty: 'N5',
+    recommendedDifficulty: 'A1',
   }
 
   return generateExpandedDailyBrief(briefInput)
@@ -621,7 +621,7 @@ async function triggerProfileRecalculation(): Promise<void> {
     ...lexicalItems.map((item) => ({
       id: item.id,
       itemType: 'lexical' as const,
-      jlptLevel: item.jlptLevel,
+      cefrLevel: item.cefrLevel,
       masteryState: item.masteryState,
       recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
       productionFsrs: item.productionFsrs as unknown as FsrsState,
@@ -633,7 +633,7 @@ async function triggerProfileRecalculation(): Promise<void> {
     ...grammarItems.map((item) => ({
       id: item.id,
       itemType: 'grammar' as const,
-      jlptLevel: item.jlptLevel,
+      cefrLevel: item.cefrLevel,
       masteryState: item.masteryState,
       recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
       productionFsrs: item.productionFsrs as unknown as FsrsState,

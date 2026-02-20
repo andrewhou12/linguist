@@ -13,7 +13,7 @@ export function LevelBarsView({ data }: LevelBarsViewProps) {
 
   return (
     <Flex direction="column" gap="4">
-      {/* JLPT Level Bars */}
+      {/* Level Bars */}
       <Flex direction="column" gap="1">
         <Text size="2" weight="bold" color="gray" mb="1">
           Level Coverage
@@ -60,7 +60,7 @@ export function LevelBarsView({ data }: LevelBarsViewProps) {
   )
 }
 
-const LEVEL_ORDER = ['N5', 'N4', 'N3', 'N2', 'N1']
+const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
 function isAbove(level: string, frontier: string): boolean {
   const li = LEVEL_ORDER.indexOf(level)

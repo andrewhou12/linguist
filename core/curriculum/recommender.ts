@@ -33,7 +33,7 @@ interface ScoredCandidate {
   reading?: string
   meaning?: string
   patternId?: string
-  jlptLevel: string
+  cefrLevel: string
   frequencyRank: number
   score: number
   reason: string
@@ -64,7 +64,7 @@ export function generateRecommendations(
   const targetLevels = [bubble.frontierLevel, bubble.currentLevel]
   for (const level of targetLevels) {
     const levelVocab = corpus.vocabulary.filter(
-      (v) => v.jlptLevel === level && !knownSurfaceForms.has(v.surfaceForm)
+      (v) => v.cefrLevel === level && !knownSurfaceForms.has(v.surfaceForm)
     )
     for (const vocab of levelVocab) {
       candidates.push(scoreVocabCandidate(vocab, bubble, level === bubble.currentLevel))
@@ -75,7 +75,7 @@ export function generateRecommendations(
   const prerequisiteMap = buildPrerequisiteMap(corpus.grammar)
   for (const level of targetLevels) {
     const levelGrammar = corpus.grammar.filter(
-      (g) => g.jlptLevel === level && !knownPatternIds.has(g.patternId)
+      (g) => g.cefrLevel === level && !knownPatternIds.has(g.patternId)
     )
     for (const grammar of levelGrammar) {
       candidates.push(
@@ -106,7 +106,7 @@ export function generateRecommendations(
     reading: c.reading,
     meaning: c.meaning,
     patternId: c.patternId,
-    jlptLevel: c.jlptLevel,
+    cefrLevel: c.cefrLevel,
     frequencyRank: c.frequencyRank,
     priority: Math.round(c.score * 100) / 100,
     reason: c.reason,
@@ -140,7 +140,7 @@ function scoreVocabCandidate(
     surfaceForm: vocab.surfaceForm,
     reading: vocab.reading,
     meaning: vocab.meaning,
-    jlptLevel: vocab.jlptLevel,
+    cefrLevel: vocab.cefrLevel,
     frequencyRank: vocab.frequencyRank,
     score,
     reason: reasons.join('; '),
@@ -184,7 +184,7 @@ function scoreGrammarCandidate(
     itemType: 'grammar',
     patternId: grammar.patternId,
     meaning: grammar.description,
-    jlptLevel: grammar.jlptLevel,
+    cefrLevel: grammar.cefrLevel,
     frequencyRank: grammar.frequencyRank,
     score,
     reason: reasons.join('; '),

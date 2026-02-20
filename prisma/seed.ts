@@ -96,7 +96,7 @@ function journeymanFsrs(): FsrsState {
   })
 }
 
-// ── Vocabulary Data (N5 Japanese) ──
+// ── Vocabulary Data (A1 Japanese) ──
 
 interface VocabSeed {
   surfaceForm: string
@@ -104,7 +104,7 @@ interface VocabSeed {
   meaning: string
   partOfSpeech: string
   masteryState: string
-  jlptLevel: string
+  cefrLevel: string
   tags: string[]
   makeFsrs: () => FsrsState
   exposureCount: number
@@ -113,75 +113,75 @@ interface VocabSeed {
 
 const vocabulary: VocabSeed[] = [
   // ── apprentice_1 (8 items, due today) ──
-  { surfaceForm: '食べる', reading: 'たべる', meaning: 'to eat', partOfSpeech: 'verb', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'verb', 'ichidan'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
-  { surfaceForm: '飲む', reading: 'のむ', meaning: 'to drink', partOfSpeech: 'verb', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
-  { surfaceForm: '大きい', reading: 'おおきい', meaning: 'big; large', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '小さい', reading: 'ちいさい', meaning: 'small; little', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '学校', reading: 'がっこう', meaning: 'school', partOfSpeech: 'noun', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'noun', 'place'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
-  { surfaceForm: '先生', reading: 'せんせい', meaning: 'teacher; doctor', partOfSpeech: 'noun', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '時間', reading: 'じかん', meaning: 'time; hour', partOfSpeech: 'noun', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'noun', 'time'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
-  { surfaceForm: '新しい', reading: 'あたらしい', meaning: 'new', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '食べる', reading: 'たべる', meaning: 'to eat', partOfSpeech: 'verb', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'verb', 'ichidan'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
+  { surfaceForm: '飲む', reading: 'のむ', meaning: 'to drink', partOfSpeech: 'verb', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
+  { surfaceForm: '大きい', reading: 'おおきい', meaning: 'big; large', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '小さい', reading: 'ちいさい', meaning: 'small; little', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '学校', reading: 'がっこう', meaning: 'school', partOfSpeech: 'noun', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'noun', 'place'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
+  { surfaceForm: '先生', reading: 'せんせい', meaning: 'teacher; doctor', partOfSpeech: 'noun', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '時間', reading: 'じかん', meaning: 'time; hour', partOfSpeech: 'noun', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'noun', 'time'], makeFsrs: apprentice1Fsrs, exposureCount: 2, productionCount: 0 },
+  { surfaceForm: '新しい', reading: 'あたらしい', meaning: 'new', partOfSpeech: 'i-adjective', masteryState: 'apprentice_1', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: apprentice1Fsrs, exposureCount: 1, productionCount: 0 },
 
   // ── apprentice_2 (6 items, due today) ──
-  { surfaceForm: '水', reading: 'みず', meaning: 'water', partOfSpeech: 'noun', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 4, productionCount: 0 },
-  { surfaceForm: '友達', reading: 'ともだち', meaning: 'friend', partOfSpeech: 'noun', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
-  { surfaceForm: '行く', reading: 'いく', meaning: 'to go', partOfSpeech: 'verb', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice2Fsrs, exposureCount: 5, productionCount: 0 },
-  { surfaceForm: '来る', reading: 'くる', meaning: 'to come', partOfSpeech: 'verb', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'verb', 'irregular'], makeFsrs: apprentice2Fsrs, exposureCount: 4, productionCount: 0 },
-  { surfaceForm: '本', reading: 'ほん', meaning: 'book', partOfSpeech: 'noun', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
-  { surfaceForm: '天気', reading: 'てんき', meaning: 'weather', partOfSpeech: 'noun', masteryState: 'apprentice_2', jlptLevel: 'N5', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
+  { surfaceForm: '水', reading: 'みず', meaning: 'water', partOfSpeech: 'noun', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 4, productionCount: 0 },
+  { surfaceForm: '友達', reading: 'ともだち', meaning: 'friend', partOfSpeech: 'noun', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
+  { surfaceForm: '行く', reading: 'いく', meaning: 'to go', partOfSpeech: 'verb', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice2Fsrs, exposureCount: 5, productionCount: 0 },
+  { surfaceForm: '来る', reading: 'くる', meaning: 'to come', partOfSpeech: 'verb', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'verb', 'irregular'], makeFsrs: apprentice2Fsrs, exposureCount: 4, productionCount: 0 },
+  { surfaceForm: '本', reading: 'ほん', meaning: 'book', partOfSpeech: 'noun', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
+  { surfaceForm: '天気', reading: 'てんき', meaning: 'weather', partOfSpeech: 'noun', masteryState: 'apprentice_2', cefrLevel: 'A1', tags: ['N5', 'noun'], makeFsrs: apprentice2Fsrs, exposureCount: 3, productionCount: 0 },
 
   // ── apprentice_3 (4 items, due today) ──
-  { surfaceForm: '人', reading: 'ひと', meaning: 'person; people', partOfSpeech: 'noun', masteryState: 'apprentice_3', jlptLevel: 'N5', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice3Fsrs, exposureCount: 7, productionCount: 1 },
-  { surfaceForm: '見る', reading: 'みる', meaning: 'to see; to look', partOfSpeech: 'verb', masteryState: 'apprentice_3', jlptLevel: 'N5', tags: ['N5', 'verb', 'ichidan'], makeFsrs: apprentice3Fsrs, exposureCount: 6, productionCount: 1 },
-  { surfaceForm: '言う', reading: 'いう', meaning: 'to say', partOfSpeech: 'verb', masteryState: 'apprentice_3', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice3Fsrs, exposureCount: 8, productionCount: 1 },
-  { surfaceForm: '日本語', reading: 'にほんご', meaning: 'Japanese language', partOfSpeech: 'noun', masteryState: 'apprentice_3', jlptLevel: 'N5', tags: ['N5', 'noun', 'language'], makeFsrs: apprentice3Fsrs, exposureCount: 6, productionCount: 1 },
+  { surfaceForm: '人', reading: 'ひと', meaning: 'person; people', partOfSpeech: 'noun', masteryState: 'apprentice_3', cefrLevel: 'A1', tags: ['N5', 'noun', 'person'], makeFsrs: apprentice3Fsrs, exposureCount: 7, productionCount: 1 },
+  { surfaceForm: '見る', reading: 'みる', meaning: 'to see; to look', partOfSpeech: 'verb', masteryState: 'apprentice_3', cefrLevel: 'A1', tags: ['N5', 'verb', 'ichidan'], makeFsrs: apprentice3Fsrs, exposureCount: 6, productionCount: 1 },
+  { surfaceForm: '言う', reading: 'いう', meaning: 'to say', partOfSpeech: 'verb', masteryState: 'apprentice_3', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: apprentice3Fsrs, exposureCount: 8, productionCount: 1 },
+  { surfaceForm: '日本語', reading: 'にほんご', meaning: 'Japanese language', partOfSpeech: 'noun', masteryState: 'apprentice_3', cefrLevel: 'A1', tags: ['N5', 'noun', 'language'], makeFsrs: apprentice3Fsrs, exposureCount: 6, productionCount: 1 },
 
   // ── journeyman (4 items, due today, higher stability) ──
-  { surfaceForm: '私', reading: 'わたし', meaning: 'I; me', partOfSpeech: 'pronoun', masteryState: 'journeyman', jlptLevel: 'N5', tags: ['N5', 'pronoun'], makeFsrs: journeymanFsrs, exposureCount: 15, productionCount: 5 },
-  { surfaceForm: 'する', reading: 'する', meaning: 'to do', partOfSpeech: 'verb', masteryState: 'journeyman', jlptLevel: 'N5', tags: ['N5', 'verb', 'irregular'], makeFsrs: journeymanFsrs, exposureCount: 20, productionCount: 8 },
-  { surfaceForm: 'ある', reading: 'ある', meaning: 'to exist (inanimate); there is', partOfSpeech: 'verb', masteryState: 'journeyman', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: journeymanFsrs, exposureCount: 18, productionCount: 6 },
-  { surfaceForm: 'いい', reading: 'いい', meaning: 'good; fine', partOfSpeech: 'i-adjective', masteryState: 'journeyman', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: journeymanFsrs, exposureCount: 12, productionCount: 4 },
+  { surfaceForm: '私', reading: 'わたし', meaning: 'I; me', partOfSpeech: 'pronoun', masteryState: 'journeyman', cefrLevel: 'A1', tags: ['N5', 'pronoun'], makeFsrs: journeymanFsrs, exposureCount: 15, productionCount: 5 },
+  { surfaceForm: 'する', reading: 'する', meaning: 'to do', partOfSpeech: 'verb', masteryState: 'journeyman', cefrLevel: 'A1', tags: ['N5', 'verb', 'irregular'], makeFsrs: journeymanFsrs, exposureCount: 20, productionCount: 8 },
+  { surfaceForm: 'ある', reading: 'ある', meaning: 'to exist (inanimate); there is', partOfSpeech: 'verb', masteryState: 'journeyman', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: journeymanFsrs, exposureCount: 18, productionCount: 6 },
+  { surfaceForm: 'いい', reading: 'いい', meaning: 'good; fine', partOfSpeech: 'i-adjective', masteryState: 'journeyman', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: journeymanFsrs, exposureCount: 12, productionCount: 4 },
 
   // ── introduced (4 items, not in SRS yet) ──
-  { surfaceForm: '電車', reading: 'でんしゃ', meaning: 'train', partOfSpeech: 'noun', masteryState: 'introduced', jlptLevel: 'N5', tags: ['N5', 'noun', 'transport'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '買う', reading: 'かう', meaning: 'to buy', partOfSpeech: 'verb', masteryState: 'introduced', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '病院', reading: 'びょういん', meaning: 'hospital', partOfSpeech: 'noun', masteryState: 'introduced', jlptLevel: 'N5', tags: ['N5', 'noun', 'place'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
-  { surfaceForm: '書く', reading: 'かく', meaning: 'to write', partOfSpeech: 'verb', masteryState: 'introduced', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '電車', reading: 'でんしゃ', meaning: 'train', partOfSpeech: 'noun', masteryState: 'introduced', cefrLevel: 'A1', tags: ['N5', 'noun', 'transport'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '買う', reading: 'かう', meaning: 'to buy', partOfSpeech: 'verb', masteryState: 'introduced', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '病院', reading: 'びょういん', meaning: 'hospital', partOfSpeech: 'noun', masteryState: 'introduced', cefrLevel: 'A1', tags: ['N5', 'noun', 'place'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
+  { surfaceForm: '書く', reading: 'かく', meaning: 'to write', partOfSpeech: 'verb', masteryState: 'introduced', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 1, productionCount: 0 },
 
   // ── unseen (4 items) ──
-  { surfaceForm: '映画', reading: 'えいが', meaning: 'movie; film', partOfSpeech: 'noun', masteryState: 'unseen', jlptLevel: 'N5', tags: ['N5', 'noun'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
-  { surfaceForm: '走る', reading: 'はしる', meaning: 'to run', partOfSpeech: 'verb', masteryState: 'unseen', jlptLevel: 'N5', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
-  { surfaceForm: '高い', reading: 'たかい', meaning: 'tall; expensive', partOfSpeech: 'i-adjective', masteryState: 'unseen', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
-  { surfaceForm: '安い', reading: 'やすい', meaning: 'cheap; inexpensive', partOfSpeech: 'i-adjective', masteryState: 'unseen', jlptLevel: 'N5', tags: ['N5', 'adjective'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
+  { surfaceForm: '映画', reading: 'えいが', meaning: 'movie; film', partOfSpeech: 'noun', masteryState: 'unseen', cefrLevel: 'A1', tags: ['N5', 'noun'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
+  { surfaceForm: '走る', reading: 'はしる', meaning: 'to run', partOfSpeech: 'verb', masteryState: 'unseen', cefrLevel: 'A1', tags: ['N5', 'verb', 'godan'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
+  { surfaceForm: '高い', reading: 'たかい', meaning: 'tall; expensive', partOfSpeech: 'i-adjective', masteryState: 'unseen', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
+  { surfaceForm: '安い', reading: 'やすい', meaning: 'cheap; inexpensive', partOfSpeech: 'i-adjective', masteryState: 'unseen', cefrLevel: 'A1', tags: ['N5', 'adjective'], makeFsrs: initialFsrs, exposureCount: 0, productionCount: 0 },
 ]
 
-// ── Grammar Data (N5 Japanese) ──
+// ── Grammar Data (A1 Japanese) ──
 
 interface GrammarSeed {
   patternId: string
   name: string
   description: string
-  jlptLevel: string
+  cefrLevel: string
   masteryState: string
   makeFsrs: () => FsrsState
 }
 
 const grammar: GrammarSeed[] = [
   // ── apprentice_1 (3 items, due today) ──
-  { patternId: 'n5-te-form', name: 'て-form', description: 'Verb て-form used for requests, sequential actions, and connecting clauses', jlptLevel: 'N5', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
-  { patternId: 'n5-tai', name: 'たい-form', description: 'Express desire to do something (~たい)', jlptLevel: 'N5', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
-  { patternId: 'n5-nai', name: 'ない-form', description: 'Negative verb conjugation (~ない)', jlptLevel: 'N5', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
+  { patternId: 'n5-te-form', name: 'て-form', description: 'Verb て-form used for requests, sequential actions, and connecting clauses', cefrLevel: 'A1', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
+  { patternId: 'n5-tai', name: 'たい-form', description: 'Express desire to do something (~たい)', cefrLevel: 'A1', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
+  { patternId: 'n5-nai', name: 'ない-form', description: 'Negative verb conjugation (~ない)', cefrLevel: 'A1', masteryState: 'apprentice_1', makeFsrs: apprentice1Fsrs },
 
   // ── apprentice_2 (2 items, due today) ──
-  { patternId: 'n5-desu', name: 'です / だ copula', description: 'Basic copula for equative and descriptive sentences', jlptLevel: 'N5', masteryState: 'apprentice_2', makeFsrs: apprentice2Fsrs },
-  { patternId: 'n5-particle-wa', name: 'は topic marker', description: 'Topic marker particle は', jlptLevel: 'N5', masteryState: 'apprentice_2', makeFsrs: apprentice2Fsrs },
+  { patternId: 'n5-desu', name: 'です / だ copula', description: 'Basic copula for equative and descriptive sentences', cefrLevel: 'A1', masteryState: 'apprentice_2', makeFsrs: apprentice2Fsrs },
+  { patternId: 'n5-particle-wa', name: 'は topic marker', description: 'Topic marker particle は', cefrLevel: 'A1', masteryState: 'apprentice_2', makeFsrs: apprentice2Fsrs },
 
   // ── introduced (2 items) ──
-  { patternId: 'n5-particle-ga', name: 'が subject marker', description: 'Subject marker particle が — marks the grammatical subject', jlptLevel: 'N5', masteryState: 'introduced', makeFsrs: initialFsrs },
-  { patternId: 'n5-past-tense', name: 'Past tense (~た / ~ました)', description: 'Past tense conjugation for verbs and adjectives', jlptLevel: 'N5', masteryState: 'introduced', makeFsrs: initialFsrs },
+  { patternId: 'n5-particle-ga', name: 'が subject marker', description: 'Subject marker particle が — marks the grammatical subject', cefrLevel: 'A1', masteryState: 'introduced', makeFsrs: initialFsrs },
+  { patternId: 'n5-past-tense', name: 'Past tense (~た / ~ました)', description: 'Past tense conjugation for verbs and adjectives', cefrLevel: 'A1', masteryState: 'introduced', makeFsrs: initialFsrs },
 
   // ── unseen (1 item) ──
-  { patternId: 'n5-particle-ni', name: 'に particle (direction/time)', description: 'Particle に indicating direction, time, or indirect object', jlptLevel: 'N5', masteryState: 'unseen', makeFsrs: initialFsrs },
+  { patternId: 'n5-particle-ni', name: 'に particle (direction/time)', description: 'Particle に indicating direction, time, or indirect object', cefrLevel: 'A1', masteryState: 'unseen', makeFsrs: initialFsrs },
 ]
 
 // ── Main Seed Function ──
@@ -208,9 +208,9 @@ async function main() {
       nativeLanguage: 'English',
       dailyNewItemLimit: 10,
       targetRetention: 0.9,
-      computedLevel: 'N5',
-      comprehensionCeiling: 'N5',
-      productionCeiling: 'N5',
+      computedLevel: 'A1',
+      comprehensionCeiling: 'A1',
+      productionCeiling: 'A1',
     },
   })
   console.log(`  LearnerProfile created (id=${profile.id}, ${profile.targetLanguage})`)
@@ -238,7 +238,7 @@ async function main() {
         recognitionFsrs: fsrs as unknown as Record<string, unknown>,
         productionFsrs: fsrs as unknown as Record<string, unknown>,
         tags: v.tags,
-        jlptLevel: v.jlptLevel,
+        cefrLevel: v.cefrLevel,
         source: 'seed',
         exposureCount: v.exposureCount,
         productionCount: v.productionCount,
@@ -264,7 +264,7 @@ async function main() {
         patternId: g.patternId,
         name: g.name,
         description: g.description,
-        jlptLevel: g.jlptLevel,
+        cefrLevel: g.cefrLevel,
         masteryState: g.masteryState,
         recognitionFsrs: fsrs as unknown as Record<string, unknown>,
         productionFsrs: fsrs as unknown as Record<string, unknown>,

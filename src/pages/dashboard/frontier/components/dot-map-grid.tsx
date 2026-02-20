@@ -6,14 +6,14 @@ interface DotMapGridProps {
   items: FrontierItem[]
 }
 
-const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1']
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 const DOT_CAP = 50
 
 export function DotMapGrid({ items }: DotMapGridProps) {
-  // Group items by (jlptLevel, masteryState)
+  // Group items by (cefrLevel, masteryState)
   const cells = new Map<string, FrontierItem[]>()
   for (const item of items) {
-    const key = `${item.jlptLevel}|${item.masteryState}`
+    const key = `${item.cefrLevel}|${item.masteryState}`
     const arr = cells.get(key)
     if (arr) {
       arr.push(item)
@@ -27,7 +27,7 @@ export function DotMapGrid({ items }: DotMapGridProps) {
       <Box
         style={{
           display: 'grid',
-          gridTemplateColumns: `80px repeat(${JLPT_LEVELS.length}, 1fr)`,
+          gridTemplateColumns: `80px repeat(${CEFR_LEVELS.length}, 1fr)`,
           gridTemplateRows: `auto repeat(${MASTERY_ORDER.length}, auto)`,
           gap: 1,
           minWidth: 400,
@@ -35,7 +35,7 @@ export function DotMapGrid({ items }: DotMapGridProps) {
       >
         {/* Header row */}
         <Box />
-        {JLPT_LEVELS.map((level) => (
+        {CEFR_LEVELS.map((level) => (
           <Flex key={level} justify="center" py="1">
             <Text size="1" weight="bold" color="gray">
               {level}
@@ -73,7 +73,7 @@ function MasteryRow({
       </Flex>
 
       {/* Cells */}
-      {JLPT_LEVELS.map((level) => {
+      {CEFR_LEVELS.map((level) => {
         const key = `${level}|${state}`
         const cellItems = cells.get(key) ?? []
         return (

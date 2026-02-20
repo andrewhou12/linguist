@@ -8,12 +8,12 @@ export interface BubbleItemInput {
   itemType: ItemType
   surfaceForm?: string
   patternId?: string
-  jlptLevel: string | null
+  cefrLevel: string | null
   masteryState: string
   productionWeight: number
 }
 
-const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 const KNOWN_THRESHOLD_STATES = new Set([
   'apprentice_3',
   'apprentice_4',
@@ -30,23 +30,23 @@ export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubbl
 
   // Count reference items per level
   const refCountByLevel = new Map<string, number>()
-  for (const level of JLPT_LEVELS) {
-    const vocabCount = corpus.vocabulary.filter((v) => v.jlptLevel === level).length
-    const grammarCount = corpus.grammar.filter((g) => g.jlptLevel === level).length
+  for (const level of CEFR_LEVELS) {
+    const vocabCount = corpus.vocabulary.filter((v) => v.cefrLevel === level).length
+    const grammarCount = corpus.grammar.filter((g) => g.cefrLevel === level).length
     refCountByLevel.set(level, vocabCount + grammarCount)
   }
 
   // Group learner items by level
   const itemsByLevel = new Map<string, BubbleItemInput[]>()
   for (const item of items) {
-    const level = item.jlptLevel ?? 'N5'
+    const level = item.cefrLevel ?? 'A1'
     const group = itemsByLevel.get(level) ?? []
     group.push(item)
     itemsByLevel.set(level, group)
   }
 
   // Build level breakdowns
-  const levelBreakdowns: LevelBreakdown[] = JLPT_LEVELS.map((level) => {
+  const levelBreakdowns: LevelBreakdown[] = CEFR_LEVELS.map((level) => {
     const totalRef = refCountByLevel.get(level) ?? 0
     const levelItems = itemsByLevel.get(level) ?? []
     const known = levelItems.filter((i) => KNOWN_THRESHOLD_STATES.has(i.masteryState)).length
@@ -73,8 +73,8 @@ export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubbl
       break
     }
   }
-  const currentLevel = JLPT_LEVELS[currentLevelIdx]
-  const frontierLevel = JLPT_LEVELS[Math.min(currentLevelIdx + 1, JLPT_LEVELS.length - 1)]
+  const currentLevel = CEFR_LEVELS[currentLevelIdx]
+  const frontierLevel = CEFR_LEVELS[Math.min(currentLevelIdx + 1, CEFR_LEVELS.length - 1)]
 
   // Gaps in current level: items that are unseen, introduced, or weak (apprentice_1/2)
   const weakStates = new Set(['unseen', 'introduced', 'apprentice_1', 'apprentice_2'])
@@ -102,7 +102,7 @@ export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubbl
   )
 
   const missingVocab = corpus.vocabulary
-    .filter((v) => v.jlptLevel === currentLevel && !knownSurfaces.has(v.surfaceForm))
+    .filter((v) => v.cefrLevel === currentLevel && !knownSurfaces.has(v.surfaceForm))
     .slice(0, 10)
     .map((v) => ({
       itemType: 'lexical' as ItemType,
@@ -111,7 +111,7 @@ export function computeKnowledgeBubble(items: BubbleItemInput[]): KnowledgeBubbl
     }))
 
   const missingGrammar = corpus.grammar
-    .filter((g) => g.jlptLevel === currentLevel && !knownPatterns.has(g.patternId))
+    .filter((g) => g.cefrLevel === currentLevel && !knownPatterns.has(g.patternId))
     .slice(0, 5)
     .map((g) => ({
       itemType: 'grammar' as ItemType,
@@ -145,7 +145,7 @@ export function identifyGaps(
 
   // Medium severity: items at frontier level that are introduced but stuck
   const frontierItems = items.filter(
-    (i) => (i.jlptLevel ?? 'N5') === bubble.frontierLevel
+    (i) => (i.cefrLevel ?? 'A1') === bubble.frontierLevel
   )
   for (const item of frontierItems) {
     if (item.masteryState === 'introduced') {

@@ -28,7 +28,7 @@ export function DotMapView({ data }: DotMapViewProps) {
       </Flex>
       <DotMapGrid items={items} />
       <Text size="1" color="gray">
-        Each dot is one item. Columns = JLPT level. Rows = mastery state.
+        Each dot is one item. Columns = CEFR level. Rows = mastery state.
       </Text>
     </Flex>
   )

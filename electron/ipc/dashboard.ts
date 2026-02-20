@@ -22,7 +22,7 @@ export function registerDashboardHandlers(): void {
         itemType: item.itemType,
         surfaceForm: item.surfaceForm,
         patternId: item.patternId,
-        jlptLevel: item.jlptLevel,
+        cefrLevel: item.cefrLevel,
         masteryState: item.masteryState,
       }))
 

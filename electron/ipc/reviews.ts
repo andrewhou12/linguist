@@ -253,7 +253,7 @@ async function triggerProfileRecalculation(): Promise<void> {
     ...lexicalItems.map((item) => ({
       id: item.id,
       itemType: 'lexical' as const,
-      jlptLevel: item.jlptLevel,
+      cefrLevel: item.cefrLevel,
       masteryState: item.masteryState,
       recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
       productionFsrs: item.productionFsrs as unknown as FsrsState,
@@ -265,7 +265,7 @@ async function triggerProfileRecalculation(): Promise<void> {
     ...grammarItems.map((item) => ({
       id: item.id,
       itemType: 'grammar' as const,
-      jlptLevel: item.jlptLevel,
+      cefrLevel: item.cefrLevel,
       masteryState: item.masteryState,
       recognitionFsrs: item.recognitionFsrs as unknown as FsrsState,
       productionFsrs: item.productionFsrs as unknown as FsrsState,

@@ -6,11 +6,12 @@ interface CeilingComparisonProps {
 }
 
 const LEVEL_VALUES: Record<string, number> = {
-  N5: 1,
-  N4: 2,
-  N3: 3,
-  N2: 4,
-  N1: 5,
+  A1: 1,
+  A2: 2,
+  B1: 3,
+  B2: 4,
+  C1: 5,
+  C2: 6,
 }
 
 export function CeilingComparison({
@@ -19,7 +20,7 @@ export function CeilingComparison({
 }: CeilingComparisonProps) {
   const compValue = LEVEL_VALUES[comprehensionCeiling] ?? 0
   const prodValue = LEVEL_VALUES[productionCeiling] ?? 0
-  const maxValue = 5
+  const maxValue = 6
 
   return (
     <Flex gap="5" align="end">

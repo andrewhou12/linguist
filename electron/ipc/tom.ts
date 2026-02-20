@@ -133,7 +133,7 @@ export function registerTomHandlers(): void {
       modalityData,
       grammarTransferData,
       pragmaticState,
-      recommendedDifficulty: 'N5',
+      recommendedDifficulty: 'A1',
     })
 
     // Store inferences in DB — clear old unresolved ones first, then create fresh
@@ -228,7 +228,7 @@ export function registerTomHandlers(): void {
       modalityData,
       grammarTransferData,
       pragmaticState,
-      recommendedDifficulty: 'N5',
+      recommendedDifficulty: 'A1',
     })
   })
 

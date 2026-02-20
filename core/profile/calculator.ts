@@ -5,7 +5,7 @@ import type { FsrsState } from '@shared/types'
 export interface ProfileItemInput {
   id: number
   itemType: 'lexical' | 'grammar'
-  jlptLevel: string | null
+  cefrLevel: string | null
   masteryState: string
   recognitionFsrs: FsrsState
   productionFsrs: FsrsState
@@ -36,18 +36,18 @@ export interface ProfileUpdate {
   longestStreak: number
 }
 
-// ── JLPT level ordering ──
+// ── CEFR level ordering ──
 
-const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const
-type JlptLevel = (typeof JLPT_LEVELS)[number]
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
+type CefrLevel = (typeof CEFR_LEVELS)[number]
 
-function jlptIndex(level: string): number {
-  const idx = JLPT_LEVELS.indexOf(level as JlptLevel)
+function cefrIndex(level: string): number {
+  const idx = CEFR_LEVELS.indexOf(level as CefrLevel)
   return idx >= 0 ? idx : 0
 }
 
-function isValidJlpt(level: string | null): level is JlptLevel {
-  return level !== null && JLPT_LEVELS.includes(level as JlptLevel)
+function isValidCefr(level: string | null): level is CefrLevel {
+  return level !== null && CEFR_LEVELS.includes(level as CefrLevel)
 }
 
 // ── Retrievability calculation ──
@@ -70,18 +70,18 @@ function getRetrievability(fsrs: FsrsState): number {
 export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdate {
   const { items } = input
 
-  // Group items by JLPT level
+  // Group items by CEFR level
   const byLevel = new Map<string, ProfileItemInput[]>()
   for (const item of items) {
-    const level = isValidJlpt(item.jlptLevel) ? item.jlptLevel : 'N5'
+    const level = isValidCefr(item.cefrLevel) ? item.cefrLevel : 'A1'
     const group = byLevel.get(level) ?? []
     group.push(item)
     byLevel.set(level, group)
   }
 
   // Compute comprehension ceiling: highest level where avg recognition retrievability > 0.80
-  let comprehensionCeiling = 'N5'
-  for (const level of JLPT_LEVELS) {
+  let comprehensionCeiling = 'A1'
+  for (const level of CEFR_LEVELS) {
     const levelItems = byLevel.get(level)
     if (!levelItems || levelItems.length === 0) continue
     const avgRecognition =
@@ -95,8 +95,8 @@ export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdat
   }
 
   // Compute production ceiling: highest level where avg production retrievability > 0.60
-  let productionCeiling = 'N5'
-  for (const level of JLPT_LEVELS) {
+  let productionCeiling = 'A1'
+  for (const level of CEFR_LEVELS) {
     const levelItems = byLevel.get(level)
     if (!levelItems || levelItems.length === 0) continue
     const avgProduction =
@@ -111,7 +111,7 @@ export function recalculateProfile(input: ProfileCalculationInput): ProfileUpdat
 
   // Computed level = max of the two ceilings
   const computedLevel =
-    jlptIndex(comprehensionCeiling) >= jlptIndex(productionCeiling)
+    cefrIndex(comprehensionCeiling) >= cefrIndex(productionCeiling)
       ? comprehensionCeiling
       : productionCeiling
 

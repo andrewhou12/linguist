@@ -13,9 +13,9 @@ model LearnerProfile {
   nativeLanguage          String
   dailyNewItemLimit       Int      @default(10)
   targetRetention         Float    @default(0.90)
-  computedLevel           String   @default("N5")
-  comprehensionCeiling    String   @default("N5")
-  productionCeiling       String   @default("N5")
+  computedLevel           String   @default("A1")
+  comprehensionCeiling    String   @default("A1")
+  productionCeiling       String   @default("A1")
   readingLevel            Float    @default(0)
   listeningLevel          Float    @default(0)
   speakingLevel           Float    @default(0)
@@ -53,7 +53,7 @@ model LexicalItem {
   speakingProductions Int              @default(0)
   writingProductions  Int              @default(0)
   frequencyRank       Int?
-  jlptLevel           String?
+  cefrLevel           String?
   productionWeight    Float            @default(0)
   reviewEvents        ReviewEvent[]
   contextLogs         ItemContextLog[]
@@ -64,7 +64,7 @@ model GrammarItem {
   patternId           String           @unique
   name                String
   description         String?
-  jlptLevel           String?
+  cefrLevel           String?
   masteryState        String           @default("unseen")
   recognitionFsrs     Json
   productionFsrs      Json
@@ -164,7 +164,7 @@ model CurriculumItem {
   reading         String?
   meaning         String?
   patternId       String?
-  jlptLevel       String?
+  cefrLevel       String?
   frequencyRank   Int?
   priority        Float     @default(0)
   reason          String

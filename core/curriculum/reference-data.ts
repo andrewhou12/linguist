@@ -5,7 +5,7 @@ export interface ReferenceVocabItem {
   reading: string
   meaning: string
   partOfSpeech: string
-  jlptLevel: string
+  cefrLevel: string
   frequencyRank: number
 }
 
@@ -13,7 +13,7 @@ export interface ReferenceGrammarItem {
   patternId: string
   name: string
   description: string
-  jlptLevel: string
+  cefrLevel: string
   frequencyRank: number
   prerequisiteIds: string[]
 }
@@ -37,8 +37,8 @@ export function getReferenceItemsByLevel(level: string): {
 } {
   const corpus = loadJapaneseReferenceCorpus()
   return {
-    vocabulary: corpus.vocabulary.filter((v) => v.jlptLevel === level),
-    grammar: corpus.grammar.filter((g) => g.jlptLevel === level),
+    vocabulary: corpus.vocabulary.filter((v) => v.cefrLevel === level),
+    grammar: corpus.grammar.filter((g) => g.cefrLevel === level),
   }
 }
 
