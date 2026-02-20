@@ -6,7 +6,6 @@ import {
   RotateCcw,
   GraduationCap,
   BookOpen,
-  Lightbulb,
   MessageCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -22,7 +21,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/review', label: 'Review', icon: RotateCcw },
   { to: '/learn', label: 'Learn', icon: GraduationCap },
   { to: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
-  { to: '/insights', label: 'Insights', icon: Lightbulb },
   { to: '/chat', label: 'Chat', icon: MessageCircle },
 ]
 
