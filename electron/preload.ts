@@ -19,5 +19,21 @@ for (const [key, channel] of Object.entries(IPC_CHANNELS)) {
   api[camelKey] = (...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
 }
 
-contextBridge.exposeInMainWorld('linguist', api)
+// Chat streaming event listeners (typed in src/env.d.ts)
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const streamListeners: Record<string, unknown> = {
+  chatOnChunk(cb: (data: any) => void) {
+    const handler = (_: any, data: any) => cb(data)
+    ipcRenderer.on('chat:chunk', handler)
+    return () => ipcRenderer.removeListener('chat:chunk', handler)
+  },
+  chatOnDone(cb: (data: any) => void) {
+    const handler = (_: any, data: any) => cb(data)
+    ipcRenderer.on('chat:done', handler)
+    return () => ipcRenderer.removeListener('chat:done', handler)
+  },
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+contextBridge.exposeInMainWorld('linguist', { ...api, ...streamListeners })
 contextBridge.exposeInMainWorld('platform', process.platform)

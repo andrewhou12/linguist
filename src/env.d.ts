@@ -13,8 +13,8 @@ import type {
   PragmaticState,
   ContextLogEntry,
   FrontierData,
-  TomBrief,
   NarrativeDraft,
+  ChatMessage,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -112,6 +112,12 @@ interface LinguistApi {
   // Narrative
   narrativeBuildDraft: (frontier: FrontierData, brief: TomBrief | null) => Promise<NarrativeDraft>
   narrativePolish: (draft: NarrativeDraft) => Promise<string>
+
+  // Chat (general-purpose)
+  chatSend: (conversationId: string, messages: ChatMessage[]) => Promise<void>
+  chatStop: (conversationId: string) => Promise<void>
+  chatOnChunk: (cb: (data: { conversationId: string; delta: string }) => void) => () => void
+  chatOnDone: (cb: (data: { conversationId: string; error?: string }) => void) => () => void
 }
 
 declare global {

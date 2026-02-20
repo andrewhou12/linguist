@@ -85,6 +85,10 @@ export const IPC_CHANNELS = {
   // Narrative
   NARRATIVE_BUILD_DRAFT: 'narrative:build-draft',
   NARRATIVE_POLISH: 'narrative:polish',
+
+  // Chat (general-purpose)
+  CHAT_SEND: 'chat:send',
+  CHAT_STOP: 'chat:stop',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -374,6 +378,13 @@ export interface NarrativeDraft {
   confusionCount: number
   regressionCount: number
   templateText: string
+}
+
+// ── Chat Types (general-purpose) ──
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
 }
 
 export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {
