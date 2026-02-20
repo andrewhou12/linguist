@@ -50,10 +50,10 @@ export function DashboardPage() {
         <Card style={{ minWidth: 200 }}>
           <Flex direction="column" gap="2">
             <Text size="2" color="gray">
-              Conversation
+              Learn
             </Text>
             <Button asChild variant="soft" mt="2">
-              <Link to="/conversation">New Session</Link>
+              <Link to="/learn">New Session</Link>
             </Button>
           </Flex>
         </Card>

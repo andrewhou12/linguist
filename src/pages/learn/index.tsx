@@ -1,12 +1,12 @@
 import { Box, Heading, Text } from '@radix-ui/themes'
 
-export function ConversationPage() {
+export function LearnPage() {
   return (
     <Box>
       <Heading size="7" mb="4">
-        Conversation
+        Learn
       </Heading>
-      <Text color="gray">Conversation partner UI will be implemented here.</Text>
+      <Text color="gray">Learning session UI will be implemented here.</Text>
     </Box>
   )
 }

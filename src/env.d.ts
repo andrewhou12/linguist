@@ -7,6 +7,11 @@ import type {
   ConversationMessage,
   SessionPlan,
   TomBrief,
+  ExpandedLearnerProfile,
+  KnowledgeBubble,
+  CurriculumRecommendation,
+  PragmaticState,
+  ContextLogEntry,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -52,6 +57,51 @@ interface LinguistApi {
       resolved: boolean
     }>
   >
+
+  // Profile
+  profileGet: () => Promise<ExpandedLearnerProfile>
+  profileUpdate: (data: {
+    dailyNewItemLimit?: number
+    targetRetention?: number
+  }) => Promise<ExpandedLearnerProfile>
+  profileRecalculate: () => Promise<ExpandedLearnerProfile>
+
+  // Curriculum
+  curriculumGetBubble: () => Promise<KnowledgeBubble>
+  curriculumGetRecommendations: (limit?: number) => Promise<CurriculumRecommendation[]>
+  curriculumIntroduceItem: (data: {
+    itemType: string
+    surfaceForm?: string
+    patternId?: string
+  }) => Promise<void>
+  curriculumSkipItem: (data: {
+    itemType: string
+    surfaceForm?: string
+    patternId?: string
+  }) => Promise<void>
+  curriculumRegenerate: () => Promise<CurriculumRecommendation[]>
+
+  // Pragmatics
+  pragmaticGetState: () => Promise<PragmaticState>
+  pragmaticUpdate: (data: Partial<PragmaticState>) => Promise<PragmaticState>
+
+  // Context Log
+  contextLogList: (filters?: {
+    itemId?: number
+    itemType?: string
+    contextType?: string
+    limit?: number
+  }) => Promise<ContextLogEntry[]>
+  contextLogAdd: (entry: {
+    contextType: string
+    modality: string
+    wasProduction: boolean
+    wasSuccessful?: boolean
+    contextQuote?: string
+    sessionId?: string
+    lexicalItemId?: number
+    grammarItemId?: number
+  }) => Promise<ContextLogEntry>
 }
 
 declare global {

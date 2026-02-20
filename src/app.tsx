@@ -3,8 +3,8 @@ import { Theme } from '@radix-ui/themes'
 import { AppShell } from './components/app-shell'
 import { DashboardPage } from './pages/dashboard'
 import { ReviewPage } from './pages/review'
-import { ConversationPage } from './pages/conversation'
-import { WordBankPage } from './pages/wordbank'
+import { LearnPage } from './pages/learn'
+import { KnowledgePage } from './pages/knowledge'
 import { InsightsPage } from './pages/insights'
 
 export function App() {
@@ -16,8 +16,8 @@ export function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/review" element={<ReviewPage />} />
-            <Route path="/conversation" element={<ConversationPage />} />
-            <Route path="/wordbank" element={<WordBankPage />} />
+            <Route path="/learn" element={<LearnPage />} />
+            <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/insights" element={<InsightsPage />} />
           </Routes>
         </AppShell>

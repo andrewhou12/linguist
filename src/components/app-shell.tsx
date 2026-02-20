@@ -1,14 +1,28 @@
 import { NavLink } from 'react-router'
 import { Box, Flex, Text } from '@radix-ui/themes'
 import type { CSSProperties, ReactNode } from 'react'
+import {
+  LayoutDashboard,
+  RotateCcw,
+  GraduationCap,
+  BookOpen,
+  Lightbulb,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/review', label: 'Review' },
-  { to: '/conversation', label: 'Conversation' },
-  { to: '/wordbank', label: 'Word Bank' },
-  { to: '/insights', label: 'Insights' },
-] as const
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/review', label: 'Review', icon: RotateCcw },
+  { to: '/learn', label: 'Learn', icon: GraduationCap },
+  { to: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
+  { to: '/insights', label: 'Insights', icon: Lightbulb },
+]
 
 const isMac = window.platform === 'darwin'
 const TITLEBAR_HEIGHT = 52
@@ -41,7 +55,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 style={({ isActive }) => ({
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
                   padding: '8px 12px',
                   borderRadius: 'var(--radius-2)',
                   textDecoration: 'none',
@@ -55,6 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   WebkitAppRegion: 'no-drag',
                 } as CSSProperties)}
               >
+                <item.icon size={18} />
                 {item.label}
               </NavLink>
             ))}

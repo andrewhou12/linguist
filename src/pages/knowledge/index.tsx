@@ -1,14 +1,14 @@
 import { Box, Heading, Text } from '@radix-ui/themes'
 import { useWordbank } from '../../hooks/use-wordbank'
 
-export function WordBankPage() {
+export function KnowledgePage() {
   const { items, isLoading } = useWordbank()
 
   if (isLoading) {
     return (
       <Box>
-        <Heading size="7" mb="4">Word Bank</Heading>
-        <Text>Loading word bank...</Text>
+        <Heading size="7" mb="4">Knowledge Base</Heading>
+        <Text>Loading knowledge base...</Text>
       </Box>
     )
   }
@@ -16,9 +16,9 @@ export function WordBankPage() {
   return (
     <Box>
       <Heading size="7" mb="4">
-        Word Bank ({items.length} items)
+        Knowledge Base ({items.length} items)
       </Heading>
-      <Text color="gray">Word bank UI will be implemented here.</Text>
+      <Text color="gray">Knowledge base UI will be implemented here.</Text>
     </Box>
   )
 }
