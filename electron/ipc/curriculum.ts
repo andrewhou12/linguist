@@ -46,9 +46,9 @@ export function registerCurriculumHandlers(): void {
         tomBriefInput: null, // ToM brief computed separately when needed
       })
 
-      // Store recommendations as CurriculumItems
+      // Store recommendations as CurriculumItems and attach DB ids
       for (const rec of recommendations) {
-        await db.curriculumItem.create({
+        const created = await db.curriculumItem.create({
           data: {
             itemType: rec.itemType,
             surfaceForm: rec.surfaceForm,
@@ -62,6 +62,7 @@ export function registerCurriculumHandlers(): void {
             status: 'queued',
           },
         })
+        rec.id = created.id
       }
 
       return recommendations
@@ -171,7 +172,7 @@ export function registerCurriculumHandlers(): void {
       })
 
       for (const rec of recommendations) {
-        await db.curriculumItem.create({
+        const created = await db.curriculumItem.create({
           data: {
             itemType: rec.itemType,
             surfaceForm: rec.surfaceForm,
@@ -185,6 +186,7 @@ export function registerCurriculumHandlers(): void {
             status: 'queued',
           },
         })
+        rec.id = created.id
       }
 
       return recommendations

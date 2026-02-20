@@ -246,6 +246,7 @@ export interface KnowledgeBubble {
 }
 
 export interface CurriculumRecommendation {
+  id?: number
   itemType: ItemType
   surfaceForm?: string
   reading?: string
@@ -323,6 +324,7 @@ export interface ExpandedTomBrief extends TomBrief {
 }
 
 export interface ExpandedSessionPlan extends SessionPlan {
+  _sessionId?: string
   pragmaticTargets: {
     targetRegister: 'casual' | 'polite'
     registerFocusAreas: string[]

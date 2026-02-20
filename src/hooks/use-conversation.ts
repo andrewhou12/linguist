@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react'
-import type { ConversationMessage, SessionPlan } from '@shared/types'
+import type { ConversationMessage, ExpandedSessionPlan, PostSessionAnalysis } from '@shared/types'
 
 export function useConversation() {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [plan, setPlan] = useState<SessionPlan | null>(null)
+  const [plan, setPlan] = useState<ExpandedSessionPlan | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const startSession = useCallback(async () => {
     setIsLoading(true)
     const sessionPlan = await window.linguist.conversationPlan()
     setPlan(sessionPlan)
-    setSessionId(crypto.randomUUID())
+    setSessionId(sessionPlan._sessionId ?? crypto.randomUUID())
     setMessages([])
     setIsLoading(false)
     return sessionPlan
@@ -38,10 +38,11 @@ export function useConversation() {
     [sessionId]
   )
 
-  const endSession = useCallback(async () => {
-    if (!sessionId) return
-    await window.linguist.conversationEnd(sessionId)
+  const endSession = useCallback(async (): Promise<PostSessionAnalysis | null> => {
+    if (!sessionId) return null
+    const analysis = await window.linguist.conversationEnd(sessionId)
     setSessionId(null)
+    return analysis
   }, [sessionId])
 
   return {

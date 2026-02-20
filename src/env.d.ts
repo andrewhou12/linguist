@@ -5,7 +5,7 @@ import type {
   WordBankEntry,
   WordBankFilters,
   ConversationMessage,
-  SessionPlan,
+  ExpandedSessionPlan,
   TomBrief,
   ExpandedLearnerProfile,
   KnowledgeBubble,
@@ -15,6 +15,8 @@ import type {
   FrontierData,
   NarrativeDraft,
   ChatMessage,
+  PostSessionAnalysis,
+  ItemType,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -40,9 +42,9 @@ interface LinguistApi {
   wordbankSearch: (query: string) => Promise<WordBankEntry[]>
 
   // Conversation
-  conversationPlan: () => Promise<SessionPlan>
+  conversationPlan: () => Promise<ExpandedSessionPlan>
   conversationSend: (sessionId: string, message: string) => Promise<ConversationMessage>
-  conversationEnd: (sessionId: string) => Promise<void>
+  conversationEnd: (sessionId: string) => Promise<PostSessionAnalysis | null>
   conversationList: () => Promise<
     Array<{ id: string; timestamp: string; durationSeconds: number | null; sessionFocus: string }>
   >
@@ -72,16 +74,8 @@ interface LinguistApi {
   // Curriculum
   curriculumGetBubble: () => Promise<KnowledgeBubble>
   curriculumGetRecommendations: (limit?: number) => Promise<CurriculumRecommendation[]>
-  curriculumIntroduceItem: (data: {
-    itemType: string
-    surfaceForm?: string
-    patternId?: string
-  }) => Promise<void>
-  curriculumSkipItem: (data: {
-    itemType: string
-    surfaceForm?: string
-    patternId?: string
-  }) => Promise<void>
+  curriculumIntroduceItem: (curriculumItemId: number) => Promise<{ itemId: number; itemType: ItemType }>
+  curriculumSkipItem: (curriculumItemId: number) => Promise<void>
   curriculumRegenerate: () => Promise<CurriculumRecommendation[]>
 
   // Pragmatics

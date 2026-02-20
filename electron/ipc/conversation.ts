@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '@shared/types'
 import type {
   ConversationMessage,
   ExpandedSessionPlan,
+  PostSessionAnalysis,
   FsrsState,
   PragmaticState,
   WordBankEntry,
@@ -375,7 +376,7 @@ export function registerConversationHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.CONVERSATION_END,
-    async (_event, sessionId: string): Promise<void> => {
+    async (_event, sessionId: string): Promise<PostSessionAnalysis | null> => {
       const db = getDb()
       const session = activeSessions.get(sessionId)
 
@@ -396,8 +397,10 @@ export function registerConversationHandlers(): void {
 
       if (!session || session.messages.length === 0) {
         activeSessions.delete(sessionId)
-        return
+        return null
       }
+
+      let result: PostSessionAnalysis | null = null
 
       // Run post-session analysis
       const analysisPrompt = buildAnalysisPrompt(session.messages, session.plan)
@@ -410,6 +413,14 @@ export function registerConversationHandlers(): void {
       const analysisText = analysisResponse.content.find((c) => c.type === 'text')
       if (analysisText?.type === 'text') {
         const analysis = parseAnalysis(analysisText.text)
+
+        result = {
+          targetsHit: analysis.targetsHit,
+          errorsLogged: analysis.errorsLogged,
+          avoidanceEvents: analysis.avoidanceEvents,
+          newItemsEncountered: analysis.newItemsEncountered,
+          overallAssessment: analysis.overallAssessment,
+        }
 
         // Update conversation session with analysis results
         await db.conversationSession.update({
@@ -583,6 +594,7 @@ export function registerConversationHandlers(): void {
       }
 
       activeSessions.delete(sessionId)
+      return result
     }
   )
 
