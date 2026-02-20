@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Box, Card, Flex, Text, Button, Badge, Kbd, TextField } from '@radix-ui/themes'
 import type { ReviewQueueItem, ReviewGrade } from '@shared/types'
+import { MASTERY_COLORS, formatMasteryLabel } from '../../constants/mastery'
 
 interface ReviewCardProps {
   item: ReviewQueueItem
@@ -18,26 +19,6 @@ const GRADE_CONFIG: Array<{
   { grade: 'good', label: 'Good', color: 'green', key: '3' },
   { grade: 'easy', label: 'Easy', color: 'blue', key: '4' },
 ]
-
-const MASTERY_COLORS: Record<string, 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple'> = {
-  unseen: 'gray',
-  introduced: 'gray',
-  apprentice_1: 'red',
-  apprentice_2: 'red',
-  apprentice_3: 'orange',
-  apprentice_4: 'orange',
-  journeyman: 'yellow',
-  expert: 'green',
-  master: 'blue',
-  burned: 'purple',
-}
-
-function formatMasteryLabel(state: string): string {
-  return state
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
 
 export function ReviewCard({ item, onGrade }: ReviewCardProps) {
   const [side, setSide] = useState<'front' | 'back'>('front')

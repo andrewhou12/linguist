@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Box, Heading, Text, Card, Flex, Button } from '@radix-ui/themes'
 import type { ReviewSummary } from '@shared/types'
+import { FrontierContainer } from './frontier/frontier-container'
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<ReviewSummary | null>(null)
@@ -58,6 +59,8 @@ export function DashboardPage() {
           </Flex>
         </Card>
       </Flex>
+
+      <FrontierContainer />
     </Box>
   )
 }

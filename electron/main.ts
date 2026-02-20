@@ -11,6 +11,7 @@ import { registerProfileHandlers } from './ipc/profile'
 import { registerCurriculumHandlers } from './ipc/curriculum'
 import { registerPragmaticHandlers } from './ipc/pragmatics'
 import { registerContextLogHandlers } from './ipc/context-log'
+import { registerDashboardHandlers } from './ipc/dashboard'
 
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
@@ -48,6 +49,7 @@ app.whenReady().then(() => {
   registerCurriculumHandlers()
   registerPragmaticHandlers()
   registerContextLogHandlers()
+  registerDashboardHandlers()
 
   createWindow()
 

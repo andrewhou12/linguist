@@ -12,6 +12,7 @@ import type {
   CurriculumRecommendation,
   PragmaticState,
   ContextLogEntry,
+  FrontierData,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -102,6 +103,9 @@ interface LinguistApi {
     lexicalItemId?: number
     grammarItemId?: number
   }) => Promise<ContextLogEntry>
+
+  // Dashboard
+  dashboardGetFrontier: () => Promise<FrontierData | null>
 }
 
 declare global {

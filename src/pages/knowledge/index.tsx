@@ -13,32 +13,7 @@ import { Search } from 'lucide-react'
 import { useWordbank } from '../../hooks/use-wordbank'
 import { MasteryState } from '@shared/types'
 import type { WordBankEntry } from '@shared/types'
-
-const MASTERY_COLORS: Record<string, 'gray' | 'orange' | 'blue' | 'green' | 'purple' | 'gold'> = {
-  unseen: 'gray',
-  introduced: 'gray',
-  apprentice_1: 'orange',
-  apprentice_2: 'orange',
-  apprentice_3: 'orange',
-  apprentice_4: 'orange',
-  journeyman: 'blue',
-  expert: 'green',
-  master: 'purple',
-  burned: 'gold',
-}
-
-const MASTERY_LABELS: Record<string, string> = {
-  unseen: 'Unseen',
-  introduced: 'Introduced',
-  apprentice_1: 'Apprentice 1',
-  apprentice_2: 'Apprentice 2',
-  apprentice_3: 'Apprentice 3',
-  apprentice_4: 'Apprentice 4',
-  journeyman: 'Journeyman',
-  expert: 'Expert',
-  master: 'Master',
-  burned: 'Burned',
-}
+import { MASTERY_COLORS, MASTERY_LABELS } from '../../constants/mastery'
 
 function MasteryBadge({ state }: { state: string }) {
   return (

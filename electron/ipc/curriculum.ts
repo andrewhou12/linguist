@@ -8,35 +8,10 @@ import type {
 } from '@shared/types'
 import type { Prisma } from '@prisma/client'
 import { getDb } from '../db'
-import { computeKnowledgeBubble, type BubbleItemInput } from '@core/curriculum/bubble'
+import { computeKnowledgeBubble } from '@core/curriculum/bubble'
 import { generateRecommendations } from '@core/curriculum/recommender'
 import { createInitialFsrsState } from '@core/fsrs/scheduler'
-
-async function gatherBubbleItems(): Promise<BubbleItemInput[]> {
-  const db = getDb()
-
-  const lexicalItems = await db.lexicalItem.findMany()
-  const grammarItems = await db.grammarItem.findMany()
-
-  return [
-    ...lexicalItems.map((item) => ({
-      id: item.id,
-      itemType: 'lexical' as ItemType,
-      surfaceForm: item.surfaceForm,
-      jlptLevel: item.jlptLevel,
-      masteryState: item.masteryState,
-      productionWeight: item.productionWeight,
-    })),
-    ...grammarItems.map((item) => ({
-      id: item.id,
-      itemType: 'grammar' as ItemType,
-      patternId: item.patternId,
-      jlptLevel: item.jlptLevel,
-      masteryState: item.masteryState,
-      productionWeight: item.productionWeight,
-    })),
-  ]
-}
+import { gatherBubbleItems } from './_helpers/gather-items'
 
 export function registerCurriculumHandlers(): void {
   ipcMain.handle(

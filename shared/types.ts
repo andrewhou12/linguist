@@ -78,6 +78,9 @@ export const IPC_CHANNELS = {
   // Context Log
   CONTEXT_LOG_LIST: 'context-log:list',
   CONTEXT_LOG_ADD: 'context-log:add',
+
+  // Dashboard
+  DASHBOARD_GET_FRONTIER: 'dashboard:get-frontier',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -328,6 +331,24 @@ export interface ExpandedSessionPlan extends SessionPlan {
     patternId: string
     novelContext: string
   }>
+}
+
+// ── Dashboard Frontier Types ──
+
+export interface FrontierItem {
+  id: number
+  itemType: ItemType
+  surfaceForm?: string
+  patternId?: string
+  jlptLevel: string
+  masteryState: string
+}
+
+export interface FrontierData {
+  bubble: KnowledgeBubble
+  profile: ExpandedLearnerProfile
+  items: FrontierItem[]
+  masteryDistribution: Record<string, number>
 }
 
 export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {
