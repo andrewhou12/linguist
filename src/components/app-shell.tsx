@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <Flex style={{ height: '100vh' }}>
       <nav
         style={{
-          width: 200,
+          width: 240,
           borderRight: '1px solid var(--gray-6)',
           flexShrink: 0,
           display: 'flex',
