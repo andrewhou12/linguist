@@ -61,49 +61,36 @@ export function DashboardPage() {
           </Flex>
         </Card>
 
-        <Card style={{ minWidth: 300, flex: 1.5 }}>
+        <Card style={{ minWidth: 360, flex: 2 }}>
           <Flex direction="column" gap="3">
             <Flex align="center" gap="2">
               <span style={{ fontSize: 20 }}>📊</span>
               <Text size="2" color="gray">This Week</Text>
             </Flex>
-            <Flex gap="5" align="center" justify="between">
-              <Flex direction="column" align="center" gap="1">
-                <span style={{ fontSize: 22 }}>🔥</span>
-                <Text size="6" weight="bold">
-                  {weeklyStats?.currentStreak ?? 0}
-                </Text>
-                <Text size="1" color="gray">
-                  streak
-                </Text>
-              </Flex>
-              <Flex direction="column" align="center" gap="1">
-                <span style={{ fontSize: 22 }}>📝</span>
-                <Text size="6" weight="bold">
-                  {weeklyStats?.reviewsThisWeek ?? 0}
-                </Text>
-                <Text size="1" color="gray">
-                  reviews
-                </Text>
-              </Flex>
-              <Flex direction="column" align="center" gap="1">
-                <span style={{ fontSize: 22 }}>💬</span>
-                <Text size="6" weight="bold">
-                  {weeklyStats?.sessionsThisWeek ?? 0}
-                </Text>
-                <Text size="1" color="gray">
-                  sessions
-                </Text>
-              </Flex>
-              <Flex direction="column" align="center" gap="1">
-                <span style={{ fontSize: 22 }}>🧠</span>
-                <Text size="6" weight="bold">
-                  {weeklyStats?.itemsLearned ?? 0}
-                </Text>
-                <Text size="1" color="gray">
-                  learned
-                </Text>
-              </Flex>
+            <Flex align="stretch" style={{ gap: 0 }}>
+              {[
+                { emoji: '🔥', value: weeklyStats?.currentStreak ?? 0, label: 'Streak' },
+                { emoji: '📝', value: weeklyStats?.reviewsThisWeek ?? 0, label: 'Reviews' },
+                { emoji: '💬', value: weeklyStats?.sessionsThisWeek ?? 0, label: 'Sessions' },
+                { emoji: '🧠', value: weeklyStats?.itemsLearned ?? 0, label: 'Learned' },
+              ].map((stat, i, arr) => (
+                <Flex
+                  key={stat.label}
+                  direction="column"
+                  gap="1"
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRight: i < arr.length - 1 ? '1px solid var(--gray-a4)' : 'none',
+                  }}
+                >
+                  <Flex align="center" gap="2">
+                    <span style={{ fontSize: 18 }}>{stat.emoji}</span>
+                    <Text size="5" weight="bold">{stat.value}</Text>
+                  </Flex>
+                  <Text size="1" color="gray">{stat.label}</Text>
+                </Flex>
+              ))}
             </Flex>
             {weeklyStats && weeklyStats.reviewsThisWeek > 0 && (
               <Flex align="center" gap="1">
@@ -114,7 +101,7 @@ export function DashboardPage() {
                 <Text size="1" color="gray">·</Text>
                 <span style={{ fontSize: 14 }}>🏆</span>
                 <Text size="1" color="gray">
-                  best streak {weeklyStats.longestStreak}
+                  Best Streak {weeklyStats.longestStreak}
                 </Text>
               </Flex>
             )}
