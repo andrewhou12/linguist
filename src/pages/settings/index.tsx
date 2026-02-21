@@ -12,6 +12,7 @@ import {
 } from '@radix-ui/themes'
 import { ArrowLeft, Globe, BookOpen, Target, Flame } from 'lucide-react'
 import type { ExpandedLearnerProfile } from '@shared/types'
+import { Spinner } from '../../components/spinner'
 
 export function SettingsPage() {
   const navigate = useNavigate()
@@ -39,8 +40,11 @@ export function SettingsPage() {
 
   if (isLoading || !profile) {
     return (
-      <Box>
-        <Text>Loading settings...</Text>
+      <Box style={{ maxWidth: 640, margin: '0 auto' }}>
+        <Flex align="center" gap="3" mt="6" justify="center">
+          <Spinner size={18} />
+          <Text size="2" color="gray">Loading settings...</Text>
+        </Flex>
       </Box>
     )
   }

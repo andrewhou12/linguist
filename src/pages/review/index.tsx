@@ -2,6 +2,7 @@ import { Box, Heading, Text, Flex, Progress } from '@radix-ui/themes'
 import { useReview } from '../../hooks/use-review'
 import { ReviewCard } from './review-card'
 import { SessionSummary } from './session-summary'
+import { Spinner } from '../../components/spinner'
 import type { ReviewGrade } from '@shared/types'
 
 export function ReviewPage() {
@@ -19,7 +20,10 @@ export function ReviewPage() {
     return (
       <Box>
         <Heading size="7" mb="4">Review</Heading>
-        <Text>Loading review queue...</Text>
+        <Flex align="center" gap="3" mt="6">
+          <Spinner size={18} />
+          <Text size="2" color="gray">Loading review queue...</Text>
+        </Flex>
       </Box>
     )
   }

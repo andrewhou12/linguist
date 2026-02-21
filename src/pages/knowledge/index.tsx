@@ -11,6 +11,7 @@ import {
 } from '@radix-ui/themes'
 import { Search } from 'lucide-react'
 import { useWordbank } from '../../hooks/use-wordbank'
+import { Skeleton } from '../../components/skeleton'
 import { MasteryState } from '@shared/types'
 import type { WordBankEntry } from '@shared/types'
 import { MASTERY_COLORS, MASTERY_LABELS } from '../../constants/mastery'
@@ -63,7 +64,19 @@ export function KnowledgePage() {
     return (
       <Box>
         <Heading size="7" mb="4">Knowledge Base</Heading>
-        <Text>Loading knowledge base...</Text>
+        <Flex direction="column" gap="3" mt="4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Flex key={i} gap="4" align="center">
+              <Skeleton width={80} height={16} />
+              <Skeleton width={60} height={16} />
+              <Skeleton width={140} height={16} />
+              <Skeleton width={50} height={16} />
+              <Skeleton width={70} height={20} borderRadius={10} />
+              <Skeleton width={60} height={16} />
+              <Skeleton width={40} height={16} />
+            </Flex>
+          ))}
+        </Flex>
       </Box>
     )
   }

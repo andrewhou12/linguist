@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Box, Heading, Text, Card, Flex, Button, Badge } from '@radix-ui/themes'
 import { X, RefreshCw, ArrowRight } from 'lucide-react'
 import type { KnowledgeBubble, CurriculumRecommendation } from '@shared/types'
+import { Spinner } from '../../components/spinner'
 import { LevelProgressBar } from '../dashboard/frontier/components/level-progress-bar'
 
 interface SessionPreviewProps {
@@ -98,7 +99,10 @@ export function SessionPreview({
       </Heading>
 
       {isLoading ? (
-        <Text color="gray" size="2">Loading recommendations...</Text>
+        <Flex align="center" gap="3" mb="5">
+          <Spinner size={16} />
+          <Text color="gray" size="2">Loading recommendations...</Text>
+        </Flex>
       ) : visibleRecs.length === 0 ? (
         <Text color="gray" size="2">No recommendations available. Try refreshing.</Text>
       ) : (

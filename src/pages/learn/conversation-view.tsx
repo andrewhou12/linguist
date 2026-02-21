@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Flex, Text, Badge, Button, IconButton } from '@radix-ui/themes'
 import { ArrowUp, Square } from 'lucide-react'
 import type { ConversationMessage, ExpandedSessionPlan } from '@shared/types'
+import { Spinner } from '../../components/spinner'
 import { MessageBubble } from '../chat/message-bubble'
 
 interface ConversationViewProps {
@@ -87,11 +88,12 @@ export function ConversationView({
             <MessageBubble key={i} message={msg} />
           ))}
           {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-            <div style={{ padding: '12px 0' }}>
+            <Flex align="center" gap="2" py="3">
+              <Spinner size={16} />
               <Text size="2" color="gray">
                 Thinking...
               </Text>
-            </div>
+            </Flex>
           )}
           <div ref={messagesEndRef} />
         </div>
