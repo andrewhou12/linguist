@@ -18,6 +18,7 @@ import type {
   ChatMessage,
   PostSessionAnalysis,
   ItemType,
+  AuthUser,
 } from '@shared/types'
 
 interface LinguistApi {
@@ -114,6 +115,11 @@ interface LinguistApi {
   chatStop: (conversationId: string) => Promise<void>
   chatOnChunk: (cb: (data: { conversationId: string; delta: string }) => void) => () => void
   chatOnDone: (cb: (data: { conversationId: string; error?: string }) => void) => () => void
+
+  // Auth
+  authGetSession: () => Promise<{ user: AuthUser } | null>
+  authSignInGoogle: () => Promise<{ user: AuthUser }>
+  authSignOut: () => Promise<void>
 }
 
 declare global {

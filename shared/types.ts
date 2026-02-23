@@ -90,6 +90,11 @@ export const IPC_CHANNELS = {
   // Chat (general-purpose)
   CHAT_SEND: 'chat:send',
   CHAT_STOP: 'chat:stop',
+
+  // Auth
+  AUTH_GET_SESSION: 'auth:get-session',
+  AUTH_SIGN_IN_GOOGLE: 'auth:sign-in-google',
+  AUTH_SIGN_OUT: 'auth:sign-out',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -399,6 +404,13 @@ export interface NarrativeDraft {
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+}
+
+export interface AuthUser {
+  id: string
+  email: string | null
+  name: string | null
+  avatarUrl: string | null
 }
 
 export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {
