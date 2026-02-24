@@ -1,0 +1,166 @@
+import type {
+  ReviewSubmission,
+  ReviewQueueItem,
+  ReviewSummary,
+  WordBankEntry,
+  WordBankFilters,
+  ConversationMessage,
+  ExpandedSessionPlan,
+  TomBrief,
+  ExpandedLearnerProfile,
+  KnowledgeBubble,
+  CurriculumRecommendation,
+  PragmaticState,
+  ContextLogEntry,
+  FrontierData,
+  WeeklyStats,
+  NarrativeDraft,
+  PostSessionAnalysis,
+  ItemType,
+  AssessmentItem,
+  OnboardingResult,
+  SelfReportedLevel,
+  ExpandedTomBrief,
+} from '@linguist/shared/types'
+
+class LinguistApiClient {
+  private async request<T>(path: string, options?: RequestInit): Promise<T> {
+    const res = await fetch(`/api${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  }
+
+  // User
+  userGetMe = () => this.request<{ id: string; email: string | null; name: string | null; avatarUrl: string | null }>('/user/me')
+
+  // Reviews
+  reviewGetQueue = () => this.request<ReviewQueueItem[]>('/review/queue')
+  reviewSubmit = (submission: ReviewSubmission) =>
+    this.request<{ newMasteryState: string }>('/review/submit', {
+      method: 'POST',
+      body: JSON.stringify(submission),
+    })
+  reviewGetSummary = () => this.request<ReviewSummary>('/review/summary')
+
+  // Word Bank
+  wordbankList = (filters?: WordBankFilters) => {
+    const params = new URLSearchParams()
+    if (filters?.masteryState) params.set('masteryState', filters.masteryState)
+    if (filters?.tag) params.set('tag', filters.tag)
+    if (filters?.dueOnly) params.set('dueOnly', 'true')
+    const qs = params.toString()
+    return this.request<WordBankEntry[]>(`/wordbank${qs ? `?${qs}` : ''}`)
+  }
+  wordbankGet = (id: number) => this.request<WordBankEntry | null>(`/wordbank/${id}`)
+  wordbankAdd = (data: {
+    surfaceForm: string; reading?: string; meaning: string; partOfSpeech?: string; tags?: string[]
+  }) => this.request<WordBankEntry>('/wordbank', { method: 'POST', body: JSON.stringify(data) })
+  wordbankUpdate = (id: number, data: { meaning?: string; tags?: string[]; masteryState?: string }) =>
+    this.request<WordBankEntry>(`/wordbank/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  wordbankSearch = (query: string) => this.request<WordBankEntry[]>(`/wordbank/search?q=${encodeURIComponent(query)}`)
+
+  // Conversation
+  conversationPlan = () =>
+    this.request<ExpandedSessionPlan & { _sessionId: string }>('/conversation/plan', { method: 'POST' })
+  conversationSend = (sessionId: string, message: string) =>
+    this.request<ConversationMessage>('/conversation/send', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, message }),
+    })
+  conversationEnd = (sessionId: string) =>
+    this.request<PostSessionAnalysis | null>('/conversation/end', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId }),
+    })
+  conversationList = () =>
+    this.request<Array<{ id: string; timestamp: string; durationSeconds: number | null; sessionFocus: string }>>(
+      '/conversation/list'
+    )
+
+  // ToM
+  tomRunAnalysis = () => this.request<void>('/tom/analyze', { method: 'POST' })
+  tomGetBrief = () => this.request<ExpandedTomBrief>('/tom/brief')
+  tomGetInferences = () =>
+    this.request<Array<{ id: number; type: string; itemIds: number[]; confidence: number; description: string; resolved: boolean }>>(
+      '/tom/inferences'
+    )
+
+  // Profile
+  profileGet = () => this.request<ExpandedLearnerProfile>('/profile')
+  profileUpdate = (data: { dailyNewItemLimit?: number; targetRetention?: number }) =>
+    this.request<ExpandedLearnerProfile>('/profile', { method: 'PATCH', body: JSON.stringify(data) })
+  profileRecalculate = () =>
+    this.request<ExpandedLearnerProfile>('/profile/recalculate', { method: 'POST' })
+
+  // Curriculum
+  curriculumGetBubble = () => this.request<KnowledgeBubble>('/curriculum/bubble')
+  curriculumGetRecommendations = (limit?: number) =>
+    this.request<CurriculumRecommendation[]>(`/curriculum/recommendations${limit ? `?limit=${limit}` : ''}`)
+  curriculumIntroduceItem = (curriculumItemId: number) =>
+    this.request<{ itemId: number; itemType: ItemType }>('/curriculum/introduce', {
+      method: 'POST',
+      body: JSON.stringify({ curriculumItemId }),
+    })
+  curriculumSkipItem = (curriculumItemId: number) =>
+    this.request<void>('/curriculum/skip', {
+      method: 'POST',
+      body: JSON.stringify({ curriculumItemId }),
+    })
+  curriculumRegenerate = () =>
+    this.request<CurriculumRecommendation[]>('/curriculum/regenerate', { method: 'POST' })
+
+  // Pragmatics
+  pragmaticGetState = () => this.request<PragmaticState>('/pragmatic')
+  pragmaticUpdate = (data: Partial<PragmaticState>) =>
+    this.request<PragmaticState>('/pragmatic', { method: 'PATCH', body: JSON.stringify(data) })
+
+  // Context Log
+  contextLogList = (filters?: { itemId?: number; itemType?: string; contextType?: string; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (filters?.itemId) params.set('itemId', String(filters.itemId))
+    if (filters?.itemType) params.set('itemType', filters.itemType)
+    if (filters?.contextType) params.set('contextType', filters.contextType)
+    if (filters?.limit) params.set('limit', String(filters.limit))
+    const qs = params.toString()
+    return this.request<ContextLogEntry[]>(`/context-log${qs ? `?${qs}` : ''}`)
+  }
+  contextLogAdd = (entry: {
+    contextType: string; modality: string; wasProduction: boolean;
+    wasSuccessful?: boolean; contextQuote?: string; sessionId?: string;
+    lexicalItemId?: number; grammarItemId?: number
+  }) => this.request<ContextLogEntry>('/context-log', { method: 'POST', body: JSON.stringify(entry) })
+
+  // Dashboard
+  dashboardGetFrontier = () => this.request<FrontierData | null>('/dashboard/frontier')
+  dashboardGetWeeklyStats = () => this.request<WeeklyStats>('/dashboard/weekly-stats')
+
+  // Narrative
+  narrativeBuildDraft = (frontier: FrontierData, brief: TomBrief | null) =>
+    this.request<NarrativeDraft>('/narrative/draft', {
+      method: 'POST',
+      body: JSON.stringify({ frontier, brief }),
+    })
+  narrativePolish = (draft: NarrativeDraft) =>
+    this.request<string>('/narrative/polish', {
+      method: 'POST',
+      body: JSON.stringify({ draft }),
+    })
+
+  // Onboarding
+  onboardingGetStatus = () => this.request<{ completed: boolean }>('/onboarding/status')
+  onboardingGetAssessment = (selfReportedLevel: SelfReportedLevel) =>
+    this.request<AssessmentItem[]>('/onboarding/assessment', {
+      method: 'POST',
+      body: JSON.stringify({ selfReportedLevel }),
+    })
+  onboardingComplete = (result: OnboardingResult) =>
+    this.request<void>('/onboarding/complete', {
+      method: 'POST',
+      body: JSON.stringify(result),
+    })
+}
+
+export const api = new LinguistApiClient()
