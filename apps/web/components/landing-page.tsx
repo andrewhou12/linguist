@@ -46,7 +46,7 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement
         el.style.borderColor = 'var(--gray-a6)'
-        el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.12)'
+        el.style.boxShadow = '0 8px 32px rgba(0,0,0,0.08)'
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLElement
