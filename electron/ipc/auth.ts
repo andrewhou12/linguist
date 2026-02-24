@@ -71,6 +71,7 @@ async function ensureDbUser(authUser: Omit<AuthUser, 'onboardingCompleted'>): Pr
       email: authUser.email,
       name: authUser.name,
       avatarUrl: authUser.avatarUrl,
+      updatedAt: new Date(),
     },
     update: {
       email: authUser.email,
