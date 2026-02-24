@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.39.0
+        version: 0.39.0
     devDependencies:
       '@prisma/client':
         specifier: ^6.19.2
