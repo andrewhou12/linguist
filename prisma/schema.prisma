@@ -147,6 +147,7 @@ model ConversationSession {
   errorsLogged    Json
   avoidanceEvents Json
   sessionPlan     Json
+  systemPrompt    String?
 
   @@index([userId])
 }

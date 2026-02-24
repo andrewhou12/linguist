@@ -1,0 +1,13 @@
+{
+  "name": "@linguist/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/client.ts",
+  "types": "./src/client.ts",
+  "exports": {
+    ".": "./src/client.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.0"
+  }
+}

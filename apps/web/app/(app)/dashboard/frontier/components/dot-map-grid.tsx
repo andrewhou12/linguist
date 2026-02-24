@@ -1,0 +1,87 @@
+import { Box, Flex, Text, Tooltip } from '@radix-ui/themes'
+import type { FrontierItem } from '@linguist/shared/types'
+import { MASTERY_ORDER, MASTERY_LABELS } from '@/constants/mastery'
+
+const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+const DOT_CAP = 50
+
+export function DotMapGrid({ items }: { items: FrontierItem[] }) {
+  const cells = new Map<string, FrontierItem[]>()
+  for (const item of items) {
+    const key = `${item.cefrLevel}|${item.masteryState}`
+    const arr = cells.get(key)
+    if (arr) { arr.push(item) } else { cells.set(key, [item]) }
+  }
+
+  return (
+    <Box style={{ overflowX: 'auto' }}>
+      <Box
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `80px repeat(${CEFR_LEVELS.length}, 1fr)`,
+          gridTemplateRows: `auto repeat(${MASTERY_ORDER.length}, auto)`,
+          gap: 1,
+          minWidth: 400,
+        }}
+      >
+        <Box />
+        {CEFR_LEVELS.map((level) => (
+          <Flex key={level} justify="center" py="1">
+            <Text size="1" weight="bold" color="gray">{level}</Text>
+          </Flex>
+        ))}
+
+        {MASTERY_ORDER.map((state) => (
+          <MasteryRow key={state} state={state} cells={cells} />
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+function MasteryRow({ state, cells }: { state: string; cells: Map<string, FrontierItem[]> }) {
+  return (
+    <>
+      <Flex align="center" pr="2" py="1">
+        <Text size="1" color="gray" style={{ whiteSpace: 'nowrap' }}>{MASTERY_LABELS[state]}</Text>
+      </Flex>
+      {CEFR_LEVELS.map((level) => {
+        const key = `${level}|${state}`
+        const cellItems = cells.get(key) ?? []
+        return <DotCell key={key} items={cellItems} />
+      })}
+    </>
+  )
+}
+
+function DotCell({ items }: { items: FrontierItem[] }) {
+  const visible = items.slice(0, DOT_CAP)
+  const overflow = items.length - DOT_CAP
+
+  return (
+    <Flex
+      wrap="wrap"
+      gap="1"
+      p="1"
+      align="start"
+      style={{
+        minHeight: 24,
+        backgroundColor: items.length > 0 ? 'var(--gray-2)' : undefined,
+        borderRadius: 'var(--radius-1)',
+      }}
+    >
+      {visible.map((item) => (
+        <Tooltip key={`${item.itemType}-${item.id}`} content={item.surfaceForm ?? item.patternId ?? `#${item.id}`}>
+          <Box
+            style={{
+              width: 6, height: 6, borderRadius: '50%',
+              backgroundColor: item.itemType === 'lexical' ? 'var(--accent-9)' : 'var(--purple-9)',
+              flexShrink: 0,
+            }}
+          />
+        </Tooltip>
+      ))}
+      {overflow > 0 && <Text size="1" color="gray">+{overflow}</Text>}
+    </Flex>
+  )
+}
