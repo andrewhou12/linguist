@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Flex, Text, Popover, Separator, Box } from '@radix-ui/themes'
-import { LogOut } from 'lucide-react'
+import { LogOut, CircleUser } from 'lucide-react'
 import type { ExpandedLearnerProfile } from '@shared/types'
 import { useAuth } from '../contexts/auth-context'
 
@@ -23,28 +23,18 @@ export function UserMenu() {
             width: 32,
             height: 32,
             borderRadius: '50%',
-            backgroundColor: user?.avatarUrl ? 'transparent' : 'var(--accent-9)',
+            backgroundColor: 'transparent',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            overflow: 'hidden',
             padding: 0,
+            color: 'var(--gray-11)',
           }}
         >
-          {user?.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt={displayName}
-              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-            />
-          ) : (
-            <Text size="2" weight="bold" style={{ color: 'white', lineHeight: 1 }}>
-              {initials}
-            </Text>
-          )}
+          <CircleUser size={20} />
         </button>
       </Popover.Trigger>
       <Popover.Content
