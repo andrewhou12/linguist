@@ -20,6 +20,8 @@ import type {
   ItemType,
   AuthUser,
   AssessmentItem,
+  ReadingChallengeItem,
+  ComprehensionItem,
   OnboardingResult,
   SelfReportedLevel,
 } from '@shared/types'
@@ -127,7 +129,9 @@ interface LinguistApi {
   // Onboarding
   onboardingGetStatus: () => Promise<{ completed: boolean }>
   onboardingGetAssessment: (selfReportedLevel: SelfReportedLevel) => Promise<AssessmentItem[]>
-  onboardingComplete: (result: OnboardingResult) => Promise<void>
+  onboardingGetReadingChallenge: (selfReportedLevel: SelfReportedLevel) => Promise<ReadingChallengeItem[]>
+  onboardingGetComprehension: (selfReportedLevel: SelfReportedLevel) => Promise<ComprehensionItem[]>
+  onboardingComplete: (result: OnboardingResult) => Promise<{ computedLevel: string }>
 }
 
 declare global {

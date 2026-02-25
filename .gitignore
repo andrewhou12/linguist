@@ -30,6 +30,9 @@ prisma/migrations/migration_lock.toml
 .DS_Store
 Thumbs.db
 
+# pnpm
+.pnpm-store/
+
 # Logs
 *.log
 npm-debug.log*
