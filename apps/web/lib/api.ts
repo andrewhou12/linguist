@@ -18,6 +18,8 @@ import type {
   PostSessionAnalysis,
   ItemType,
   AssessmentItem,
+  ReadingChallengeItem,
+  ComprehensionItem,
   OnboardingResult,
   SelfReportedLevel,
   ExpandedTomBrief,
@@ -156,8 +158,18 @@ class LinguistApiClient {
       method: 'POST',
       body: JSON.stringify({ selfReportedLevel }),
     })
+  onboardingGetReadingChallenge = (selfReportedLevel: SelfReportedLevel) =>
+    this.request<ReadingChallengeItem[]>('/onboarding/reading-challenge', {
+      method: 'POST',
+      body: JSON.stringify({ selfReportedLevel }),
+    })
+  onboardingGetComprehension = (selfReportedLevel: SelfReportedLevel) =>
+    this.request<ComprehensionItem[]>('/onboarding/comprehension', {
+      method: 'POST',
+      body: JSON.stringify({ selfReportedLevel }),
+    })
   onboardingComplete = (result: OnboardingResult) =>
-    this.request<void>('/onboarding/complete', {
+    this.request<{ computedLevel: string }>('/onboarding/complete', {
       method: 'POST',
       body: JSON.stringify(result),
     })

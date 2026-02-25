@@ -7,19 +7,43 @@ import type { Prisma } from '@prisma/client'
 import {
   ASSESSMENT_ITEMS,
   getAssessmentItemsForLevel,
+  computeLevelFromChallenges,
   getLevelCefrMapping,
 } from '@linguist/core/onboarding/assessment-data'
 
 export const POST = withAuth(async (request, { userId }) => {
   const result: OnboardingResult = await request.json()
 
-  const cefrLevel = getLevelCefrMapping(result.selfReportedLevel)
+  const adjustedLevel = computeLevelFromChallenges(
+    result.selfReportedLevel,
+    result.readingChallengeResults,
+    result.comprehensionResults,
+  )
+  const cefrLevel = getLevelCefrMapping(adjustedLevel)
   const assessmentItems = getAssessmentItemsForLevel(result.selfReportedLevel)
   const knownSet = new Set(result.knownItemIndices)
 
-  // Create learner profile
-  await prisma.learnerProfile.create({
-    data: {
+  // Clean slate: remove items seeded by a previous onboarding run
+  await prisma.lexicalItem.deleteMany({ where: { userId, source: 'onboarding' } })
+  await prisma.grammarItem.deleteMany({
+    where: {
+      userId,
+      patternId: { in: ASSESSMENT_ITEMS.filter((i) => i.patternId).map((i) => i.patternId!) },
+    },
+  })
+
+  await prisma.learnerProfile.upsert({
+    where: { userId },
+    update: {
+      targetLanguage: result.targetLanguage,
+      nativeLanguage: result.nativeLanguage,
+      selfReportedLevel: result.selfReportedLevel,
+      dailyNewItemLimit: result.dailyNewItemLimit,
+      computedLevel: cefrLevel,
+      comprehensionCeiling: cefrLevel,
+      productionCeiling: cefrLevel,
+    },
+    create: {
       userId,
       targetLanguage: result.targetLanguage,
       nativeLanguage: result.nativeLanguage,
@@ -31,9 +55,10 @@ export const POST = withAuth(async (request, { userId }) => {
     },
   })
 
-  // Create pragmatic profile
-  await prisma.pragmaticProfile.create({
-    data: { userId, preferredRegister: 'polite' },
+  await prisma.pragmaticProfile.upsert({
+    where: { userId },
+    update: { preferredRegister: 'polite' },
+    create: { userId, preferredRegister: 'polite' },
   })
 
   const initialFsrs = createInitialFsrsState()
@@ -48,7 +73,6 @@ export const POST = withAuth(async (request, { userId }) => {
     last_review: new Date().toISOString(),
   }
 
-  // Seed items based on assessment results
   for (let i = 0; i < assessmentItems.length; i++) {
     const item = assessmentItems[i]
     const isKnown = knownSet.has(i)
@@ -133,11 +157,13 @@ export const POST = withAuth(async (request, { userId }) => {
     }
   }
 
-  // Mark onboarding as completed
+  // Wipe stale curriculum so it regenerates from the new knowledge state
+  await prisma.curriculumItem.deleteMany({ where: { userId } })
+
   await prisma.user.update({
     where: { id: userId },
     data: { onboardingCompleted: true },
   })
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ computedLevel: cefrLevel })
 })
