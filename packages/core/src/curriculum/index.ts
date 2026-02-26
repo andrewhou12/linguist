@@ -2,6 +2,12 @@ export {
   loadJapaneseReferenceCorpus,
   getReferenceItemsByLevel,
   getReferenceItemsByFrequencyRange,
+  getAssessmentCandidates,
+  getItemBySurfaceForm,
+  getItemByPatternId,
+  getItemsForLevel,
+  getItemsAtOrBelowLevel,
+  getItemsBelowLevel,
   type ReferenceVocabItem,
   type ReferenceGrammarItem,
   type ReferenceCorpus,
@@ -18,3 +24,9 @@ export {
   checkPrerequisites,
   type RecommendationInput,
 } from './recommender'
+
+export {
+  generateCurriculumPlan,
+  type CurriculumPlan,
+  type PlannerInput,
+} from './planner'
