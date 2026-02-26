@@ -5,11 +5,9 @@ import { usePathname } from 'next/navigation'
 import { Box, Flex, Text } from '@radix-ui/themes'
 import type { CSSProperties, ReactNode } from 'react'
 import {
-  LayoutDashboard,
-  RotateCcw,
-  GraduationCap,
   BookOpen,
   MessageCircle,
+  Clock,
   Settings,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -22,11 +20,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/review', label: 'Review', icon: RotateCcw },
-  { href: '/learn', label: 'Learn', icon: GraduationCap },
+  { href: '/conversation', label: 'Conversation', icon: MessageCircle },
   { href: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
-  { href: '/chat', label: 'Chat', icon: MessageCircle },
+  { href: '/history', label: 'History', icon: Clock },
 ]
 
 function navLinkStyle(isActive: boolean): CSSProperties {
