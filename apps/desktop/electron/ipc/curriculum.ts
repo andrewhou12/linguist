@@ -47,6 +47,28 @@ export function registerCurriculumHandlers(): void {
       const profile = await db.learnerProfile.findUnique({ where: { userId } })
       const dailyLimit = profile?.dailyNewItemLimit ?? 10
 
+      // Return existing queued items if any
+      const existing = await db.curriculumItem.findMany({
+        where: { userId, status: 'queued' },
+        orderBy: { priority: 'desc' },
+      })
+      if (existing.length > 0) {
+        log.info('curriculum:getRecommendations returning existing', { count: existing.length })
+        return existing.map((item) => ({
+          id: item.id,
+          itemType: item.itemType as ItemType,
+          surfaceForm: item.surfaceForm ?? undefined,
+          reading: item.reading ?? undefined,
+          meaning: item.meaning ?? undefined,
+          patternId: item.patternId ?? undefined,
+          cefrLevel: item.cefrLevel ?? undefined,
+          frequencyRank: item.frequencyRank ?? undefined,
+          priority: item.priority,
+          reason: item.reason,
+          prerequisitesMet: true,
+        }))
+      }
+
       const recommendations = generateRecommendations({
         bubble,
         knownSurfaceForms,

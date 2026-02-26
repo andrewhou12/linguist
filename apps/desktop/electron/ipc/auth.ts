@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, app } from 'electron'
+import { BrowserWindow, ipcMain, app, session } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs'
 import { randomBytes, createHash } from 'crypto'
@@ -122,7 +122,12 @@ async function exchangeCode(
   }
 
   const data = (await res.json()) as Record<string, unknown>
-  const rawUser = extractUser(data.user as Record<string, unknown>)
+  const userData = data.user as Record<string, unknown>
+  log.info('Token exchange user data', {
+    email: userData?.email,
+    user_metadata: userData?.user_metadata,
+  })
+  const rawUser = extractUser(userData)
   return {
     access_token: data.access_token as string,
     refresh_token: data.refresh_token as string,
@@ -256,11 +261,15 @@ export function registerAuthHandlers(): void {
     })
     const oauthUrl = `${getSupabaseUrl()}/auth/v1/authorize?${params}`
 
+    // Clear OAuth session so Google always shows the account picker
+    const oauthSession = session.fromPartition('persist:oauth')
+    await oauthSession.clearStorageData()
+
     const code = await openOAuthPopup(oauthUrl)
-    const session = await exchangeCode(code, codeVerifier)
-    const user = await ensureDbUser(session.user)
-    session.user = user
-    saveSession(session)
+    const authSession = await exchangeCode(code, codeVerifier)
+    const user = await ensureDbUser(authSession.user)
+    authSession.user = user
+    saveSession(authSession)
 
     log.info('Google sign-in successful', { userId: user.id })
     return { user }

@@ -32,5 +32,25 @@ export const POST = withAuth(async (_request, { userId }) => {
     dailyNewItemLimit: 10, tomBriefInput: null,
   })
 
+  // Persist to CurriculumItem so the frontend gets IDs for skip/introduce
+  for (const rec of recommendations) {
+    const created = await prisma.curriculumItem.create({
+      data: {
+        userId,
+        itemType: rec.itemType,
+        surfaceForm: rec.surfaceForm,
+        reading: rec.reading,
+        meaning: rec.meaning,
+        patternId: rec.patternId,
+        cefrLevel: rec.cefrLevel,
+        frequencyRank: rec.frequencyRank,
+        priority: rec.priority,
+        reason: rec.reason,
+        status: 'queued',
+      },
+    })
+    rec.id = created.id
+  }
+
   return NextResponse.json(recommendations)
 })

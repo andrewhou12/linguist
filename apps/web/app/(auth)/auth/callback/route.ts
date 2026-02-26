@@ -12,8 +12,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Ensure DB user exists (same upsert logic as desktop auth.ts)
-      await prisma.user.upsert({
+      const dbUser = await prisma.user.upsert({
         where: { id: data.user.id },
         create: {
           id: data.user.id,
@@ -29,7 +28,8 @@ export async function GET(request: Request) {
         },
       })
 
-      return NextResponse.redirect(`${origin}${next}`)
+      const destination = dbUser.onboardingCompleted ? next : '/onboarding'
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 

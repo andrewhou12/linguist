@@ -99,6 +99,8 @@ export const IPC_CHANNELS = {
   // Onboarding
   ONBOARDING_GET_STATUS: 'onboarding:get-status',
   ONBOARDING_GET_ASSESSMENT: 'onboarding:get-assessment',
+  ONBOARDING_GET_READING_CHALLENGE: 'onboarding:get-reading-challenge',
+  ONBOARDING_GET_COMPREHENSION: 'onboarding:get-comprehension',
   ONBOARDING_COMPLETE: 'onboarding:complete',
 } as const
 
@@ -434,12 +436,41 @@ export interface AssessmentItem {
   patternId?: string
 }
 
+export interface ReadingChallengeItem {
+  index: number
+  surfaceForm: string
+  meaning: string
+  level: string
+}
+
+export interface ComprehensionItem {
+  index: number
+  sentence: string
+  level: string
+}
+
+export interface ReadingChallengeResult {
+  surfaceForm: string
+  userAnswer: string
+  correct: boolean
+  level: string
+}
+
+export interface ComprehensionResult {
+  sentenceIndex: number
+  userTranslation: string
+  keywordMatchRate: number
+  level: string
+}
+
 export interface OnboardingResult {
   targetLanguage: string
   nativeLanguage: string
   selfReportedLevel: SelfReportedLevel
   dailyNewItemLimit: number
   knownItemIndices: number[]
+  readingChallengeResults: ReadingChallengeResult[]
+  comprehensionResults: ComprehensionResult[]
 }
 
 export interface ExpandedPostSessionAnalysis extends PostSessionAnalysis {

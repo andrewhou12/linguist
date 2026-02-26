@@ -1,16 +1,10 @@
+'use client'
+
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
-  Flex,
-  Text,
-  Button,
-  Card,
-  RadioCards,
-  Slider,
-  Badge,
-  Progress,
-  Separator,
-  TextField,
-  TextArea,
+  Flex, Text, Button, Card, RadioCards, Slider, Badge, Progress, Separator,
+  TextField, TextArea,
 } from '@radix-ui/themes'
 import { Check, ChevronRight, ChevronLeft, BookOpen, Languages, Target, Sparkles, Keyboard, FileText, X } from 'lucide-react'
 import type {
@@ -21,17 +15,14 @@ import type {
   ReadingChallengeResult,
   ComprehensionResult,
   SelfReportedLevel,
-} from '@shared/types'
-import { useAuth } from '../../contexts/auth-context'
+} from '@linguist/shared/types'
+import { api } from '@/lib/api'
 
 type Step = 'welcome' | 'language' | 'level' | 'assessment' | 'reading_challenge' | 'comprehension' | 'preferences' | 'complete'
-
 const STEPS: Step[] = ['welcome', 'language', 'level', 'assessment', 'reading_challenge', 'comprehension', 'preferences', 'complete']
 
-const isMac = window.platform === 'darwin'
-
-export function OnboardingPage() {
-  const { user, completeOnboarding } = useAuth()
+export default function OnboardingPage() {
+  const router = useRouter()
   const [step, setStep] = useState<Step>('welcome')
   const [nativeLanguage, setNativeLanguage] = useState('English')
   const [selfReportedLevel, setSelfReportedLevel] = useState<SelfReportedLevel>('beginner')
@@ -74,8 +65,7 @@ export function OnboardingPage() {
     if (step !== 'assessment') return
     let cancelled = false
     setLoading(true)
-    window.linguist
-      .onboardingGetAssessment(selfReportedLevel)
+    api.onboardingGetAssessment(selfReportedLevel)
       .then((items) => { if (!cancelled) setAssessmentItems(items) })
       .catch((err) => console.error('Failed to load assessment items:', err))
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -86,8 +76,7 @@ export function OnboardingPage() {
     if (step !== 'reading_challenge') return
     let cancelled = false
     setLoading(true)
-    window.linguist
-      .onboardingGetReadingChallenge(selfReportedLevel)
+    api.onboardingGetReadingChallenge(selfReportedLevel)
       .then((items) => { if (!cancelled) setReadingItems(items) })
       .catch((err) => console.error('Failed to load reading challenge:', err))
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -98,8 +87,7 @@ export function OnboardingPage() {
     if (step !== 'comprehension') return
     let cancelled = false
     setLoading(true)
-    window.linguist
-      .onboardingGetComprehension(selfReportedLevel)
+    api.onboardingGetComprehension(selfReportedLevel)
       .then((items) => { if (!cancelled) setComprehensionItems(items) })
       .catch((err) => console.error('Failed to load comprehension items:', err))
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -127,14 +115,13 @@ export function OnboardingPage() {
         readingChallengeResults: readingResults,
         comprehensionResults,
       }
-      const { computedLevel: level } = await window.linguist.onboardingComplete(result)
+      const { computedLevel: level } = await api.onboardingComplete(result)
       setComputedLevel(level)
     } finally {
       setSubmitting(false)
     }
   }, [nativeLanguage, selfReportedLevel, dailyNewItemLimit, knownItems, readingResults, comprehensionResults])
 
-  // Trigger submission when entering the complete step
   useEffect(() => {
     if (step === 'complete' && !computedLevel && !submitting) {
       handleSubmitOnboarding()
@@ -149,13 +136,6 @@ export function OnboardingPage() {
       align="center"
       style={{ height: '100vh', overflow: 'auto' }}
     >
-      {isMac && (
-        <div
-          className="titlebar-drag-region"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 52, zIndex: 1 }}
-        />
-      )}
-
       <Flex
         direction="column"
         align="center"
@@ -164,7 +144,7 @@ export function OnboardingPage() {
       >
         <Progress value={progress} size="1" style={{ width: '100%' }} />
 
-        {step === 'welcome' && <WelcomeStep name={user?.name ?? null} onNext={goNext} />}
+        {step === 'welcome' && <WelcomeStep onNext={goNext} />}
         {step === 'language' && (
           <LanguageStep
             nativeLanguage={nativeLanguage}
@@ -218,7 +198,7 @@ export function OnboardingPage() {
             selfReportedLevel={selfReportedLevel}
             computedLevel={computedLevel}
             submitting={submitting}
-            onComplete={completeOnboarding}
+            onComplete={() => router.push('/dashboard')}
             onBack={goBack}
           />
         )}
@@ -229,21 +209,17 @@ export function OnboardingPage() {
 
 // ── Welcome ──
 
-function WelcomeStep({ name, onNext }: { name: string | null; onNext: () => void }) {
+function WelcomeStep({ onNext }: { onNext: () => void }) {
   return (
     <Card size="4" style={{ width: '100%' }}>
       <Flex direction="column" align="center" gap="5" p="4">
-        <Flex
-          align="center"
-          justify="center"
-          style={{ width: 64, height: 64, borderRadius: 'var(--radius-4)', background: 'var(--accent-3)' }}
-        >
+        <Flex align="center" justify="center" style={{ width: 64, height: 64, borderRadius: 'var(--radius-4)', background: 'var(--accent-3)' }}>
           <Languages size={32} color="var(--accent-11)" />
         </Flex>
         <Flex direction="column" align="center" gap="2">
-          <Text size="7" weight="bold">Welcome{name ? `, ${name.split(' ')[0]}` : ''}!</Text>
+          <Text size="7" weight="bold">Welcome!</Text>
           <Text size="3" color="gray" align="center" style={{ maxWidth: 400 }}>
-            Let's set up your personalized learning experience. We'll ask a few
+            Let&apos;s set up your personalized learning experience. We&apos;ll ask a few
             questions to understand your current level and tailor your study plan.
           </Text>
         </Flex>
@@ -266,8 +242,8 @@ function LanguageStep({
     <Card size="4" style={{ width: '100%' }}>
       <Flex direction="column" gap="5" p="4">
         <Flex direction="column" gap="2">
-          <Text size="5" weight="bold">What's your native language?</Text>
-          <Text size="2" color="gray">We'll use this to tailor explanations and detect L1 interference patterns.</Text>
+          <Text size="5" weight="bold">What&apos;s your native language?</Text>
+          <Text size="2" color="gray">We&apos;ll use this to tailor explanations and detect L1 interference patterns.</Text>
         </Flex>
         <RadioCards.Root value={nativeLanguage} onValueChange={onNativeLanguageChange} columns={{ initial: '2', sm: '2' }}>
           {languages.map((lang) => (
@@ -313,9 +289,9 @@ function LevelStep({ onSelect, onBack }: { onSelect: (l: SelfReportedLevel) => v
         <Flex direction="column" gap="2">
           <Flex align="center" gap="2">
             <Target size={20} color="var(--accent-11)" />
-            <Text size="5" weight="bold">What's your current level?</Text>
+            <Text size="5" weight="bold">What&apos;s your current level?</Text>
           </Flex>
-          <Text size="2" color="gray">Don't worry about being exact — we'll fine-tune this with a few challenges next.</Text>
+          <Text size="2" color="gray">Don&apos;t worry about being exact — we&apos;ll fine-tune this with a few challenges next.</Text>
         </Flex>
         <Flex direction="column" gap="2">
           {levels.map((level) => (
@@ -347,7 +323,7 @@ function LevelStep({ onSelect, onBack }: { onSelect: (l: SelfReportedLevel) => v
   )
 }
 
-// ── Vocabulary Assessment (tap what you know) ──
+// ── Vocabulary Assessment ──
 
 function AssessmentStep({
   items, knownItems, loading, onToggle, onNext, onBack,
@@ -423,10 +399,8 @@ function AssessmentStep({
 function ReadingChallengeStep({
   items, loading, onComplete, onBack,
 }: {
-  items: ReadingChallengeItem[]
-  loading: boolean
-  onComplete: (results: ReadingChallengeResult[]) => void
-  onBack: () => void
+  items: ReadingChallengeItem[]; loading: boolean
+  onComplete: (results: ReadingChallengeResult[]) => void; onBack: () => void
 }) {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [userInput, setUserInput] = useState('')
@@ -434,22 +408,10 @@ function ReadingChallengeStep({
   const [results, setResults] = useState<ReadingChallengeResult[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const assessmentItems = items.length > 0
-    ? items
-    : []
+  useEffect(() => { setCurrentIdx(0); setResults([]); setUserInput(''); setChecked(false) }, [items])
+  useEffect(() => { if (!checked && inputRef.current) inputRef.current.focus() }, [currentIdx, checked])
 
-  useEffect(() => {
-    setCurrentIdx(0)
-    setResults([])
-    setUserInput('')
-    setChecked(false)
-  }, [items])
-
-  useEffect(() => {
-    if (!checked && inputRef.current) inputRef.current.focus()
-  }, [currentIdx, checked])
-
-  if (loading || assessmentItems.length === 0) {
+  if (loading || items.length === 0) {
     return (
       <Card size="4" style={{ width: '100%' }}>
         <Flex align="center" justify="center" py="6"><Text color="gray">Loading reading challenge...</Text></Flex>
@@ -457,33 +419,23 @@ function ReadingChallengeStep({
     )
   }
 
-  const current = assessmentItems[currentIdx]
-  const isLast = currentIdx === assessmentItems.length - 1
+  const current = items[currentIdx]
+  const isLast = currentIdx === items.length - 1
 
   const handleCheck = () => {
     if (!current) return
-    const correctReading = getCorrectReading(current.surfaceForm, items)
+    const correctReading = getCorrectReading(current.surfaceForm)
     const normalized = userInput.trim()
     const isCorrect = normalized === correctReading
     setChecked(true)
-    setResults((prev) => [
-      ...prev,
-      { surfaceForm: current.surfaceForm, userAnswer: normalized, correct: isCorrect, level: current.level },
-    ])
+    setResults((prev) => [...prev, { surfaceForm: current.surfaceForm, userAnswer: normalized, correct: isCorrect, level: current.level }])
   }
 
   const handleNext = () => {
-    if (isLast) {
-      const finalResults = results
-      onComplete(finalResults)
-    } else {
-      setCurrentIdx((i) => i + 1)
-      setUserInput('')
-      setChecked(false)
-    }
+    if (isLast) { onComplete(results) } else { setCurrentIdx((i) => i + 1); setUserInput(''); setChecked(false) }
   }
 
-  const correctReading = checked ? getCorrectReading(current.surfaceForm, items) : null
+  const correctReading = checked ? getCorrectReading(current.surfaceForm) : null
   const lastResult = results.length > 0 ? results[results.length - 1] : null
 
   return (
@@ -494,12 +446,9 @@ function ReadingChallengeStep({
             <Keyboard size={20} color="var(--accent-11)" />
             <Text size="5" weight="bold">Reading Challenge</Text>
           </Flex>
-          <Text size="2" color="gray">
-            Type the hiragana reading for each word. Use a Japanese keyboard input.
-          </Text>
+          <Text size="2" color="gray">Type the hiragana reading for each word. Use a Japanese keyboard input.</Text>
           <Text
-            size="1"
-            color="gray"
+            size="1" color="gray"
             onClick={() => onComplete([])}
             style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
           >
@@ -507,14 +456,10 @@ function ReadingChallengeStep({
           </Text>
         </Flex>
 
-        <Text size="1" color="gray" align="center">
-          {currentIdx + 1} of {assessmentItems.length}
-        </Text>
+        <Text size="1" color="gray" align="center">{currentIdx + 1} of {items.length}</Text>
 
         <Flex direction="column" align="center" gap="4" py="2">
-          <Text size="8" weight="bold" style={{ letterSpacing: '0.05em' }}>
-            {current.surfaceForm}
-          </Text>
+          <Text size="8" weight="bold" style={{ letterSpacing: '0.05em' }}>{current.surfaceForm}</Text>
           <Text size="2" color="gray">{current.meaning}</Text>
 
           <TextField.Root
@@ -550,13 +495,9 @@ function ReadingChallengeStep({
         <Flex gap="3" justify="between">
           <Button variant="soft" onClick={onBack}><ChevronLeft size={16} /> Back</Button>
           {!checked ? (
-            <Button onClick={handleCheck} disabled={!userInput.trim()}>
-              Check
-            </Button>
+            <Button onClick={handleCheck} disabled={!userInput.trim()}>Check</Button>
           ) : (
-            <Button onClick={handleNext}>
-              {isLast ? 'Continue' : 'Next'} <ChevronRight size={16} />
-            </Button>
+            <Button onClick={handleNext}>{isLast ? 'Continue' : 'Next'} <ChevronRight size={16} /></Button>
           )}
         </Flex>
       </Flex>
@@ -564,7 +505,7 @@ function ReadingChallengeStep({
   )
 }
 
-function getCorrectReading(surfaceForm: string, items: ReadingChallengeItem[]): string {
+function getCorrectReading(surfaceForm: string): string {
   const fullList = [
     { surfaceForm: '食べる', reading: 'たべる' }, { surfaceForm: '飲む', reading: 'のむ' },
     { surfaceForm: '行く', reading: 'いく' }, { surfaceForm: '見る', reading: 'みる' },
@@ -605,14 +546,6 @@ const COMPREHENSION_KEYWORDS: Record<string, string[]> = {
   '蓋然性の高い仮説を踏襲することで研究の効率が上がる。': ['probability', 'hypothesis', 'follow', 'research', 'efficiency'],
 }
 
-function computeKeywordMatchRate(sentence: string, userTranslation: string): number {
-  const keywords = COMPREHENSION_KEYWORDS[sentence]
-  if (!keywords || keywords.length === 0) return 0
-  const lower = userTranslation.toLowerCase()
-  const matched = keywords.filter((kw) => lower.includes(kw)).length
-  return matched / keywords.length
-}
-
 const COMPREHENSION_TRANSLATIONS: Record<string, string> = {
   '私は毎日学校に行きます。': 'I go to school every day.',
   'この水はとても冷たいです。': 'This water is very cold.',
@@ -628,13 +561,19 @@ const COMPREHENSION_TRANSLATIONS: Record<string, string> = {
   '蓋然性の高い仮説を踏襲することで研究の効率が上がる。': 'Research efficiency improves by following hypotheses with high probability.',
 }
 
+function computeKeywordMatchRate(sentence: string, userTranslation: string): number {
+  const keywords = COMPREHENSION_KEYWORDS[sentence]
+  if (!keywords || keywords.length === 0) return 0
+  const lower = userTranslation.toLowerCase()
+  const matched = keywords.filter((kw) => lower.includes(kw)).length
+  return matched / keywords.length
+}
+
 function ComprehensionStep({
   items, loading, onComplete, onBack,
 }: {
-  items: ComprehensionItem[]
-  loading: boolean
-  onComplete: (results: ComprehensionResult[]) => void
-  onBack: () => void
+  items: ComprehensionItem[]; loading: boolean
+  onComplete: (results: ComprehensionResult[]) => void; onBack: () => void
 }) {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [userInput, setUserInput] = useState('')
@@ -643,16 +582,8 @@ function ComprehensionStep({
   const [results, setResults] = useState<ComprehensionResult[]>([])
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    setCurrentIdx(0)
-    setResults([])
-    setUserInput('')
-    setChecked(false)
-  }, [items])
-
-  useEffect(() => {
-    if (!checked && textAreaRef.current) textAreaRef.current.focus()
-  }, [currentIdx, checked])
+  useEffect(() => { setCurrentIdx(0); setResults([]); setUserInput(''); setChecked(false) }, [items])
+  useEffect(() => { if (!checked && textAreaRef.current) textAreaRef.current.focus() }, [currentIdx, checked])
 
   if (loading || items.length === 0) {
     return (
@@ -669,21 +600,11 @@ function ComprehensionStep({
     const matchRate = computeKeywordMatchRate(current.sentence, userInput)
     setLastMatchRate(matchRate)
     setChecked(true)
-    setResults((prev) => [
-      ...prev,
-      { sentenceIndex: current.index, userTranslation: userInput.trim(), keywordMatchRate: matchRate, level: current.level },
-    ])
+    setResults((prev) => [...prev, { sentenceIndex: current.index, userTranslation: userInput.trim(), keywordMatchRate: matchRate, level: current.level }])
   }
 
   const handleNext = () => {
-    if (isLast) {
-      onComplete(results)
-    } else {
-      setCurrentIdx((i) => i + 1)
-      setUserInput('')
-      setChecked(false)
-      setLastMatchRate(0)
-    }
+    if (isLast) { onComplete(results) } else { setCurrentIdx((i) => i + 1); setUserInput(''); setChecked(false); setLastMatchRate(0) }
   }
 
   const refTranslation = COMPREHENSION_TRANSLATIONS[current.sentence] ?? ''
@@ -697,24 +618,18 @@ function ComprehensionStep({
             <FileText size={20} color="var(--accent-11)" />
             <Text size="5" weight="bold">Comprehension Challenge</Text>
           </Flex>
-          <Text size="2" color="gray">
-            Translate each Japanese sentence into your native language. We check for key concepts in your answer.
-          </Text>
+          <Text size="2" color="gray">Translate each Japanese sentence into your native language. We check for key concepts in your answer.</Text>
         </Flex>
 
         <Flex justify="between" align="center">
           <Text size="1" color="gray">{currentIdx + 1} of {items.length}</Text>
-          {results.length > 0 && (
-            <Text size="1" color="gray">{correctCount} of {results.length} correct so far</Text>
-          )}
+          {results.length > 0 && <Text size="1" color="gray">{correctCount} of {results.length} correct so far</Text>}
         </Flex>
 
         <Flex direction="column" align="center" gap="4" py="2">
           <Card variant="surface" style={{ width: '100%' }}>
             <Flex align="center" justify="center" p="4">
-              <Text size="5" weight="medium" align="center" style={{ lineHeight: 1.6 }}>
-                {current.sentence}
-              </Text>
+              <Text size="5" weight="medium" align="center" style={{ lineHeight: 1.6 }}>{current.sentence}</Text>
             </Flex>
           </Card>
 
@@ -745,9 +660,7 @@ function ComprehensionStep({
                 <Badge size="2" color="red"><X size={14} /> Needs work</Badge>
               )}
               <Text size="1" color="gray">Reference translation:</Text>
-              <Text size="2" weight="medium" align="center" style={{ fontStyle: 'italic' }}>
-                {refTranslation}
-              </Text>
+              <Text size="2" weight="medium" align="center" style={{ fontStyle: 'italic' }}>{refTranslation}</Text>
             </Flex>
           )}
         </Flex>
@@ -755,13 +668,9 @@ function ComprehensionStep({
         <Flex gap="3" justify="between">
           <Button variant="soft" onClick={onBack}><ChevronLeft size={16} /> Back</Button>
           {!checked ? (
-            <Button onClick={handleCheck} disabled={!userInput.trim()}>
-              Check
-            </Button>
+            <Button onClick={handleCheck} disabled={!userInput.trim()}>Check</Button>
           ) : (
-            <Button onClick={handleNext}>
-              {isLast ? 'Continue' : 'Next'} <ChevronRight size={16} />
-            </Button>
+            <Button onClick={handleNext}>{isLast ? 'Continue' : 'Next'} <ChevronRight size={16} /></Button>
           )}
         </Flex>
       </Flex>
@@ -797,8 +706,7 @@ function PreferencesStep({
             <Text size="2" weight="medium">What this means</Text>
             <Text size="1" color="gray">
               Each day, up to {dailyNewItemLimit} new vocabulary and grammar items will be introduced
-              alongside your review queue. A higher number means faster progress but requires more
-              daily study time.
+              alongside your review queue.
             </Text>
           </Flex>
         </Card>
@@ -830,17 +738,14 @@ function CompleteStep({
   return (
     <Card size="4" style={{ width: '100%' }}>
       <Flex direction="column" align="center" gap="5" p="4">
-        <Flex
-          align="center" justify="center"
-          style={{ width: 64, height: 64, borderRadius: 'var(--radius-4)', background: 'var(--green-3)' }}
-        >
+        <Flex align="center" justify="center" style={{ width: 64, height: 64, borderRadius: 'var(--radius-4)', background: 'var(--green-3)' }}>
           <Sparkles size={32} color="var(--green-11)" />
         </Flex>
         <Flex direction="column" align="center" gap="2">
           <Text size="6" weight="bold">{ready ? "You're all set!" : 'Setting up your profile...'}</Text>
           <Text size="3" color="gray" align="center" style={{ maxWidth: 400 }}>
             {ready
-              ? 'Your personalized learning profile has been created. Here\'s a summary:'
+              ? "Your personalized learning profile has been created. Here's a summary:"
               : 'Analyzing your results and building your knowledge map...'}
           </Text>
         </Flex>
@@ -855,12 +760,8 @@ function CompleteStep({
               <Text size="2" color="gray">Computed level</Text>
               {ready ? (
                 <Flex align="center" gap="2">
-                  <Badge size="2" color={levelChanged ? 'green' : 'blue'}>
-                    {computedLevel}
-                  </Badge>
-                  {levelChanged && (
-                    <Text size="1" color="green">Adjusted from challenges</Text>
-                  )}
+                  <Badge size="2" color={levelChanged ? 'green' : 'blue'}>{computedLevel}</Badge>
+                  {levelChanged && <Text size="1" color="green">Adjusted from challenges</Text>}
                 </Flex>
               ) : (
                 <Text size="2" color="gray">Computing...</Text>
