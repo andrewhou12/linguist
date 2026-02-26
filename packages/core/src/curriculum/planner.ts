@@ -2,12 +2,21 @@ import type {
   CurriculumRecommendation,
   KnowledgeBubble,
   ItemType,
+  UnitProgress,
+  ChunkTriggerResult,
 } from '@linguist/shared/types'
 import type { BubbleItemInput } from './bubble'
 import type { ExpandedBriefInput } from '../tom/analyzer'
 import { generateRecommendations } from './recommender'
 import { generateExpandedDailyBrief } from '../tom/analyzer'
 import { loadJapaneseReferenceCorpus } from './reference-data'
+import {
+  loadCurriculumSpine,
+  getNextUnit,
+  getUnitProgress,
+  evaluateChunkTriggers,
+  getSpineBoosts,
+} from './spine-loader'
 import { createLogger } from '../logger'
 
 const log = createLogger('core:planner')
@@ -23,6 +32,8 @@ export interface CurriculumPlan {
   }
   levelUpReady: boolean // whether to seed next level items
   frontierLevel: string // the next level to seed from
+  currentUnit?: UnitProgress // progress in current spine unit
+  readyChunks?: ChunkTriggerResult[] // chunks ready to be introduced
 }
 
 export interface PlannerInput {
@@ -272,6 +283,91 @@ function checkLevelProgression(
   return { levelUpReady, frontierLevel }
 }
 
+// ── Spine-aware planning ──
+
+/**
+ * Determine the current spine unit and generate spine-aware recommendations.
+ * Falls back to frequency-based scoring if no spine exists for the level.
+ */
+function generateSpineAwarePlan(
+  input: PlannerInput,
+  pacing: { dailyNewTarget: number; reason: string }
+): {
+  recommendations: CurriculumRecommendation[]
+  currentUnit?: UnitProgress
+  readyChunks?: ChunkTriggerResult[]
+} {
+  const { bubble, items, knownSurfaceForms, knownPatternIds, tomBriefInput } = input
+
+  try {
+    const spine = loadCurriculumSpine()
+    if (spine.units.length === 0) {
+      log.debug('No spine units available, falling back to frequency scoring')
+      return { recommendations: generateFrequencyRecommendations(input, pacing) }
+    }
+
+    // Find completed units
+    const completedUnitIds: string[] = []
+    for (const unit of spine.units) {
+      const progress = getUnitProgress(unit.unitId, items)
+      if (progress && progress.coreItemsComplete) {
+        completedUnitIds.push(unit.unitId)
+      }
+    }
+
+    // Get next unit
+    const nextUnit = getNextUnit(completedUnitIds, items)
+    if (!nextUnit) {
+      log.debug('All spine units complete, falling back to frequency scoring')
+      return { recommendations: generateFrequencyRecommendations(input, pacing) }
+    }
+
+    log.debug('Spine-aware planning', {
+      currentUnit: nextUnit.unitId,
+      title: nextUnit.title,
+      completedUnits: completedUnitIds.length,
+    })
+
+    // Get spine boosts for recommender
+    const spineBoosts = getSpineBoosts(nextUnit.unitId)
+
+    // Generate recommendations with spine boosts
+    const recommendations = generateRecommendations({
+      bubble,
+      knownSurfaceForms,
+      knownPatternIds,
+      dailyNewItemLimit: pacing.dailyNewTarget,
+      tomBriefInput,
+      spineBoosts,
+    })
+
+    // Evaluate chunk triggers
+    const allTriggers = evaluateChunkTriggers(items)
+    const readyChunks = allTriggers.filter((t) => t.ready)
+
+    // Compute unit progress
+    const currentUnit = getUnitProgress(nextUnit.unitId, items)
+
+    return { recommendations, currentUnit: currentUnit ?? undefined, readyChunks }
+  } catch (e) {
+    log.debug('Spine loading failed, falling back to frequency scoring', { error: String(e) })
+    return { recommendations: generateFrequencyRecommendations(input, pacing) }
+  }
+}
+
+function generateFrequencyRecommendations(
+  input: PlannerInput,
+  pacing: { dailyNewTarget: number; reason: string }
+): CurriculumRecommendation[] {
+  return generateRecommendations({
+    bubble: input.bubble,
+    knownSurfaceForms: input.knownSurfaceForms,
+    knownPatternIds: input.knownPatternIds,
+    dailyNewItemLimit: pacing.dailyNewTarget,
+    tomBriefInput: input.tomBriefInput,
+  })
+}
+
 // ── Main planner function ──
 
 export function generateCurriculumPlan(input: PlannerInput): CurriculumPlan {
@@ -304,17 +400,14 @@ export function generateCurriculumPlan(input: PlannerInput): CurriculumPlan {
     reason: pacing.reason,
   })
 
-  // Step 2: Generate base recommendations with adjusted limit
-  let recommendations = generateRecommendations({
-    bubble,
-    knownSurfaceForms,
-    knownPatternIds,
-    dailyNewItemLimit: pacing.dailyNewTarget,
-    tomBriefInput,
-  })
+  // Step 2: Generate spine-aware recommendations (falls back to frequency if no spine)
+  const { recommendations: baseRecs, currentUnit, readyChunks } =
+    generateSpineAwarePlan(input, pacing)
 
+  let recommendations = baseRecs
   log.debug('Base recommendations generated', {
     count: recommendations.length,
+    spineUnit: currentUnit?.unitId,
   })
 
   // Step 3: Prerequisite gating — filter out grammar with unmet prereqs
@@ -342,6 +435,8 @@ export function generateCurriculumPlan(input: PlannerInput): CurriculumPlan {
     pacing,
     levelUpReady,
     frontierLevel,
+    currentUnit,
+    readyChunks,
   }
 
   log.info('Curriculum plan generated', {
@@ -351,6 +446,8 @@ export function generateCurriculumPlan(input: PlannerInput): CurriculumPlan {
     pacingReason: plan.pacing.reason,
     levelUpReady: plan.levelUpReady,
     frontierLevel: plan.frontierLevel,
+    currentUnit: plan.currentUnit?.unitId,
+    readyChunks: plan.readyChunks?.length,
     elapsedMs: elapsed(),
   })
 

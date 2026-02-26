@@ -1,5 +1,8 @@
 import vocabularyCorpus from './data/vocabulary.json'
 import grammarCorpus from './data/grammar.json'
+import collocationsCorpus from './data/collocations.json'
+import chunksCorpus from './data/chunks.json'
+import pragmaticFormulasCorpus from './data/pragmatic-formulas.json'
 
 // ── Corpus item types (match the JSON shape) ──
 
@@ -14,6 +17,10 @@ export interface ReferenceVocabItem {
   frequencyRank: number
   tags: string[]
   assessmentCandidate: boolean
+  senseId: string
+  senseGroup: string
+  senseIndex: number
+  senseGloss: string
 }
 
 export interface ReferenceGrammarItem {
@@ -27,9 +34,56 @@ export interface ReferenceGrammarItem {
   assessmentCandidate: boolean
 }
 
+export interface ReferenceCollocation {
+  id: string
+  phrase: string
+  reading: string
+  meaning: string
+  componentSurfaceForms: string[]
+  particleFrame: string
+  cefrLevel: string
+  jlptLevel: string
+  frequencyRank: number
+  domain: string
+  tags: string[]
+}
+
+export interface ReferenceChunk {
+  id: string
+  phrase: string
+  reading: string
+  meaning: string
+  componentSurfaceForms: string[]
+  grammarDependencies: string[]
+  cefrLevel: string
+  jlptLevel: string
+  frequencyRank: number
+  domain: string
+  templatePattern: string
+  tags: string[]
+}
+
+export interface ReferencePragmaticFormula {
+  id: string
+  phrase: string
+  reading: string
+  meaning: string
+  register: string
+  usageContext: string[]
+  casualEquivalent: string | null
+  cefrLevel: string
+  jlptLevel: string
+  frequencyRank: number
+  domain: string
+  tags: string[]
+}
+
 export interface ReferenceCorpus {
   vocabulary: ReferenceVocabItem[]
   grammar: ReferenceGrammarItem[]
+  collocations: ReferenceCollocation[]
+  chunks: ReferenceChunk[]
+  pragmaticFormulas: ReferencePragmaticFormula[]
 }
 
 // ── Cache ──
@@ -41,6 +95,9 @@ export function loadJapaneseReferenceCorpus(): ReferenceCorpus {
   cachedCorpus = {
     vocabulary: vocabularyCorpus as ReferenceVocabItem[],
     grammar: grammarCorpus as ReferenceGrammarItem[],
+    collocations: collocationsCorpus as ReferenceCollocation[],
+    chunks: chunksCorpus as ReferenceChunk[],
+    pragmaticFormulas: pragmaticFormulasCorpus as ReferencePragmaticFormula[],
   }
   return cachedCorpus
 }
@@ -171,4 +228,62 @@ export function getItemsBelowLevel(cefrLevel: string): {
     vocabulary: corpus.vocabulary.filter((v) => validLevels.has(v.cefrLevel)),
     grammar: corpus.grammar.filter((g) => validLevels.has(g.cefrLevel)),
   }
+}
+
+// ── Multi-word unit query APIs ──
+
+/**
+ * Get collocations filtered by CEFR level.
+ */
+export function getCollocationsByLevel(level: string): ReferenceCollocation[] {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.collocations.filter((c) => c.cefrLevel === level)
+}
+
+/**
+ * Get chunks filtered by CEFR level.
+ */
+export function getChunksByLevel(level: string): ReferenceChunk[] {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.chunks.filter((c) => c.cefrLevel === level)
+}
+
+/**
+ * Get pragmatic formulas filtered by CEFR level.
+ */
+export function getPragmaticFormulasByLevel(level: string): ReferencePragmaticFormula[] {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.pragmaticFormulas.filter((p) => p.cefrLevel === level)
+}
+
+/**
+ * Get all senses for a given surface form (for polysemous entries).
+ */
+export function getSenseGroup(surfaceForm: string): ReferenceVocabItem[] {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.vocabulary.filter((v) => v.senseGroup === surfaceForm)
+}
+
+/**
+ * Look up a collocation by its reference ID.
+ */
+export function getCollocationById(id: string): ReferenceCollocation | undefined {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.collocations.find((c) => c.id === id)
+}
+
+/**
+ * Look up a chunk by its reference ID.
+ */
+export function getChunkById(id: string): ReferenceChunk | undefined {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.chunks.find((c) => c.id === id)
+}
+
+/**
+ * Look up a pragmatic formula by its reference ID.
+ */
+export function getPragmaticFormulaById(id: string): ReferencePragmaticFormula | undefined {
+  const corpus = loadJapaneseReferenceCorpus()
+  return corpus.pragmaticFormulas.find((p) => p.id === id)
 }
