@@ -11,6 +11,7 @@ import { computeNextMasteryState } from '@linguist/core/mastery/state-machine'
 import { MasteryState } from '@linguist/shared/types'
 import type { ReviewGrade } from '@linguist/shared/types'
 import { recalculateProfile } from '@linguist/core/profile/calculator'
+import { parseMessage } from '@/lib/message-parser'
 
 const anthropic = new Anthropic()
 
@@ -31,8 +32,15 @@ export const POST = withAuth(async (request, { userId }) => {
 
   const plan = dbSession.sessionPlan as unknown as ExpandedSessionPlan
 
+  // Fetch learner's known vocabulary so the analysis can identify truly new items
+  const knownItems = await prisma.lexicalItem.findMany({
+    where: { userId },
+    select: { surfaceForm: true },
+  })
+  const knownSurfaceForms = knownItems.map((i) => i.surfaceForm)
+
   // Post-session analysis
-  const analysisPrompt = buildAnalysisPrompt(transcript, plan)
+  const analysisPrompt = buildAnalysisPrompt(transcript, plan, knownSurfaceForms)
   const analysisResponse = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 2048,
@@ -89,6 +97,7 @@ export const POST = withAuth(async (request, { userId }) => {
             contextTypes: updatedContextTypes, contextCount: updatedContextTypes.length,
             ...modalityUpdates,
             ...(ctxLog.wasProduction ? { productionCount: { increment: 1 }, productionWeight: { increment: 1.0 } } : { exposureCount: { increment: 1 } }),
+            ...(item.masteryState === 'unseen' ? { masteryState: 'introduced' } : {}),
           },
         })
       }
@@ -109,6 +118,7 @@ export const POST = withAuth(async (request, { userId }) => {
             ...modalityUpdates,
             ...(isNovel ? { novelContextCount: { increment: 1 } } : {}),
             ...(ctxLog.wasProduction ? { productionWeight: { increment: 1.0 } } : {}),
+            ...(item.masteryState === 'unseen' ? { masteryState: 'introduced' } : {}),
           },
         })
       }
@@ -227,7 +237,90 @@ export const POST = withAuth(async (request, { userId }) => {
     }
   }
 
-  // Add new items from conversation
+  // Extract vocab and grammar cards emitted by the assistant during conversation
+  for (const msg of transcript) {
+    if (msg.role !== 'assistant') continue
+    const segments = parseMessage(msg.content)
+    for (const seg of segments) {
+      if (seg.type === 'vocab_card' && seg.data?.surface) {
+        const surface = seg.data.surface
+        const existing = await prisma.lexicalItem.findFirst({ where: { userId, surfaceForm: surface } })
+        if (!existing) {
+          const initialFsrs = createInitialFsrsState()
+          await prisma.lexicalItem.create({
+            data: {
+              userId,
+              surfaceForm: surface,
+              reading: seg.data.reading ?? null,
+              meaning: seg.data.meaning ?? '',
+              masteryState: 'introduced',
+              recognitionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
+              productionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
+              source: 'conversation',
+              tags: ['conversation'],
+              contextTypes: ['conversation'],
+              contextCount: 1,
+              exposureCount: 1,
+            },
+          })
+        } else if (existing.masteryState === 'unseen') {
+          const updatedContextTypes = existing.contextTypes.includes('conversation')
+            ? existing.contextTypes
+            : [...existing.contextTypes, 'conversation']
+          await prisma.lexicalItem.update({
+            where: { id: existing.id },
+            data: {
+              masteryState: 'introduced',
+              exposureCount: { increment: 1 },
+              contextTypes: updatedContextTypes,
+              contextCount: updatedContextTypes.length,
+              ...(seg.data.reading && !existing.reading ? { reading: seg.data.reading } : {}),
+              ...(seg.data.meaning && !existing.meaning ? { meaning: seg.data.meaning } : {}),
+            },
+          })
+        } else if (existing.meaning === '' && seg.data.meaning) {
+          await prisma.lexicalItem.update({
+            where: { id: existing.id },
+            data: { meaning: seg.data.meaning, ...(seg.data.reading && !existing.reading ? { reading: seg.data.reading } : {}) },
+          })
+        }
+      } else if (seg.type === 'grammar_card' && seg.data?.pattern) {
+        const patternName = seg.data.pattern
+        const existing = await prisma.grammarItem.findFirst({ where: { userId, name: patternName } })
+        if (!existing) {
+          const initialFsrs = createInitialFsrsState()
+          await prisma.grammarItem.create({
+            data: {
+              userId,
+              patternId: patternName.toLowerCase().replace(/\s+/g, '_'),
+              name: patternName,
+              description: seg.data.meaning ?? null,
+              masteryState: 'introduced',
+              recognitionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
+              productionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
+              contextTypes: ['conversation'],
+              contextCount: 1,
+            },
+          })
+        } else if (existing.masteryState === 'unseen') {
+          const updatedContextTypes = existing.contextTypes.includes('conversation')
+            ? existing.contextTypes
+            : [...existing.contextTypes, 'conversation']
+          await prisma.grammarItem.update({
+            where: { id: existing.id },
+            data: {
+              masteryState: 'introduced',
+              contextTypes: updatedContextTypes,
+              contextCount: updatedContextTypes.length,
+              ...(seg.data.meaning && !existing.description ? { description: seg.data.meaning } : {}),
+            },
+          })
+        }
+      }
+    }
+  }
+
+  // Fallback: add new items from analysis (catches items not emitted as cards)
   for (const newItem of analysis.newItemsEncountered) {
     const existing = await prisma.lexicalItem.findFirst({ where: { userId, surfaceForm: newItem.surfaceForm } })
     if (!existing) {
@@ -240,6 +333,19 @@ export const POST = withAuth(async (request, { userId }) => {
           productionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
           source: 'conversation', tags: ['conversation'],
           contextTypes: ['conversation'], contextCount: 1,
+        },
+      })
+    } else if (existing.masteryState === 'unseen') {
+      const updatedContextTypes = existing.contextTypes.includes('conversation')
+        ? existing.contextTypes
+        : [...existing.contextTypes, 'conversation']
+      await prisma.lexicalItem.update({
+        where: { id: existing.id },
+        data: {
+          masteryState: 'introduced',
+          exposureCount: { increment: 1 },
+          contextTypes: updatedContextTypes,
+          contextCount: updatedContextTypes.length,
         },
       })
     }

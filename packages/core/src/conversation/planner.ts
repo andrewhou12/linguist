@@ -227,5 +227,6 @@ BEHAVIORAL RULES:
     [TARGETS_HIT: item1, item2]
     If none were hit, omit this line.
 16. Card budget for this session: ${cardBudget}. Never emit more than this many cards total. Never stack cards back-to-back — at least 3 conversational turns between cards.
-17. After turn 20, begin wrapping up. Do not introduce new vocabulary or grammar after this point.`
+17. After turn 20, begin wrapping up. Do not introduce new vocabulary or grammar after this point.
+18. IMPORTANT: Always annotate kanji words with their hiragana reading using curly brace syntax: {漢字|かんじ}. For example: {友達|ともだち}と{東京|とうきょう}に{行|い}きました。 Annotate every word containing kanji. Do not annotate pure hiragana, katakana, or romaji.`
 }

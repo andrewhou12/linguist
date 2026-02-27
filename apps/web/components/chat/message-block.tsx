@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
+import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { RomajiText } from '@/components/romaji-text'
 
 interface MessageBlockProps {
   role: 'user' | 'assistant'
@@ -12,6 +14,7 @@ interface MessageBlockProps {
   isStreaming?: boolean
   userName?: string
   children?: ReactNode
+  showRomaji?: boolean
 }
 
 function hasJapanese(text: string): boolean {
@@ -27,7 +30,7 @@ function formatTime(iso: string): string {
   }
 }
 
-export function MessageBlock({ role, content, timestamp, isStreaming, userName, children }: MessageBlockProps) {
+export function MessageBlock({ role, content, timestamp, isStreaming, userName, children, showRomaji }: MessageBlockProps) {
   if (role === 'user') {
     const isJp = hasJapanese(content)
     return (
@@ -79,7 +82,11 @@ export function MessageBlock({ role, content, timestamp, isStreaming, userName, 
           </div>
           {(content || isStreaming) && (
             <div className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]">
-              {content && <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>}
+              {content && (showRomaji ? (
+                <RomajiText text={content} />
+              ) : (
+                <Markdown remarkPlugins={[remarkGfm]}>{stripRubyAnnotations(content)}</Markdown>
+              ))}
               {isStreaming && <span className="blink-cursor" />}
             </div>
           )}

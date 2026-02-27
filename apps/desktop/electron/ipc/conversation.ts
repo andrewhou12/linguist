@@ -8,6 +8,7 @@ import type {
   FsrsState,
   PragmaticState,
   WordBankEntry,
+  ReviewGrade,
 } from '@shared/types'
 import type { Prisma } from '@prisma/client'
 import { MasteryState } from '@shared/types'
@@ -31,7 +32,8 @@ import {
 } from '@core/pragmatics/analyzer'
 import { generateRecommendations } from '@core/curriculum/recommender'
 import { computeKnowledgeBubble, type BubbleItemInput } from '@core/curriculum/bubble'
-import { createInitialFsrsState } from '@core/fsrs/scheduler'
+import { createInitialFsrsState, scheduleReview } from '@core/fsrs/scheduler'
+import { computeNextMasteryState } from '@core/mastery/state-machine'
 import { recalculateProfile, type ProfileItemInput } from '@core/profile/calculator'
 
 const anthropic = new Anthropic()
@@ -522,6 +524,7 @@ export function registerConversationHandlers(): void {
                         productionWeight: { increment: 1.0 },
                       }
                     : { exposureCount: { increment: 1 } }),
+                  ...(item.masteryState === 'unseen' ? { masteryState: 'introduced' } : {}),
                 },
               })
             }
@@ -549,6 +552,7 @@ export function registerConversationHandlers(): void {
                   ...(ctxLog.wasProduction
                     ? { productionWeight: { increment: 1.0 } }
                     : {}),
+                  ...(item.masteryState === 'unseen' ? { masteryState: 'introduced' } : {}),
                 },
               })
             }
@@ -573,6 +577,131 @@ export function registerConversationHandlers(): void {
                 tags: ['conversation'],
                 contextTypes: ['conversation'],
                 contextCount: 1,
+              },
+            })
+          } else if (existing.masteryState === 'unseen') {
+            const updatedContextTypes = existing.contextTypes.includes('conversation')
+              ? existing.contextTypes
+              : [...existing.contextTypes, 'conversation']
+            await db.lexicalItem.update({
+              where: { id: existing.id },
+              data: {
+                masteryState: 'introduced',
+                exposureCount: { increment: 1 },
+                contextTypes: updatedContextTypes,
+                contextCount: updatedContextTypes.length,
+              },
+            })
+          }
+        }
+
+        // FSRS + mastery transitions for items with production evidence
+        for (const ctxLog of analysis.contextLogs) {
+          if (!ctxLog.wasProduction) continue
+
+          const grade: ReviewGrade = ctxLog.wasSuccessful ? 'good' : 'again'
+
+          if (ctxLog.itemType === 'lexical') {
+            const item = await db.lexicalItem.findUnique({ where: { id: ctxLog.itemId } })
+            if (!item) continue
+            const currentFsrs = item.productionFsrs as unknown as FsrsState
+            const { nextState: nextFsrs } = scheduleReview(currentFsrs, grade)
+            const nextMastery = computeNextMasteryState({
+              currentState: item.masteryState as MasteryState,
+              grade,
+              modality: 'production',
+              hasProductionEvidence: item.productionCount > 0 || ctxLog.wasSuccessful,
+              productionCount: item.productionCount + (ctxLog.wasSuccessful ? 1 : 0),
+              productionWeight: item.productionWeight + (ctxLog.wasSuccessful ? 1.0 : 0),
+              contextCount: item.contextCount,
+              novelContextCount: 0,
+            })
+            await db.lexicalItem.update({
+              where: { id: ctxLog.itemId },
+              data: {
+                productionFsrs: nextFsrs as unknown as Prisma.InputJsonValue,
+                lastReviewed: new Date(),
+                masteryState: nextMastery,
+              },
+            })
+            await db.reviewEvent.create({
+              data: {
+                userId, itemType: 'lexical', grade, modality: 'production',
+                sessionId, productionWeight: 1.0, contextType: 'conversation',
+                lexicalItemId: ctxLog.itemId,
+              },
+            })
+          } else if (ctxLog.itemType === 'grammar') {
+            const item = await db.grammarItem.findUnique({ where: { id: ctxLog.itemId } })
+            if (!item) continue
+            const currentFsrs = item.productionFsrs as unknown as FsrsState
+            const { nextState: nextFsrs } = scheduleReview(currentFsrs, grade)
+            const nextMastery = computeNextMasteryState({
+              currentState: item.masteryState as MasteryState,
+              grade,
+              modality: 'production',
+              hasProductionEvidence: true,
+              productionCount: 0,
+              productionWeight: item.productionWeight + (ctxLog.wasSuccessful ? 1.0 : 0),
+              contextCount: item.contextCount,
+              novelContextCount: item.novelContextCount,
+            })
+            await db.grammarItem.update({
+              where: { id: ctxLog.itemId },
+              data: {
+                productionFsrs: nextFsrs as unknown as Prisma.InputJsonValue,
+                lastReviewed: new Date(),
+                masteryState: nextMastery,
+              },
+            })
+            await db.reviewEvent.create({
+              data: {
+                userId, itemType: 'grammar', grade, modality: 'production',
+                sessionId, productionWeight: 1.0, contextType: 'conversation',
+                grammarItemId: ctxLog.itemId,
+              },
+            })
+          }
+        }
+
+        // FSRS updates for errors logged by analysis
+        for (const err of analysis.errorsLogged) {
+          const lexItem = await db.lexicalItem.findUnique({ where: { id: err.itemId } })
+          if (lexItem) {
+            const currentFsrs = lexItem.productionFsrs as unknown as FsrsState
+            const { nextState: nextFsrs } = scheduleReview(currentFsrs, 'again')
+            await db.lexicalItem.update({
+              where: { id: err.itemId },
+              data: {
+                productionFsrs: nextFsrs as unknown as Prisma.InputJsonValue,
+                lastReviewed: new Date(),
+              },
+            })
+            await db.reviewEvent.create({
+              data: {
+                userId, itemType: 'lexical', grade: 'again', modality: 'production',
+                sessionId, productionWeight: 1.0, contextType: 'conversation',
+                lexicalItemId: err.itemId,
+              },
+            })
+            continue
+          }
+          const gramItem = await db.grammarItem.findUnique({ where: { id: err.itemId } })
+          if (gramItem) {
+            const currentFsrs = gramItem.productionFsrs as unknown as FsrsState
+            const { nextState: nextFsrs } = scheduleReview(currentFsrs, 'again')
+            await db.grammarItem.update({
+              where: { id: err.itemId },
+              data: {
+                productionFsrs: nextFsrs as unknown as Prisma.InputJsonValue,
+                lastReviewed: new Date(),
+              },
+            })
+            await db.reviewEvent.create({
+              data: {
+                userId, itemType: 'grammar', grade: 'again', modality: 'production',
+                sessionId, productionWeight: 1.0, contextType: 'conversation',
+                grammarItemId: err.itemId,
               },
             })
           }
