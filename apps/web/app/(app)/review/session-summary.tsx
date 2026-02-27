@@ -1,13 +1,19 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Box, Card, Flex, Heading, Text, Button, Badge } from '@radix-ui/themes'
 import type { SessionStats } from '@/hooks/use-review'
 
-const MASTERY_COLORS: Record<string, 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple'> = {
-  unseen: 'gray', introduced: 'gray', apprentice_1: 'red', apprentice_2: 'red',
-  apprentice_3: 'orange', apprentice_4: 'orange', journeyman: 'yellow',
-  expert: 'green', master: 'blue', burned: 'purple',
+const MASTERY_TW_COLORS: Record<string, string> = {
+  unseen: 'bg-gray-100 text-gray-700',
+  introduced: 'bg-gray-100 text-gray-700',
+  apprentice_1: 'bg-red-100 text-red-700',
+  apprentice_2: 'bg-red-100 text-red-700',
+  apprentice_3: 'bg-orange-100 text-orange-700',
+  apprentice_4: 'bg-orange-100 text-orange-700',
+  journeyman: 'bg-yellow-100 text-yellow-700',
+  expert: 'bg-green-100 text-green-700',
+  master: 'bg-blue-100 text-blue-700',
+  burned: 'bg-purple-100 text-purple-700',
 }
 
 function formatMasteryLabel(state: string): string {
@@ -19,57 +25,65 @@ export function SessionSummary({ stats }: { stats: SessionStats }) {
   const accuracy = stats.reviewed > 0 ? Math.round((stats.correct / stats.reviewed) * 100) : 0
 
   return (
-    <Box style={{ maxWidth: 500, margin: '0 auto' }}>
-      <Heading size="7" mb="6" align="center">Session Complete</Heading>
+    <div className="max-w-[500px] mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-center">Session Complete</h1>
 
-      <Flex gap="4" mb="6" justify="center">
-        <Card style={{ minWidth: 120, textAlign: 'center' }}>
-          <Flex direction="column" gap="1" align="center" p="2">
-            <Text size="2" color="gray">Reviewed</Text>
-            <Text size="8" weight="bold">{stats.reviewed}</Text>
-          </Flex>
-        </Card>
-        <Card style={{ minWidth: 120, textAlign: 'center' }}>
-          <Flex direction="column" gap="1" align="center" p="2">
-            <Text size="2" color="gray">Accuracy</Text>
-            <Text size="8" weight="bold" color={accuracy >= 80 ? 'green' : accuracy >= 60 ? 'orange' : 'red'}>
+      <div className="flex gap-4 mb-6 justify-center">
+        <div className="min-w-[120px] text-center rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-col gap-1 items-center">
+            <span className="text-sm text-gray-500">Reviewed</span>
+            <span className="text-4xl font-bold">{stats.reviewed}</span>
+          </div>
+        </div>
+        <div className="min-w-[120px] text-center rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-col gap-1 items-center">
+            <span className="text-sm text-gray-500">Accuracy</span>
+            <span className={`text-4xl font-bold ${accuracy >= 80 ? 'text-green-600' : accuracy >= 60 ? 'text-orange-500' : 'text-red-600'}`}>
               {accuracy}%
-            </Text>
-          </Flex>
-        </Card>
-      </Flex>
+            </span>
+          </div>
+        </div>
+      </div>
 
-      <Box mb="6">
-        <Box style={{ height: 8, borderRadius: 4, backgroundColor: 'var(--gray-4)', overflow: 'hidden' }}>
-          <Box
-            style={{
-              height: '100%', width: `${accuracy}%`, borderRadius: 4,
-              backgroundColor: accuracy >= 80 ? 'var(--green-9)' : accuracy >= 60 ? 'var(--orange-9)' : 'var(--red-9)',
-              transition: 'width 0.5s ease',
-            }}
+      <div className="mb-6">
+        <div className="h-2 rounded bg-gray-200 overflow-hidden">
+          <div
+            className={`h-full rounded transition-[width] duration-500 ease-out ${
+              accuracy >= 80 ? 'bg-green-500' : accuracy >= 60 ? 'bg-orange-500' : 'bg-red-500'
+            }`}
+            style={{ width: `${accuracy}%` }}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {stats.masteryChanges.length > 0 && (
-        <Card mb="6">
-          <Flex direction="column" gap="3" p="2">
-            <Text size="3" weight="bold">Mastery Changes</Text>
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-col gap-3">
+            <span className="text-base font-bold">Mastery Changes</span>
             {stats.masteryChanges.map((change, i) => (
-              <Flex key={i} align="center" gap="2" wrap="wrap">
-                <Text size="2" style={{ minWidth: 80 }}>{change.surfaceForm}</Text>
-                <Badge color={MASTERY_COLORS[change.from] ?? 'gray'} size="1">{formatMasteryLabel(change.from)}</Badge>
-                <Text size="2" color="gray">→</Text>
-                <Badge color={MASTERY_COLORS[change.to] ?? 'gray'} size="1">{formatMasteryLabel(change.to)}</Badge>
-              </Flex>
+              <div key={i} className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm min-w-[80px]">{change.surfaceForm}</span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MASTERY_TW_COLORS[change.from] ?? 'bg-gray-100 text-gray-700'}`}>
+                  {formatMasteryLabel(change.from)}
+                </span>
+                <span className="text-sm text-gray-500">&rarr;</span>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MASTERY_TW_COLORS[change.to] ?? 'bg-gray-100 text-gray-700'}`}>
+                  {formatMasteryLabel(change.to)}
+                </span>
+              </div>
             ))}
-          </Flex>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <Flex justify="center">
-        <Button size="3" onClick={() => router.push('/dashboard')}>Done</Button>
-      </Flex>
-    </Box>
+      <div className="flex justify-center">
+        <button
+          className="rounded-md bg-blue-600 px-5 py-2.5 text-base font-medium text-white hover:bg-blue-700 transition-colors"
+          onClick={() => router.push('/dashboard')}
+        >
+          Done
+        </button>
+      </div>
+    </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Box, Heading, Text, Flex, Badge, Table } from '@radix-ui/themes'
+import { Table } from '@radix-ui/themes'
 import { Clock, Target, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/skeleton'
@@ -24,23 +24,24 @@ export default function HistoryPage() {
   }, [])
 
   return (
-    <Box>
-      <Heading size="7" mb="4">Session History</Heading>
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Session History</h1>
 
       {isLoading ? (
-        <Flex direction="column" gap="3">
+        <div className="flex flex-col gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Flex key={i} gap="4" align="center">
+            <div key={i} className="flex gap-4 items-center">
               <Skeleton width={120} height={16} />
               <Skeleton width={80} height={16} />
               <Skeleton width={200} height={16} />
               <Skeleton width={60} height={20} borderRadius={10} />
-            </Flex>
+            </div>
           ))}
-        </Flex>
+        </div>
       ) : sessions.length === 0 ? (
-        <Text color="gray">No sessions yet. Start a conversation to see your history here.</Text>
+        <p className="text-gray-500">No sessions yet. Start a conversation to see your history here.</p>
       ) : (
+        /* Keep Radix Table for now - complex interactive component */
         <Table.Root variant="surface" size="2">
           <Table.Header>
             <Table.Row>
@@ -60,41 +61,41 @@ export default function HistoryPage() {
                   <Table.Cell>
                     <Link
                       href={`/history/${session.id}`}
-                      style={{ textDecoration: 'none', color: 'var(--accent-11)' }}
+                      className="no-underline text-blue-700"
                     >
-                      <Text size="2" weight="medium">
+                      <span className="text-sm font-medium block">
                         {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </Text>
-                      <Text size="1" color="gray" style={{ display: 'block' }}>
+                      </span>
+                      <span className="text-xs text-gray-500 block">
                         {date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
+                      </span>
                     </Link>
                   </Table.Cell>
                   <Table.Cell>
-                    <Flex align="center" gap="1">
-                      <Clock size={12} style={{ color: 'var(--gray-8)' }} />
-                      <Text size="2" color="gray">{mins ? `${mins}m` : '—'}</Text>
-                    </Flex>
+                    <div className="flex items-center gap-1">
+                      <Clock size={12} className="text-gray-400" />
+                      <span className="text-sm text-gray-500">{mins ? `${mins}m` : '—'}</span>
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <Text size="2">{session.sessionFocus || '—'}</Text>
+                    <span className="text-sm">{session.sessionFocus || '—'}</span>
                   </Table.Cell>
                   <Table.Cell>
-                    <Flex align="center" gap="1">
-                      <Target size={12} style={{ color: 'var(--green-9)' }} />
-                      <Text size="2">
+                    <div className="flex items-center gap-1">
+                      <Target size={12} className="text-green-600" />
+                      <span className="text-sm">
                         {session.targetsHitCount}/{session.targetsPlannedCount}
-                      </Text>
-                    </Flex>
+                      </span>
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
                     {session.errorsLoggedCount > 0 ? (
-                      <Flex align="center" gap="1">
-                        <AlertCircle size={12} style={{ color: 'var(--red-9)' }} />
-                        <Text size="2" color="red">{session.errorsLoggedCount}</Text>
-                      </Flex>
+                      <div className="flex items-center gap-1">
+                        <AlertCircle size={12} className="text-red-600" />
+                        <span className="text-sm text-red-600">{session.errorsLoggedCount}</span>
+                      </div>
                     ) : (
-                      <Text size="2" color="gray">0</Text>
+                      <span className="text-sm text-gray-500">0</span>
                     )}
                   </Table.Cell>
                 </Table.Row>
@@ -103,6 +104,6 @@ export default function HistoryPage() {
           </Table.Body>
         </Table.Root>
       )}
-    </Box>
+    </div>
   )
 }

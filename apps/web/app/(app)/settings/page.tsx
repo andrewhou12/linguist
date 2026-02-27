@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Box, Flex, Text, Card, Button, Select, Separator,
-} from '@radix-ui/themes'
+import { Select } from '@radix-ui/themes'
 import { ArrowLeft, Globe, BookOpen, Target, Flame } from 'lucide-react'
 import type { ExpandedLearnerProfile } from '@linguist/shared/types'
 import { Spinner } from '@/components/spinner'
@@ -31,47 +29,51 @@ export default function SettingsPage() {
 
   if (isLoading || !profile) {
     return (
-      <Box style={{ maxWidth: 640, margin: '0 auto' }}>
-        <Flex align="center" gap="3" mt="6" justify="center">
+      <div className="max-w-[640px] mx-auto">
+        <div className="flex items-center gap-3 mt-6 justify-center">
           <Spinner size={18} />
-          <Text size="2" color="gray">Loading settings...</Text>
-        </Flex>
-      </Box>
+          <span className="text-sm text-gray-500">Loading settings...</span>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Box style={{ maxWidth: 640, margin: '0 auto' }}>
-      <Flex align="center" gap="3" mb="6">
-        <Button variant="ghost" size="2" onClick={() => router.back()} style={{ padding: 6 }}>
+    <div className="max-w-[640px] mx-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+          onClick={() => router.back()}
+        >
           <ArrowLeft size={18} />
-        </Button>
-        <Text size="7" weight="bold">Settings</Text>
-      </Flex>
+        </button>
+        <h1 className="text-3xl font-bold">Settings</h1>
+      </div>
 
-      <Text size="1" weight="medium" color="gray" mb="3" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-3">
         General
-      </Text>
+      </span>
 
-      <Card mb="5">
-        <Flex direction="column">
+      <div className="rounded-xl border border-gray-200 bg-white mb-5">
+        <div className="flex flex-col">
           <SettingsRow icon={<Globe size={16} />} label="Target Language" description={profile.targetLanguage} />
-          <Separator size="4" />
+          <hr className="border-gray-200" />
           <SettingsRow icon={<Globe size={16} />} label="Native Language" description={profile.nativeLanguage} />
-        </Flex>
-      </Card>
+        </div>
+      </div>
 
-      <Text size="1" weight="medium" color="gray" mb="3" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-3">
         Learning
-      </Text>
+      </span>
 
-      <Card mb="5">
-        <Flex direction="column">
+      <div className="rounded-xl border border-gray-200 bg-white mb-5">
+        <div className="flex flex-col">
           <SettingsRow
             icon={<BookOpen size={16} />}
             label="Daily New Items"
             description={`${profile.dailyNewItemLimit} new items per day`}
           >
+            {/* Keep Radix Select for now - complex interactive component */}
             <Select.Root
               value={String(profile.dailyNewItemLimit)}
               onValueChange={(v) => handleUpdate({ dailyNewItemLimit: parseInt(v) })}
@@ -89,7 +91,7 @@ export default function SettingsPage() {
             </Select.Root>
           </SettingsRow>
 
-          <Separator size="4" />
+          <hr className="border-gray-200" />
 
           <SettingsRow
             icon={<Target size={16} />}
@@ -111,27 +113,27 @@ export default function SettingsPage() {
               </Select.Content>
             </Select.Root>
           </SettingsRow>
-        </Flex>
-      </Card>
+        </div>
+      </div>
 
-      <Text size="1" weight="medium" color="gray" mb="3" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-3">
         Progress
-      </Text>
+      </span>
 
-      <Card>
-        <Flex direction="column">
+      <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="flex flex-col">
           <SettingsRow icon={<Flame size={16} />} label="Current Level" description={profile.computedLevel} />
-          <Separator size="4" />
+          <hr className="border-gray-200" />
           <SettingsRow icon={<Flame size={16} />} label="Streak" description={`${profile.currentStreak} day${profile.currentStreak !== 1 ? 's' : ''} (longest: ${profile.longestStreak})`} />
-          <Separator size="4" />
+          <hr className="border-gray-200" />
           <SettingsRow icon={<BookOpen size={16} />} label="Total Reviews" description={String(profile.totalReviewEvents)} />
-          <Separator size="4" />
+          <hr className="border-gray-200" />
           <SettingsRow icon={<Target size={16} />} label="Comprehension Ceiling" description={profile.comprehensionCeiling} />
-          <Separator size="4" />
+          <hr className="border-gray-200" />
           <SettingsRow icon={<Target size={16} />} label="Production Ceiling" description={profile.productionCeiling} />
-        </Flex>
-      </Card>
-    </Box>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -141,20 +143,17 @@ function SettingsRow({
   icon: React.ReactNode; label: string; description: string; children?: React.ReactNode
 }) {
   return (
-    <Flex align="center" justify="between" py="3" px="1" gap="3">
-      <Flex align="center" gap="3" style={{ flex: 1, minWidth: 0 }}>
-        <Flex
-          align="center" justify="center"
-          style={{ width: 28, height: 28, borderRadius: 'var(--radius-2)', backgroundColor: 'var(--gray-3)', flexShrink: 0, color: 'var(--gray-11)' }}
-        >
+    <div className="flex items-center justify-between py-3 px-1 gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-7 h-7 rounded-md bg-gray-100 shrink-0 text-gray-600 flex items-center justify-center">
           {icon}
-        </Flex>
-        <Flex direction="column" gap="0" style={{ minWidth: 0 }}>
-          <Text size="2" weight="medium">{label}</Text>
-          <Text size="1" color="gray" truncate>{description}</Text>
-        </Flex>
-      </Flex>
-      {children && <Box style={{ flexShrink: 0 }}>{children}</Box>}
-    </Flex>
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs text-gray-500 truncate">{description}</span>
+        </div>
+      </div>
+      {children && <div className="shrink-0">{children}</div>}
+    </div>
   )
 }

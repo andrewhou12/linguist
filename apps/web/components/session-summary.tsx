@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, Flex, Text, Separator, Badge } from '@radix-ui/themes'
 import { Check, X, AlertTriangle, Sparkles } from 'lucide-react'
 import type { PostSessionAnalysis } from '@linguist/shared/types'
 
@@ -21,86 +20,86 @@ export function SessionSummaryCard({
   const newCount = analysis.newItemsEncountered?.length ?? 0
 
   return (
-    <Card my="3" style={{ maxWidth: 520 }}>
-      <Flex direction="column" gap="3">
-        <Flex align="center" gap="2">
-          <Sparkles size={16} style={{ color: 'var(--accent-9)' }} />
-          <Text size="3" weight="bold">Session Summary</Text>
-        </Flex>
+    <div className="my-3 max-w-[520px] rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-blue-600" />
+          <span className="text-base font-bold">Session Summary</span>
+        </div>
 
-        <Flex gap="4" wrap="wrap">
-          <Flex direction="column" align="center" gap="1">
-            <Text size="5" weight="bold">{minutes}</Text>
-            <Text size="1" color="gray">min</Text>
-          </Flex>
-          <Flex direction="column" align="center" gap="1">
-            <Text size="5" weight="bold" color="green">{hitCount}/{totalTargets}</Text>
-            <Text size="1" color="gray">challenges</Text>
-          </Flex>
-          <Flex direction="column" align="center" gap="1">
-            <Text size="5" weight="bold" color={errorCount > 0 ? 'red' : 'gray'}>{errorCount}</Text>
-            <Text size="1" color="gray">errors</Text>
-          </Flex>
-          <Flex direction="column" align="center" gap="1">
-            <Text size="5" weight="bold" color="blue">{newCount}</Text>
-            <Text size="1" color="gray">new items</Text>
-          </Flex>
-        </Flex>
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xl font-bold">{minutes}</span>
+            <span className="text-xs text-gray-500">min</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xl font-bold text-green-600">{hitCount}/{totalTargets}</span>
+            <span className="text-xs text-gray-500">challenges</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className={`text-xl font-bold ${errorCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{errorCount}</span>
+            <span className="text-xs text-gray-500">errors</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xl font-bold text-blue-600">{newCount}</span>
+            <span className="text-xs text-gray-500">new items</span>
+          </div>
+        </div>
 
         {analysis.targetsHit && analysis.targetsHit.length > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Targets Hit</Text>
+            <hr className="border-gray-200" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500">Targets Hit</span>
               {analysis.targetsHit.map((id) => (
-                <Flex key={id} align="center" gap="2">
-                  <Check size={12} style={{ color: 'var(--green-9)' }} />
-                  <Text size="2">Item #{id}</Text>
-                </Flex>
+                <div key={id} className="flex items-center gap-2">
+                  <Check size={12} className="text-green-600" />
+                  <span className="text-sm">Item #{id}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
 
         {errorCount > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Errors</Text>
+            <hr className="border-gray-200" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500">Errors</span>
               {analysis.errorsLogged.map((err, i) => (
-                <Flex key={i} align="center" gap="2">
-                  <X size={12} style={{ color: 'var(--red-9)' }} />
-                  <Text size="2">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</Text>
-                </Flex>
+                <div key={i} className="flex items-center gap-2">
+                  <X size={12} className="text-red-600" />
+                  <span className="text-sm">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
 
         {analysis.avoidanceEvents && analysis.avoidanceEvents.length > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Avoidance Detected</Text>
+            <hr className="border-gray-200" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-500">Avoidance Detected</span>
               {analysis.avoidanceEvents.map((ev, i) => (
-                <Flex key={i} align="center" gap="2">
-                  <AlertTriangle size={12} style={{ color: 'var(--amber-9)' }} />
-                  <Text size="2">{ev.contextQuote || `Item #${ev.itemId}`}</Text>
-                </Flex>
+                <div key={i} className="flex items-center gap-2">
+                  <AlertTriangle size={12} className="text-amber-500" />
+                  <span className="text-sm">{ev.contextQuote || `Item #${ev.itemId}`}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
 
         {analysis.overallAssessment && (
           <>
-            <Separator size="4" />
-            <Text size="2" color="gray" style={{ fontStyle: 'italic' }}>
+            <hr className="border-gray-200" />
+            <span className="text-sm text-gray-500 italic">
               {analysis.overallAssessment}
-            </Text>
+            </span>
           </>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }

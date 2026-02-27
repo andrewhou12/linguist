@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Box, Flex, Text } from '@radix-ui/themes'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import {
   BookOpen,
   MessageCircle,
@@ -25,69 +24,47 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/history', label: 'History', icon: Clock },
 ]
 
-function navLinkStyle(isActive: boolean): CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '8px 12px',
-    borderRadius: 'var(--radius-2)',
-    textDecoration: 'none',
-    color: isActive ? 'var(--accent-11)' : 'var(--gray-11)',
-    backgroundColor: isActive ? 'var(--accent-3)' : 'transparent',
-    fontWeight: isActive ? 600 : 400,
-  }
+function NavLink({ href, label, icon: Icon, isActive }: NavItem & { isActive: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2 px-3 py-2 rounded-md no-underline transition-colors ${
+        isActive
+          ? 'text-blue-700 bg-blue-50 font-semibold'
+          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 font-normal'
+      }`}
+    >
+      <Icon size={18} />
+      {label}
+    </Link>
+  )
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <Flex style={{ height: '100vh' }}>
-      <nav
-        style={{
-          width: 240,
-          borderRight: '1px solid var(--gray-4)',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Text size="5" weight="bold" mb="4" asChild>
-            <h1 style={{ margin: 0 }}>Linguist</h1>
-          </Text>
-          <Flex direction="column" gap="1" mt="4" style={{ flex: 1 }}>
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link key={item.href} href={item.href} style={navLinkStyle(isActive)}>
-                  <item.icon size={18} />
-                  {item.label}
-                </Link>
-              )
-            })}
-          </Flex>
-          <Link href="/settings" style={navLinkStyle(pathname === '/settings')}>
-            <Settings size={18} />
-            Settings
-          </Link>
+    <div className="flex h-screen">
+      <nav className="w-60 border-r border-gray-200 shrink-0 flex flex-col">
+        <div className="p-4 flex-1 flex flex-col">
+          <h1 className="text-xl font-bold mb-4">Linguist</h1>
+          <div className="flex flex-col gap-1 mt-4 flex-1">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.href} {...item} isActive={pathname === item.href} />
+            ))}
+          </div>
+          <NavLink href="/settings" label="Settings" icon={Settings} isActive={pathname === '/settings'} />
         </div>
       </nav>
 
-      <Flex direction="column" style={{ flex: 1, overflow: 'hidden' }}>
-        <Flex
-          align="center"
-          justify="end"
-          px="6"
-          style={{ height: 48, flexShrink: 0 }}
-        >
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex items-center justify-end px-6 h-12 shrink-0">
           <UserMenu />
-        </Flex>
-        <Box px="6" pb="6" style={{ flex: 1, overflow: 'auto' }}>
+        </div>
+        <div className="px-6 pb-6 flex-1 overflow-auto">
           {children}
-        </Box>
-      </Flex>
-    </Flex>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, Flex, Text } from '@radix-ui/themes'
 import { Check, Circle } from 'lucide-react'
 import type { ExpandedSessionPlan } from '@linguist/shared/types'
 
@@ -28,36 +27,29 @@ export function ChallengeCard({ plan, targetsHit }: ChallengeCardProps) {
   const hitCount = allTargets.filter((t) => targetsHit.has(t.id)).length
 
   return (
-    <Card
-      style={{
-        backgroundColor: 'var(--gray-2)',
-        borderBottom: '1px solid var(--gray-4)',
-      }}
-    >
-      <Flex align="center" gap="3" wrap="wrap">
-        <Text size="1" weight="medium" color="gray" style={{ flexShrink: 0 }}>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 border-b-gray-300 p-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-medium text-gray-500 shrink-0">
           Challenges ({hitCount}/{allTargets.length})
-        </Text>
+        </span>
         {allTargets.map((target) => {
           const isHit = targetsHit.has(target.id)
           return (
-            <Flex key={target.id} align="center" gap="1">
+            <div key={target.id} className="flex items-center gap-1">
               {isHit ? (
-                <Check size={12} style={{ color: 'var(--green-9)' }} />
+                <Check size={12} className="text-green-600" />
               ) : (
-                <Circle size={12} style={{ color: 'var(--gray-7)' }} />
+                <Circle size={12} className="text-gray-400" />
               )}
-              <Text
-                size="1"
-                color={isHit ? 'green' : 'gray'}
-                style={{ textDecoration: isHit ? 'line-through' : 'none' }}
+              <span
+                className={`text-xs ${isHit ? 'text-green-600 line-through' : 'text-gray-500'}`}
               >
                 {target.label}
-              </Text>
-            </Flex>
+              </span>
+            </div>
           )
         })}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }

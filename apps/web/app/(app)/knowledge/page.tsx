@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Box, Heading, Text, Flex, TextField, Badge, Table, Select, Tabs, Button } from '@radix-ui/themes'
+import { TextField, Select, Tabs, Table, Badge } from '@radix-ui/themes'
 import { Search, Play } from 'lucide-react'
 import { useWordbank } from '@/hooks/use-wordbank'
 import { useGrammar } from '@/hooks/use-grammar'
@@ -33,6 +33,7 @@ function formatDueDate(fsrs: FsrsState): string {
 
 function MasteryFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
+    /* Keep Radix Select for now */
     <Select.Root value={value} onValueChange={onChange} size="2">
       <Select.Trigger placeholder="Filter by mastery" />
       <Select.Content>
@@ -55,21 +56,21 @@ function MasteryFilter({ value, onChange }: { value: string; onChange: (v: strin
 
 function LoadingSkeleton() {
   return (
-    <Flex direction="column" gap="3" mt="4">
+    <div className="flex flex-col gap-3 mt-4">
       {Array.from({ length: 6 }).map((_, i) => (
-        <Flex key={i} gap="4" align="center">
+        <div key={i} className="flex gap-4 items-center">
           <Skeleton width={80} height={16} />
           <Skeleton width={60} height={16} />
           <Skeleton width={140} height={16} />
           <Skeleton width={70} height={20} borderRadius={10} />
           <Skeleton width={60} height={16} />
-        </Flex>
+        </div>
       ))}
-    </Flex>
+    </div>
   )
 }
 
-// ── Vocabulary Tab ──
+// Vocabulary Tab
 
 function VocabularyTab() {
   const { items, isLoading, search, reload, setFilters } = useWordbank()
@@ -103,7 +104,8 @@ function VocabularyTab() {
 
   return (
     <>
-      <Flex gap="3" mb="4" align="center">
+      <div className="flex gap-3 mb-4 items-center">
+        {/* Keep Radix TextField for now */}
         <TextField.Root
           placeholder="Search by word, reading, or meaning..."
           value={searchQuery}
@@ -116,12 +118,13 @@ function VocabularyTab() {
           </TextField.Slot>
         </TextField.Root>
         <MasteryFilter value={masteryFilter} onChange={handleMasteryFilter} />
-        <Text size="2" color="gray">{items.length} items</Text>
-      </Flex>
+        <span className="text-sm text-gray-500">{items.length} items</span>
+      </div>
 
       {items.length === 0 ? (
-        <Text color="gray">No items found.</Text>
+        <p className="text-gray-500">No items found.</p>
       ) : (
+        /* Keep Radix Table for now */
         <Table.Root variant="surface" size="2">
           <Table.Header>
             <Table.Row>
@@ -143,25 +146,25 @@ function VocabularyTab() {
                   onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <Table.Cell><Text weight="medium" size="3">{item.surfaceForm}</Text></Table.Cell>
-                  <Table.Cell><Text size="2" color="gray">{item.reading ?? '—'}</Text></Table.Cell>
-                  <Table.Cell><Text size="2">{item.meaning}</Text></Table.Cell>
-                  <Table.Cell><Text size="1" color="gray">{item.partOfSpeech ?? '—'}</Text></Table.Cell>
+                  <Table.Cell><span className="font-medium text-base">{item.surfaceForm}</span></Table.Cell>
+                  <Table.Cell><span className="text-sm text-gray-500">{item.reading ?? '—'}</span></Table.Cell>
+                  <Table.Cell><span className="text-sm">{item.meaning}</span></Table.Cell>
+                  <Table.Cell><span className="text-xs text-gray-500">{item.partOfSpeech ?? '—'}</span></Table.Cell>
                   <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
                   <Table.Cell>
-                    <Text size="1" color="gray">
+                    <span className="text-xs text-gray-500">
                       {item.masteryState === 'unseen' || item.masteryState === 'introduced' ? '—' : formatDueDate(item.recognitionFsrs)}
-                    </Text>
+                    </span>
                   </Table.Cell>
                   <Table.Cell>
-                    <Text size="1" color="gray">
+                    <span className="text-xs text-gray-500">
                       {item.masteryState === 'unseen' || item.masteryState === 'introduced' ? '—' : formatDueDate(item.productionFsrs)}
-                    </Text>
+                    </span>
                   </Table.Cell>
                   <Table.Cell>
-                    <Text size="1" color="gray">
+                    <span className="text-xs text-gray-500">
                       {item.recognitionFsrs.stability > 0 ? `${Math.round(item.recognitionFsrs.stability)}d` : '—'}
-                    </Text>
+                    </span>
                   </Table.Cell>
                 </Table.Row>
                 {expandedId === item.id && (
@@ -183,48 +186,55 @@ function VocabularyTab() {
 function ItemDetail({ item, onPromote }: { item: WordBankEntry; onPromote: (id: number) => void }) {
   const canPromote = item.masteryState === 'unseen' || item.masteryState === 'introduced'
   return (
-    <Flex gap="4" py="2" wrap="wrap">
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">First seen</Text>
-        <Text size="2">{new Date(item.firstSeen).toLocaleDateString()}</Text>
-      </Flex>
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">Exposures</Text>
-        <Text size="2">{item.exposureCount}</Text>
-      </Flex>
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">Productions</Text>
-        <Text size="2">{item.productionCount}</Text>
-      </Flex>
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">Rec. Stability</Text>
-        <Text size="2">{item.recognitionFsrs.stability > 0 ? `${item.recognitionFsrs.stability.toFixed(1)}d` : '—'}</Text>
-      </Flex>
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">Prod. Stability</Text>
-        <Text size="2">{item.productionFsrs.stability > 0 ? `${item.productionFsrs.stability.toFixed(1)}d` : '—'}</Text>
-      </Flex>
-      <Flex direction="column" gap="1">
-        <Text size="1" color="gray">Difficulty</Text>
-        <Text size="2">{item.recognitionFsrs.difficulty > 0 ? item.recognitionFsrs.difficulty.toFixed(1) : '—'}</Text>
-      </Flex>
+    <div className="flex gap-4 py-2 flex-wrap">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">First seen</span>
+        <span className="text-sm">{new Date(item.firstSeen).toLocaleDateString()}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">Exposures</span>
+        <span className="text-sm">{item.exposureCount}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">Productions</span>
+        <span className="text-sm">{item.productionCount}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">Rec. Stability</span>
+        <span className="text-sm">{item.recognitionFsrs.stability > 0 ? `${item.recognitionFsrs.stability.toFixed(1)}d` : '—'}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">Prod. Stability</span>
+        <span className="text-sm">{item.productionFsrs.stability > 0 ? `${item.productionFsrs.stability.toFixed(1)}d` : '—'}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-gray-500">Difficulty</span>
+        <span className="text-sm">{item.recognitionFsrs.difficulty > 0 ? item.recognitionFsrs.difficulty.toFixed(1) : '—'}</span>
+      </div>
       {item.tags.length > 0 && (
-        <Flex direction="column" gap="1">
-          <Text size="1" color="gray">Tags</Text>
-          <Flex gap="1">{item.tags.map((t) => <Badge key={t} size="1" variant="outline">{t}</Badge>)}</Flex>
-        </Flex>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-gray-500">Tags</span>
+          <div className="flex gap-1">
+            {item.tags.map((t) => (
+              <span key={t} className="inline-flex items-center rounded-full border border-gray-300 px-2 py-0.5 text-xs text-gray-600">{t}</span>
+            ))}
+          </div>
+        </div>
       )}
       {canPromote && (
-        <Button size="1" variant="soft" onClick={() => onPromote(item.id)}>
+        <button
+          className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+          onClick={() => onPromote(item.id)}
+        >
           <Play size={12} />
           Start Practicing
-        </Button>
+        </button>
       )}
-    </Flex>
+    </div>
   )
 }
 
-// ── Grammar Tab ──
+// Grammar Tab
 
 function GrammarTab() {
   const { items, isLoading, search, reload, setFilters } = useGrammar()
@@ -257,7 +267,7 @@ function GrammarTab() {
 
   return (
     <>
-      <Flex gap="3" mb="4" align="center">
+      <div className="flex gap-3 mb-4 items-center">
         <TextField.Root
           placeholder="Search by pattern or name..."
           value={searchQuery}
@@ -270,11 +280,11 @@ function GrammarTab() {
           </TextField.Slot>
         </TextField.Root>
         <MasteryFilter value={masteryFilter} onChange={handleMasteryFilter} />
-        <Text size="2" color="gray">{items.length} items</Text>
-      </Flex>
+        <span className="text-sm text-gray-500">{items.length} items</span>
+      </div>
 
       {items.length === 0 ? (
-        <Text color="gray">No grammar items found.</Text>
+        <p className="text-gray-500">No grammar items found.</p>
       ) : (
         <Table.Root variant="surface" size="2">
           <Table.Header>
@@ -293,17 +303,20 @@ function GrammarTab() {
               const canPromote = item.masteryState === 'unseen' || item.masteryState === 'introduced'
               return (
                 <Table.Row key={item.id}>
-                  <Table.Cell><Text weight="medium" size="2">{item.patternId}</Text></Table.Cell>
-                  <Table.Cell><Text size="2">{item.name}</Text></Table.Cell>
-                  <Table.Cell><Text size="1" color="gray">{item.cefrLevel ?? '—'}</Text></Table.Cell>
+                  <Table.Cell><span className="font-medium text-sm">{item.patternId}</span></Table.Cell>
+                  <Table.Cell><span className="text-sm">{item.name}</span></Table.Cell>
+                  <Table.Cell><span className="text-xs text-gray-500">{item.cefrLevel ?? '—'}</span></Table.Cell>
                   <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
-                  <Table.Cell><Text size="1" color="gray">{item.contextCount}</Text></Table.Cell>
-                  <Table.Cell><Text size="1" color="gray">{item.productionWeight.toFixed(1)}</Text></Table.Cell>
+                  <Table.Cell><span className="text-xs text-gray-500">{item.contextCount}</span></Table.Cell>
+                  <Table.Cell><span className="text-xs text-gray-500">{item.productionWeight.toFixed(1)}</span></Table.Cell>
                   <Table.Cell>
                     {canPromote && (
-                      <Button size="1" variant="ghost" onClick={() => handlePromote(item.id)}>
+                      <button
+                        className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                        onClick={() => handlePromote(item.id)}
+                      >
                         <Play size={12} />
-                      </Button>
+                      </button>
                     )}
                   </Table.Cell>
                 </Table.Row>
@@ -316,7 +329,7 @@ function GrammarTab() {
   )
 }
 
-// ── Phrases Tab ──
+// Phrases Tab
 
 function PhrasesTab() {
   const { items, isLoading, search, reload, setFilters } = useChunks()
@@ -356,15 +369,15 @@ function PhrasesTab() {
     pragmatic_formula: 'Pragmatic',
   }
 
-  const kindColors: Record<string, 'blue' | 'green' | 'purple'> = {
-    collocation: 'blue',
-    chunk: 'green',
-    pragmatic_formula: 'purple',
+  const kindColors: Record<string, string> = {
+    collocation: 'bg-blue-50 text-blue-700',
+    chunk: 'bg-green-50 text-green-700',
+    pragmatic_formula: 'bg-purple-50 text-purple-700',
   }
 
   return (
     <>
-      <Flex gap="3" mb="4" align="center">
+      <div className="flex gap-3 mb-4 items-center">
         <TextField.Root
           placeholder="Search phrases..."
           value={searchQuery}
@@ -387,11 +400,11 @@ function PhrasesTab() {
             <Select.Item value="pragmatic_formula">Pragmatic</Select.Item>
           </Select.Content>
         </Select.Root>
-        <Text size="2" color="gray">{items.length} items</Text>
-      </Flex>
+        <span className="text-sm text-gray-500">{items.length} items</span>
+      </div>
 
       {items.length === 0 ? (
-        <Text color="gray">No phrases found.</Text>
+        <p className="text-gray-500">No phrases found.</p>
       ) : (
         <Table.Root variant="surface" size="2">
           <Table.Header>
@@ -408,17 +421,17 @@ function PhrasesTab() {
           <Table.Body>
             {items.map((item) => (
               <Table.Row key={item.id}>
-                <Table.Cell><Text weight="medium" size="3">{item.phrase}</Text></Table.Cell>
-                <Table.Cell><Text size="2" color="gray">{item.reading ?? '—'}</Text></Table.Cell>
-                <Table.Cell><Text size="2">{item.meaning}</Text></Table.Cell>
+                <Table.Cell><span className="font-medium text-base">{item.phrase}</span></Table.Cell>
+                <Table.Cell><span className="text-sm text-gray-500">{item.reading ?? '—'}</span></Table.Cell>
+                <Table.Cell><span className="text-sm">{item.meaning}</span></Table.Cell>
                 <Table.Cell>
-                  <Badge size="1" variant="soft" color={kindColors[item.itemKind] ?? 'gray'}>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${kindColors[item.itemKind] ?? 'bg-gray-100 text-gray-700'}`}>
                     {kindLabels[item.itemKind] ?? item.itemKind}
-                  </Badge>
+                  </span>
                 </Table.Cell>
-                <Table.Cell><Text size="1" color="gray">{item.register ?? '—'}</Text></Table.Cell>
+                <Table.Cell><span className="text-xs text-gray-500">{item.register ?? '—'}</span></Table.Cell>
                 <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
-                <Table.Cell><Text size="1" color="gray">{item.cefrLevel ?? '—'}</Text></Table.Cell>
+                <Table.Cell><span className="text-xs text-gray-500">{item.cefrLevel ?? '—'}</span></Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -428,15 +441,16 @@ function PhrasesTab() {
   )
 }
 
-// ── Main Page ──
+// Main Page
 
 export default function KnowledgePage() {
   return (
-    <Box>
-      <Heading size="7" mb="4">Knowledge Base</Heading>
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Knowledge Base</h1>
 
+      {/* Keep Radix Tabs for now */}
       <Tabs.Root defaultValue="vocabulary">
-        <Tabs.List mb="4">
+        <Tabs.List className="mb-4">
           <Tabs.Trigger value="vocabulary">Vocabulary</Tabs.Trigger>
           <Tabs.Trigger value="grammar">Grammar</Tabs.Trigger>
           <Tabs.Trigger value="phrases">Phrases</Tabs.Trigger>
@@ -452,6 +466,6 @@ export default function KnowledgePage() {
           <PhrasesTab />
         </Tabs.Content>
       </Tabs.Root>
-    </Box>
+    </div>
   )
 }

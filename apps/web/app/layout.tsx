@@ -29,6 +29,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        {/* Theme wrapper kept for Radix interactive primitives (Select, Tabs, Popover, etc.)
+            Remove once those are migrated to headless @radix-ui/react-* */}
         <Theme appearance="light" accentColor="blue" radius="large">
           {children}
         </Theme>

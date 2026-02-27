@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Box, Card, Text, Flex, Badge, Button } from '@radix-ui/themes'
 import { BookOpen, Languages, AlertCircle, HelpCircle } from 'lucide-react'
 import type { MessageSegment } from '@/lib/message-parser'
 
@@ -12,118 +11,92 @@ interface CardProps {
 export function VocabCard({ segment }: CardProps) {
   const d = segment.data ?? {}
   return (
-    <Card
-      my="2"
-      style={{
-        borderLeft: '3px solid var(--accent-9)',
-        maxWidth: 480,
-      }}
-    >
-      <Flex direction="column" gap="2">
-        <Flex align="center" gap="2">
-          <BookOpen size={14} style={{ color: 'var(--accent-9)' }} />
-          <Badge size="1" variant="soft">Vocabulary</Badge>
-        </Flex>
-        <Flex align="baseline" gap="3">
-          <Text size="5" weight="bold">{d.surface ?? ''}</Text>
+    <div className="my-2 max-w-[480px] rounded-xl border border-gray-200 bg-white p-4 border-l-[3px] border-l-blue-600">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <BookOpen size={14} className="text-blue-600" />
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+            Vocabulary
+          </span>
+        </div>
+        <div className="flex items-baseline gap-3">
+          <span className="text-xl font-bold">{d.surface ?? ''}</span>
           {d.reading && (
-            <Text size="2" color="gray">{d.reading}</Text>
+            <span className="text-sm text-gray-500">{d.reading}</span>
           )}
-        </Flex>
-        <Text size="2">{d.meaning ?? ''}</Text>
+        </div>
+        <span className="text-sm">{d.meaning ?? ''}</span>
         {d.example && (
-          <Box
-            mt="1"
-            p="2"
-            style={{
-              backgroundColor: 'var(--gray-2)',
-              borderRadius: 'var(--radius-2)',
-            }}
-          >
-            <Text size="2" style={{ display: 'block' }}>{d.example}</Text>
+          <div className="mt-1 p-2 bg-gray-100 rounded-md">
+            <span className="text-sm block">{d.example}</span>
             {d.example_translation && (
-              <Text size="1" color="gray" style={{ display: 'block', marginTop: 4 }}>
+              <span className="text-xs text-gray-500 block mt-1">
                 {d.example_translation}
-              </Text>
+              </span>
             )}
-          </Box>
+          </div>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 export function GrammarCard({ segment }: CardProps) {
   const d = segment.data ?? {}
   return (
-    <Card
-      my="2"
-      style={{
-        borderLeft: '3px solid var(--purple-9)',
-        maxWidth: 480,
-      }}
-    >
-      <Flex direction="column" gap="2">
-        <Flex align="center" gap="2">
-          <Languages size={14} style={{ color: 'var(--purple-9)' }} />
-          <Badge size="1" variant="soft" color="purple">Grammar</Badge>
-        </Flex>
-        <Text size="4" weight="bold">{d.pattern ?? ''}</Text>
-        <Text size="2">{d.meaning ?? ''}</Text>
+    <div className="my-2 max-w-[480px] rounded-xl border border-gray-200 bg-white p-4 border-l-[3px] border-l-purple-600">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Languages size={14} className="text-purple-600" />
+          <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+            Grammar
+          </span>
+        </div>
+        <span className="text-lg font-bold">{d.pattern ?? ''}</span>
+        <span className="text-sm">{d.meaning ?? ''}</span>
         {d.formation && (
-          <Text size="1" color="gray">Formation: {d.formation}</Text>
+          <span className="text-xs text-gray-500">Formation: {d.formation}</span>
         )}
         {d.example && (
-          <Box
-            mt="1"
-            p="2"
-            style={{
-              backgroundColor: 'var(--gray-2)',
-              borderRadius: 'var(--radius-2)',
-            }}
-          >
-            <Text size="2" style={{ display: 'block' }}>{d.example}</Text>
+          <div className="mt-1 p-2 bg-gray-100 rounded-md">
+            <span className="text-sm block">{d.example}</span>
             {d.example_translation && (
-              <Text size="1" color="gray" style={{ display: 'block', marginTop: 4 }}>
+              <span className="text-xs text-gray-500 block mt-1">
                 {d.example_translation}
-              </Text>
+              </span>
             )}
-          </Box>
+          </div>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 export function CorrectionCard({ segment }: CardProps) {
   const d = segment.data ?? {}
   return (
-    <Card
-      my="2"
-      style={{
-        borderLeft: '3px solid var(--red-9)',
-        maxWidth: 480,
-      }}
-    >
-      <Flex direction="column" gap="2">
-        <Flex align="center" gap="2">
-          <AlertCircle size={14} style={{ color: 'var(--red-9)' }} />
-          <Badge size="1" variant="soft" color="red">Correction</Badge>
-        </Flex>
-        <Flex gap="3" align="center">
-          <Text size="2" color="red" style={{ textDecoration: 'line-through' }}>
+    <div className="my-2 max-w-[480px] rounded-xl border border-gray-200 bg-white p-4 border-l-[3px] border-l-red-600">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <AlertCircle size={14} className="text-red-600" />
+          <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+            Correction
+          </span>
+        </div>
+        <div className="flex gap-3 items-center">
+          <span className="text-sm text-red-600 line-through">
             {d.incorrect ?? ''}
-          </Text>
-          <Text size="2" color="gray">&rarr;</Text>
-          <Text size="2" weight="medium" color="green">
+          </span>
+          <span className="text-sm text-gray-500">&rarr;</span>
+          <span className="text-sm font-medium text-green-600">
             {d.correct ?? ''}
-          </Text>
-        </Flex>
+          </span>
+        </div>
         {d.explanation && (
-          <Text size="1" color="gray">{d.explanation}</Text>
+          <span className="text-xs text-gray-500">{d.explanation}</span>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -131,25 +104,24 @@ export function ReviewPromptCard({ segment }: CardProps) {
   const [showAnswer, setShowAnswer] = useState(false)
   const d = segment.data ?? {}
   return (
-    <Card
-      my="2"
-      style={{
-        borderLeft: '3px solid var(--blue-9)',
-        maxWidth: 480,
-      }}
-    >
-      <Flex direction="column" gap="2">
-        <Flex align="center" gap="2">
-          <HelpCircle size={14} style={{ color: 'var(--blue-9)' }} />
-          <Badge size="1" variant="soft" color="blue">Review</Badge>
-        </Flex>
-        <Text size="3" weight="medium">{d.prompt ?? ''}</Text>
+    <div className="my-2 max-w-[480px] rounded-xl border border-gray-200 bg-white p-4 border-l-[3px] border-l-blue-500">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <HelpCircle size={14} className="text-blue-500" />
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+            Review
+          </span>
+        </div>
+        <span className="text-base font-medium">{d.prompt ?? ''}</span>
         {!showAnswer && (
-          <Button size="1" variant="soft" onClick={() => setShowAnswer(true)} style={{ alignSelf: 'flex-start' }}>
+          <button
+            className="self-start rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+            onClick={() => setShowAnswer(true)}
+          >
             Show Answer
-          </Button>
+          </button>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }

@@ -1,12 +1,8 @@
-import { Box, Heading, Text } from '@radix-ui/themes'
-
 export default function InsightsPage() {
   return (
-    <Box>
-      <Heading size="7" mb="4">
-        Insights
-      </Heading>
-      <Text color="gray">ToM insights UI will be implemented here.</Text>
-    </Box>
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Insights</h1>
+      <p className="text-gray-500">ToM insights UI will be implemented here.</p>
+    </div>
   )
 }

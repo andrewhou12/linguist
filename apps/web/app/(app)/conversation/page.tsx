@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Box, Flex, Text, Badge, Button, IconButton } from '@radix-ui/themes'
 import { ArrowUp, Square } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -39,7 +38,6 @@ export default function ConversationPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingContent])
 
-  // Planning phase: start session
   const handleStartSession = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -58,7 +56,6 @@ export default function ConversationPage() {
     setIsLoading(false)
   }, [])
 
-  // Send message with streaming
   const handleSend = useCallback(async () => {
     if (!input.trim() || !sessionId || isSending) return
     const text = input.trim()
@@ -84,7 +81,6 @@ export default function ConversationPage() {
         (message) => {
           setMessages((prev) => [...prev, message])
           setStreamingContent('')
-          // Parse targets hit from assistant response
           const hits = extractTargetsHit(message.content)
           if (hits.length > 0) {
             setTargetsHit((prev) => {
@@ -104,7 +100,6 @@ export default function ConversationPage() {
     setIsSending(false)
   }, [input, sessionId, isSending])
 
-  // End session
   const handleEndSession = useCallback(async () => {
     if (!sessionId) return
     setIsLoading(true)
@@ -118,7 +113,6 @@ export default function ConversationPage() {
     setIsLoading(false)
   }, [sessionId])
 
-  // New session
   const handleNewSession = useCallback(() => {
     setPhase('planning')
     setSessionPlan(null)
@@ -147,22 +141,24 @@ export default function ConversationPage() {
     }
   }, [])
 
-  // ── Planning Phase ──
+  // Planning Phase
   if (phase === 'planning') {
     return (
-      <Box style={{ maxWidth: 640, margin: '0 auto' }}>
-        <Text size="7" weight="bold" style={{ display: 'block', marginBottom: 24 }}>
-          Conversation
-        </Text>
-        <Text size="3" color="gray" style={{ display: 'block', marginBottom: 24 }}>
+      <div className="max-w-[640px] mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Conversation</h1>
+        <p className="text-base text-gray-500 mb-6">
           Start a conversation session. The AI will plan targets based on your knowledge state.
-        </Text>
+        </p>
         {error && (
-          <Box mb="3" p="3" style={{ backgroundColor: 'var(--red-3)', borderRadius: 'var(--radius-2)' }}>
-            <Text size="2" color="red">{error}</Text>
-          </Box>
+          <div className="mb-3 p-3 bg-red-50 rounded-md">
+            <span className="text-sm text-red-600">{error}</span>
+          </div>
         )}
-        <Button size="3" onClick={handleStartSession} disabled={isLoading}>
+        <button
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          onClick={handleStartSession}
+          disabled={isLoading}
+        >
           {isLoading ? (
             <>
               <Spinner size={16} />
@@ -171,20 +167,18 @@ export default function ConversationPage() {
           ) : (
             'Start Session'
           )}
-        </Button>
-      </Box>
+        </button>
+      </div>
     )
   }
 
-  // ── Summary Phase ──
+  // Summary Phase
   if (phase === 'summary' && sessionPlan) {
     const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000)
     const totalTargets = (sessionPlan.targetVocabulary?.length ?? 0) + (sessionPlan.targetGrammar?.length ?? 0)
     return (
-      <Box style={{ maxWidth: 640, margin: '0 auto' }}>
-        <Text size="7" weight="bold" style={{ display: 'block', marginBottom: 16 }}>
-          Session Complete
-        </Text>
+      <div className="max-w-[640px] mx-auto">
+        <h1 className="text-3xl font-bold mb-4">Session Complete</h1>
         {analysis && (
           <SessionSummaryCard
             analysis={analysis}
@@ -192,73 +186,78 @@ export default function ConversationPage() {
             totalTargets={totalTargets}
           />
         )}
-        <Flex gap="3" mt="4">
-          <Button onClick={handleNewSession}>Start New Session</Button>
-        </Flex>
-      </Box>
+        <div className="flex gap-3 mt-4">
+          <button
+            className="rounded-md bg-blue-600 px-5 py-2.5 text-base font-medium text-white hover:bg-blue-700 transition-colors"
+            onClick={handleNewSession}
+          >
+            Start New Session
+          </button>
+        </div>
+      </div>
     )
   }
 
-  // ── Conversation Phase ──
+  // Conversation Phase
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="h-full flex flex-col">
       {/* Session info bar */}
-      <Flex
-        align="center"
-        justify="between"
-        px="4"
-        py="2"
-        style={{ borderBottom: '1px solid var(--gray-5)', flexShrink: 0 }}
-      >
-        <Flex align="center" gap="3">
-          <Text size="2" weight="medium">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">
             {sessionPlan?.sessionFocus ?? 'Conversation'}
-          </Text>
+          </span>
           {sessionPlan && (
             <>
-              <Badge size="1" variant="soft">{sessionPlan.difficultyLevel}</Badge>
-              <Badge size="1" variant="outline" color="gray">{sessionPlan.register}</Badge>
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                {sessionPlan.difficultyLevel}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-gray-300 px-2 py-0.5 text-xs text-gray-600">
+                {sessionPlan.register}
+              </span>
             </>
           )}
-        </Flex>
-        <Button variant="soft" color="red" size="2" onClick={handleEndSession} disabled={isLoading}>
+        </div>
+        <button
+          className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors"
+          onClick={handleEndSession}
+          disabled={isLoading}
+        >
           <Square size={12} />
           End Session
-        </Button>
-      </Flex>
+        </button>
+      </div>
 
       {/* Challenge card */}
       {sessionPlan && (
-        <div style={{ padding: '0 24px' }}>
-          <div style={{ maxWidth: 768, margin: '0 auto' }}>
+        <div className="px-6">
+          <div className="max-w-3xl mx-auto">
             <ChallengeCard plan={sessionPlan} targetsHit={targetsHit} />
           </div>
         </div>
       )}
 
       {/* Messages */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        <div style={{ maxWidth: 768, margin: '0 auto', padding: '16px 24px' }}>
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-3xl mx-auto px-6 py-4">
           {messages.map((msg, i) => (
             <MessageSegmentRenderer key={i} message={msg} />
           ))}
 
-          {/* Streaming message */}
           {streamingContent && (
-            <div style={{ padding: '12px 0' }}>
-              <div className="chat-markdown" style={{ color: 'var(--gray-12)', lineHeight: 1.7, fontSize: 15 }}>
+            <div className="py-3">
+              <div className="chat-markdown text-gray-900 leading-relaxed text-[15px]">
                 <Markdown remarkPlugins={[remarkGfm]}>{streamingContent}</Markdown>
                 <span className="blink-cursor" />
               </div>
             </div>
           )}
 
-          {/* Thinking indicator */}
           {isSending && !streamingContent && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-            <Flex align="center" gap="2" py="3">
+            <div className="flex items-center gap-2 py-3">
               <Spinner size={16} />
-              <Text size="2" color="gray">Thinking...</Text>
-            </Flex>
+              <span className="text-sm text-gray-500">Thinking...</span>
+            </div>
           )}
 
           <div ref={messagesEndRef} />
@@ -266,19 +265,9 @@ export default function ConversationPage() {
       </div>
 
       {/* Input */}
-      <div style={{ padding: '12px 24px 24px' }}>
-        <div style={{ maxWidth: 768, margin: '0 auto' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'end',
-              gap: 8,
-              border: '1px solid var(--gray-6)',
-              borderRadius: 24,
-              padding: '8px 8px 8px 20px',
-              backgroundColor: 'var(--gray-2)',
-            }}
-          >
+      <div className="px-6 pt-3 pb-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-end gap-2 border border-gray-300 rounded-3xl py-2 pr-2 pl-5 bg-gray-50">
             <textarea
               ref={textareaRef}
               value={input}
@@ -289,29 +278,15 @@ export default function ConversationPage() {
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
               rows={1}
-              style={{
-                flex: 1,
-                resize: 'none',
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--gray-12)',
-                fontSize: 15,
-                lineHeight: 1.5,
-                fontFamily: 'inherit',
-                outline: 'none',
-                padding: '4px 0',
-                maxHeight: 200,
-              }}
+              className="flex-1 resize-none border-none bg-transparent text-gray-900 text-[15px] leading-normal font-[inherit] outline-none py-1 max-h-[200px]"
             />
-            <IconButton
-              size="2"
-              variant="solid"
+            <button
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shrink-0 disabled:opacity-40 hover:bg-blue-700 transition-colors"
               onClick={handleSend}
               disabled={!input.trim() || isSending}
-              style={{ borderRadius: '50%', flexShrink: 0 }}
             >
               <ArrowUp size={16} />
-            </IconButton>
+            </button>
           </div>
         </div>
       </div>
@@ -319,24 +294,13 @@ export default function ConversationPage() {
   )
 }
 
-// ── Message rendering with structured cards ──
+// Message rendering with structured cards
 
 function MessageSegmentRenderer({ message }: { message: ConversationMessage }) {
   if (message.role === 'user') {
     return (
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '6px 0' }}>
-        <div
-          style={{
-            maxWidth: '75%',
-            padding: '10px 16px',
-            borderRadius: 20,
-            backgroundColor: 'var(--gray-3)',
-            color: 'var(--gray-12)',
-            lineHeight: 1.6,
-            fontSize: 15,
-            whiteSpace: 'pre-wrap',
-          }}
-        >
+      <div className="flex justify-end py-1.5">
+        <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-gray-200 text-gray-900 leading-relaxed text-[15px] whitespace-pre-wrap">
           {message.content}
         </div>
       </div>
@@ -346,7 +310,7 @@ function MessageSegmentRenderer({ message }: { message: ConversationMessage }) {
   const segments = parseMessage(message.content)
 
   return (
-    <div style={{ padding: '12px 0' }}>
+    <div className="py-3">
       {segments.map((segment, i) => (
         <SegmentComponent key={i} segment={segment} />
       ))}
@@ -365,12 +329,12 @@ function SegmentComponent({ segment }: { segment: MessageSegment }) {
     case 'review_prompt':
       return <ReviewPromptCard segment={segment} />
     case 'targets_hit':
-      return null // Metadata only, not rendered
+      return null
     case 'text':
     default:
       if (!segment.content.trim()) return null
       return (
-        <div className="chat-markdown" style={{ color: 'var(--gray-12)', lineHeight: 1.7, fontSize: 15 }}>
+        <div className="chat-markdown text-gray-900 leading-relaxed text-[15px]">
           <Markdown remarkPlugins={[remarkGfm]}>{segment.content}</Markdown>
         </div>
       )
