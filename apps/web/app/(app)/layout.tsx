@@ -35,6 +35,7 @@ const LEARN_ITEMS: NavItem[] = [
 
 const MY_STUFF_ITEMS: NavItem[] = [
   { href: '/knowledge', label: 'Vocabulary', emoji: '📚' },
+  { href: '/history', label: 'History', emoji: '📜' },
   { href: '/insights', label: 'Study Streak', emoji: '🔥' },
   { href: '/settings', label: 'Settings', emoji: '⚙️' },
 ]
