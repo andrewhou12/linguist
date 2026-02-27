@@ -13,12 +13,12 @@ export function Spinner({ size = 20 }: { size?: number }) {
         cx="12"
         cy="12"
         r="10"
-        className="stroke-gray-200"
+        className="stroke-border"
         strokeWidth={stroke}
       />
       <path
         d="M12 2a10 10 0 0 1 10 10"
-        className="stroke-blue-600"
+        className="stroke-accent-brand"
         strokeWidth={stroke}
         strokeLinecap="round"
       />

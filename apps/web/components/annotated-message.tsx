@@ -1,7 +1,7 @@
 'use client'
 
-import { Flex, Badge } from '@radix-ui/themes'
 import { Check, X, AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface Annotation {
   type: 'target_hit' | 'error' | 'avoidance'
@@ -13,37 +13,35 @@ interface AnnotatedMessageProps {
   annotations: Annotation[]
 }
 
+const ANNOTATION_CONFIG: Record<Annotation['type'], { className: string; icon: typeof Check }> = {
+  target_hit: { className: 'bg-green-500/[.08] text-green-600', icon: Check },
+  error: { className: 'bg-accent-warm/[.07] text-accent-warm', icon: X },
+  avoidance: { className: 'bg-amber-500/[.08] text-amber-500', icon: AlertTriangle },
+}
+
 export function AnnotatedMessage({ children, annotations }: AnnotatedMessageProps) {
   return (
     <div>
       {children}
       {annotations.length > 0 && (
-        <Flex gap="2" mt="1" wrap="wrap">
+        <div className="flex gap-1.5 mt-1 flex-wrap">
           {annotations.map((ann, i) => {
-            if (ann.type === 'target_hit') {
-              return (
-                <Badge key={i} size="1" variant="soft" color="green">
-                  <Check size={10} />
-                  {ann.label}
-                </Badge>
-              )
-            }
-            if (ann.type === 'error') {
-              return (
-                <Badge key={i} size="1" variant="soft" color="red">
-                  <X size={10} />
-                  {ann.label}
-                </Badge>
-              )
-            }
+            const config = ANNOTATION_CONFIG[ann.type]
+            const Icon = config.icon
             return (
-              <Badge key={i} size="1" variant="soft" color="amber">
-                <AlertTriangle size={10} />
+              <span
+                key={i}
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium',
+                  config.className
+                )}
+              >
+                <Icon size={10} />
                 {ann.label}
-              </Badge>
+              </span>
             )
           })}
-        </Flex>
+        </div>
       )}
     </div>
   )

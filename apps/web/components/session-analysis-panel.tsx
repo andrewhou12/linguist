@@ -1,7 +1,7 @@
 'use client'
 
-import { Card, Flex, Text, Separator, Badge } from '@radix-ui/themes'
 import { Target, X, AlertTriangle, BarChart3 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface SessionAnalysisPanelProps {
   targetsPlanned: { vocabulary: number[]; grammar: number[] }
@@ -23,88 +23,99 @@ export function SessionAnalysisPanel({
   const minutes = durationSeconds ? Math.max(1, Math.round(durationSeconds / 60)) : null
 
   return (
-    <Card mt="4">
-      <Flex direction="column" gap="3">
-        <Flex align="center" gap="2">
-          <BarChart3 size={16} style={{ color: 'var(--accent-9)' }} />
-          <Text size="3" weight="bold">Session Analysis</Text>
-        </Flex>
+    <div className="mt-4 rounded-xl border border-border bg-bg p-5">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 size={16} className="text-accent-warm" />
+          <span className="text-[15px] font-bold">Session Analysis</span>
+        </div>
 
-        <Flex gap="4" wrap="wrap">
+        <div className="flex gap-4 flex-wrap">
           {minutes && (
-            <Flex direction="column" gap="1">
-              <Text size="1" color="gray">Duration</Text>
-              <Text size="3" weight="medium">{minutes}m</Text>
-            </Flex>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[11px] text-text-muted">Duration</span>
+              <span className="text-[15px] font-medium">{minutes}m</span>
+            </div>
           )}
-          <Flex direction="column" gap="1">
-            <Text size="1" color="gray">Challenges</Text>
-            <Text size="3" weight="medium" color="green">{targetsHit.length}/{plannedCount}</Text>
-          </Flex>
-          <Flex direction="column" gap="1">
-            <Text size="1" color="gray">Errors</Text>
-            <Text size="3" weight="medium" color={errorsLogged.length > 0 ? 'red' : 'gray'}>{errorsLogged.length}</Text>
-          </Flex>
-          <Flex direction="column" gap="1">
-            <Text size="1" color="gray">Avoidance</Text>
-            <Text size="3" weight="medium" color={avoidanceEvents.length > 0 ? 'amber' : 'gray'}>{avoidanceEvents.length}</Text>
-          </Flex>
-        </Flex>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-text-muted">Challenges</span>
+            <span className="text-[15px] font-medium text-green-600">{targetsHit.length}/{plannedCount}</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-text-muted">Errors</span>
+            <span
+              className={cn(
+                'text-[15px] font-medium',
+                errorsLogged.length > 0 ? 'text-accent-warm' : 'text-text-muted'
+              )}
+            >
+              {errorsLogged.length}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-text-muted">Avoidance</span>
+            <span
+              className={cn(
+                'text-[15px] font-medium',
+                avoidanceEvents.length > 0 ? 'text-amber-500' : 'text-text-muted'
+              )}
+            >
+              {avoidanceEvents.length}
+            </span>
+          </div>
+        </div>
 
-        {/* Targets breakdown */}
         {plannedCount > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Targets</Text>
+            <hr className="border-t border-border m-0" />
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-text-muted">Targets</span>
               {[...targetsPlanned.vocabulary, ...targetsPlanned.grammar].map((id) => (
-                <Flex key={id} align="center" gap="2">
+                <div key={id} className="flex items-center gap-2">
                   {hitSet.has(id) ? (
-                    <Badge size="1" color="green" variant="soft">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full bg-green-600/[.08] text-[11px] font-medium text-green-600">
                       <Target size={10} /> Hit
-                    </Badge>
+                    </span>
                   ) : (
-                    <Badge size="1" color="gray" variant="soft">Missed</Badge>
+                    <span className="inline-flex px-1.5 py-px rounded-full bg-bg-secondary text-[11px] font-medium text-text-muted">Missed</span>
                   )}
-                  <Text size="2">Item #{id}</Text>
-                </Flex>
+                  <span className="text-[13px]">Item #{id}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
 
-        {/* Errors */}
         {errorsLogged.length > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Errors</Text>
+            <hr className="border-t border-border m-0" />
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-text-muted">Errors</span>
               {errorsLogged.map((err, i) => (
-                <Flex key={i} align="start" gap="2">
-                  <X size={12} style={{ color: 'var(--red-9)', marginTop: 4, flexShrink: 0 }} />
-                  <Text size="2">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</Text>
-                </Flex>
+                <div key={i} className="flex items-start gap-2">
+                  <X size={12} className="text-accent-warm mt-[3px] shrink-0" />
+                  <span className="text-[13px]">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
 
-        {/* Avoidance */}
         {avoidanceEvents.length > 0 && (
           <>
-            <Separator size="4" />
-            <Flex direction="column" gap="1">
-              <Text size="1" weight="medium" color="gray">Avoidance Events</Text>
+            <hr className="border-t border-border m-0" />
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-text-muted">Avoidance Events</span>
               {avoidanceEvents.map((ev, i) => (
-                <Flex key={i} align="start" gap="2">
-                  <AlertTriangle size={12} style={{ color: 'var(--amber-9)', marginTop: 4, flexShrink: 0 }} />
-                  <Text size="2">{ev.contextQuote || `Item #${ev.itemId}`}</Text>
-                </Flex>
+                <div key={i} className="flex items-start gap-2">
+                  <AlertTriangle size={12} className="text-amber-500 mt-[3px] shrink-0" />
+                  <span className="text-[13px]">{ev.contextQuote || `Item #${ev.itemId}`}</span>
+                </div>
               ))}
-            </Flex>
+            </div>
           </>
         )}
-      </Flex>
-    </Card>
+      </div>
+    </div>
   )
 }

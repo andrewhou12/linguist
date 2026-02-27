@@ -1,6 +1,7 @@
 'use client'
 
 import { Check, X, AlertTriangle, Sparkles } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { PostSessionAnalysis } from '@linguist/shared/types'
 
 interface SessionSummaryCardProps {
@@ -20,41 +21,48 @@ export function SessionSummaryCard({
   const newCount = analysis.newItemsEncountered?.length ?? 0
 
   return (
-    <div className="my-3 max-w-[520px] rounded-xl border border-gray-200 bg-white p-4">
+    <div className="my-3 max-w-[520px] rounded-xl border border-border bg-bg p-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-blue-600" />
-          <span className="text-base font-bold">Session Summary</span>
+          <Sparkles size={16} className="text-accent-warm" />
+          <span className="text-[15px] font-bold">Session Summary</span>
         </div>
 
         <div className="flex gap-4 flex-wrap">
           <div className="flex flex-col items-center gap-1">
             <span className="text-xl font-bold">{minutes}</span>
-            <span className="text-xs text-gray-500">min</span>
+            <span className="text-[11px] text-text-muted">min</span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <span className="text-xl font-bold text-green-600">{hitCount}/{totalTargets}</span>
-            <span className="text-xs text-gray-500">challenges</span>
+            <span className="text-[11px] text-text-muted">challenges</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <span className={`text-xl font-bold ${errorCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>{errorCount}</span>
-            <span className="text-xs text-gray-500">errors</span>
+            <span
+              className={cn(
+                'text-xl font-bold',
+                errorCount > 0 ? 'text-accent-warm' : 'text-text-muted'
+              )}
+            >
+              {errorCount}
+            </span>
+            <span className="text-[11px] text-text-muted">errors</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <span className="text-xl font-bold text-blue-600">{newCount}</span>
-            <span className="text-xs text-gray-500">new items</span>
+            <span className="text-xl font-bold text-text-primary">{newCount}</span>
+            <span className="text-[11px] text-text-muted">new items</span>
           </div>
         </div>
 
         {analysis.targetsHit && analysis.targetsHit.length > 0 && (
           <>
-            <hr className="border-gray-200" />
+            <hr className="border-t border-border m-0" />
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-500">Targets Hit</span>
+              <span className="text-[11px] font-medium text-text-muted">Targets Hit</span>
               {analysis.targetsHit.map((id) => (
                 <div key={id} className="flex items-center gap-2">
                   <Check size={12} className="text-green-600" />
-                  <span className="text-sm">Item #{id}</span>
+                  <span className="text-[13px]">Item #{id}</span>
                 </div>
               ))}
             </div>
@@ -63,13 +71,13 @@ export function SessionSummaryCard({
 
         {errorCount > 0 && (
           <>
-            <hr className="border-gray-200" />
+            <hr className="border-t border-border m-0" />
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-500">Errors</span>
+              <span className="text-[11px] font-medium text-text-muted">Errors</span>
               {analysis.errorsLogged.map((err, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <X size={12} className="text-red-600" />
-                  <span className="text-sm">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</span>
+                  <X size={12} className="text-accent-warm" />
+                  <span className="text-[13px]">{err.contextQuote || `${err.errorType} on item #${err.itemId}`}</span>
                 </div>
               ))}
             </div>
@@ -78,13 +86,13 @@ export function SessionSummaryCard({
 
         {analysis.avoidanceEvents && analysis.avoidanceEvents.length > 0 && (
           <>
-            <hr className="border-gray-200" />
+            <hr className="border-t border-border m-0" />
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-500">Avoidance Detected</span>
+              <span className="text-[11px] font-medium text-text-muted">Avoidance Detected</span>
               {analysis.avoidanceEvents.map((ev, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <AlertTriangle size={12} className="text-amber-500" />
-                  <span className="text-sm">{ev.contextQuote || `Item #${ev.itemId}`}</span>
+                  <span className="text-[13px]">{ev.contextQuote || `Item #${ev.itemId}`}</span>
                 </div>
               ))}
             </div>
@@ -93,8 +101,8 @@ export function SessionSummaryCard({
 
         {analysis.overallAssessment && (
           <>
-            <hr className="border-gray-200" />
-            <span className="text-sm text-gray-500 italic">
+            <hr className="border-t border-border m-0" />
+            <span className="text-[13px] text-text-muted italic">
               {analysis.overallAssessment}
             </span>
           </>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Table } from '@radix-ui/themes'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Clock, Target, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Skeleton } from '@/components/skeleton'
@@ -25,7 +25,7 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Session History</h1>
+      <h1 className="text-[28px] font-bold mb-4">Session History</h1>
 
       {isLoading ? (
         <div className="flex flex-col gap-3">
@@ -39,70 +39,69 @@ export default function HistoryPage() {
           ))}
         </div>
       ) : sessions.length === 0 ? (
-        <p className="text-gray-500">No sessions yet. Start a conversation to see your history here.</p>
+        <p className="text-text-muted">No sessions yet. Start a conversation to see your history here.</p>
       ) : (
-        /* Keep Radix Table for now - complex interactive component */
-        <Table.Root variant="surface" size="2">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Date</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Duration</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Focus</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Challenges</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Errors</Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Duration</TableHead>
+              <TableHead>Focus</TableHead>
+              <TableHead>Challenges</TableHead>
+              <TableHead>Errors</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {sessions.map((session) => {
               const date = new Date(session.timestamp)
               const mins = session.durationSeconds ? Math.max(1, Math.round(session.durationSeconds / 60)) : null
               return (
-                <Table.Row key={session.id}>
-                  <Table.Cell>
+                <TableRow key={session.id}>
+                  <TableCell>
                     <Link
                       href={`/history/${session.id}`}
-                      className="no-underline text-blue-700"
+                      className="no-underline text-accent-warm"
                     >
-                      <span className="text-sm font-medium block">
+                      <span className="text-[13px] font-medium block">
                         {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      <span className="text-xs text-gray-500 block">
+                      <span className="text-[11px] text-text-muted block">
                         {date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </Link>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-1">
-                      <Clock size={12} className="text-gray-400" />
-                      <span className="text-sm text-gray-500">{mins ? `${mins}m` : '—'}</span>
+                      <Clock size={12} className="text-text-muted" />
+                      <span className="text-[13px] text-text-muted">{mins ? `${mins}m` : '\u2014'}</span>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="text-sm">{session.sessionFocus || '—'}</span>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-[13px]">{session.sessionFocus || '\u2014'}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-1">
                       <Target size={12} className="text-green-600" />
-                      <span className="text-sm">
+                      <span className="text-[13px]">
                         {session.targetsHitCount}/{session.targetsPlannedCount}
                       </span>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     {session.errorsLoggedCount > 0 ? (
                       <div className="flex items-center gap-1">
-                        <AlertCircle size={12} className="text-red-600" />
-                        <span className="text-sm text-red-600">{session.errorsLoggedCount}</span>
+                        <AlertCircle size={12} className="text-accent-warm" />
+                        <span className="text-[13px] text-accent-warm">{session.errorsLoggedCount}</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-500">0</span>
+                      <span className="text-[13px] text-text-muted">0</span>
                     )}
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </Table.Body>
-        </Table.Root>
+          </TableBody>
+        </Table>
       )}
     </div>
   )

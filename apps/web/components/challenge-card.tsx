@@ -1,6 +1,7 @@
 'use client'
 
 import { Check, Circle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { ExpandedSessionPlan } from '@linguist/shared/types'
 
 interface ChallengeCardProps {
@@ -27,9 +28,9 @@ export function ChallengeCard({ plan, targetsHit }: ChallengeCardProps) {
   const hitCount = allTargets.filter((t) => targetsHit.has(t.id)).length
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 border-b-gray-300 p-4">
+    <div className="rounded-xl border border-border bg-bg-secondary p-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-medium text-gray-500 shrink-0">
+        <span className="text-[11px] font-medium text-text-muted shrink-0">
           Challenges ({hitCount}/{allTargets.length})
         </span>
         {allTargets.map((target) => {
@@ -39,10 +40,13 @@ export function ChallengeCard({ plan, targetsHit }: ChallengeCardProps) {
               {isHit ? (
                 <Check size={12} className="text-green-600" />
               ) : (
-                <Circle size={12} className="text-gray-400" />
+                <Circle size={12} className="text-text-muted" />
               )}
               <span
-                className={`text-xs ${isHit ? 'text-green-600 line-through' : 'text-gray-500'}`}
+                className={cn(
+                  'text-[11px]',
+                  isHit ? 'text-green-600 line-through' : 'text-text-muted'
+                )}
               >
                 {target.label}
               </span>

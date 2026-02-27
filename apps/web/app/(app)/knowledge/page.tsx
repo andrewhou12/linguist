@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { TextField, Select, Tabs, Table, Badge } from '@radix-ui/themes'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Search, Play } from 'lucide-react'
 import { useWordbank } from '@/hooks/use-wordbank'
 import { useGrammar } from '@/hooks/use-grammar'
@@ -12,11 +15,25 @@ import type { WordBankEntry, WordBankChunkEntry, FsrsState } from '@linguist/sha
 import { MASTERY_COLORS, MASTERY_LABELS } from '@/constants/mastery'
 import { api } from '@/lib/api'
 
+const MASTERY_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
+  unseen: { bg: 'bg-bg-secondary', color: 'text-text-muted' },
+  introduced: { bg: 'bg-[rgba(59,130,246,.08)]', color: 'text-[#3b82f6]' },
+  apprentice_1: { bg: 'bg-[rgba(245,158,11,.08)]', color: 'text-[#f59e0b]' },
+  apprentice_2: { bg: 'bg-[rgba(245,158,11,.08)]', color: 'text-[#f59e0b]' },
+  apprentice_3: { bg: 'bg-[rgba(245,158,11,.08)]', color: 'text-[#f59e0b]' },
+  apprentice_4: { bg: 'bg-[rgba(245,158,11,.08)]', color: 'text-[#f59e0b]' },
+  journeyman: { bg: 'bg-[rgba(22,163,106,.08)]', color: 'text-[#16a34a]' },
+  expert: { bg: 'bg-[rgba(139,92,246,.08)]', color: 'text-[#8b5cf6]' },
+  master: { bg: 'bg-[rgba(200,87,42,.07)]', color: 'text-accent-warm' },
+  burned: { bg: 'bg-bg-active', color: 'text-text-secondary' },
+}
+
 function MasteryBadge({ state }: { state: string }) {
+  const style = MASTERY_BADGE_STYLES[state] ?? { bg: 'bg-bg-secondary', color: 'text-text-muted' }
   return (
-    <Badge color={MASTERY_COLORS[state] ?? 'gray'} variant="soft" size="1">
+    <span className={`inline-flex items-center py-0.5 px-2 rounded-full text-[11px] font-medium ${style.bg} ${style.color}`}>
       {MASTERY_LABELS[state] ?? state}
-    </Badge>
+    </span>
   )
 }
 
@@ -33,24 +50,25 @@ function formatDueDate(fsrs: FsrsState): string {
 
 function MasteryFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    /* Keep Radix Select for now */
-    <Select.Root value={value} onValueChange={onChange} size="2">
-      <Select.Trigger placeholder="Filter by mastery" />
-      <Select.Content>
-        <Select.Item value="all">All states</Select.Item>
-        <Select.Separator />
-        <Select.Item value="unseen">Unseen</Select.Item>
-        <Select.Item value="introduced">Introduced</Select.Item>
-        <Select.Item value="apprentice_1">Apprentice 1</Select.Item>
-        <Select.Item value="apprentice_2">Apprentice 2</Select.Item>
-        <Select.Item value="apprentice_3">Apprentice 3</Select.Item>
-        <Select.Item value="apprentice_4">Apprentice 4</Select.Item>
-        <Select.Item value="journeyman">Journeyman</Select.Item>
-        <Select.Item value="expert">Expert</Select.Item>
-        <Select.Item value="master">Master</Select.Item>
-        <Select.Item value="burned">Burned</Select.Item>
-      </Select.Content>
-    </Select.Root>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Filter by mastery" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All states</SelectItem>
+        <SelectSeparator />
+        <SelectItem value="unseen">Unseen</SelectItem>
+        <SelectItem value="introduced">Introduced</SelectItem>
+        <SelectItem value="apprentice_1">Apprentice 1</SelectItem>
+        <SelectItem value="apprentice_2">Apprentice 2</SelectItem>
+        <SelectItem value="apprentice_3">Apprentice 3</SelectItem>
+        <SelectItem value="apprentice_4">Apprentice 4</SelectItem>
+        <SelectItem value="journeyman">Journeyman</SelectItem>
+        <SelectItem value="expert">Expert</SelectItem>
+        <SelectItem value="master">Master</SelectItem>
+        <SelectItem value="burned">Burned</SelectItem>
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -105,79 +123,75 @@ function VocabularyTab() {
   return (
     <>
       <div className="flex gap-3 mb-4 items-center">
-        {/* Keep Radix TextField for now */}
-        <TextField.Root
-          placeholder="Search by word, reading, or meaning..."
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          style={{ flex: 1, maxWidth: 400 }}
-          size="2"
-        >
-          <TextField.Slot>
-            <Search size={16} />
-          </TextField.Slot>
-        </TextField.Root>
+        <div className="relative flex items-center flex-1 max-w-[400px]">
+          <Search size={16} className="absolute left-3 text-text-muted" />
+          <Input
+            placeholder="Search by word, reading, or meaning..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <MasteryFilter value={masteryFilter} onChange={handleMasteryFilter} />
-        <span className="text-sm text-gray-500">{items.length} items</span>
+        <span className="text-[13px] text-text-muted">{items.length} items</span>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-gray-500">No items found.</p>
+        <p className="text-text-muted">No items found.</p>
       ) : (
-        /* Keep Radix Table for now */
-        <Table.Root variant="surface" size="2">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Word</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Reading</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Meaning</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Mastery</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Recognition</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Production</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Stability</Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Word</TableHead>
+              <TableHead>Reading</TableHead>
+              <TableHead>Meaning</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Mastery</TableHead>
+              <TableHead>Recognition</TableHead>
+              <TableHead>Production</TableHead>
+              <TableHead>Stability</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {items.map((item) => (
               <>
-                <Table.Row
+                <TableRow
                   key={item.id}
                   onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                  style={{ cursor: 'pointer' }}
+                  className="cursor-pointer"
                 >
-                  <Table.Cell><span className="font-medium text-base">{item.surfaceForm}</span></Table.Cell>
-                  <Table.Cell><span className="text-sm text-gray-500">{item.reading ?? '—'}</span></Table.Cell>
-                  <Table.Cell><span className="text-sm">{item.meaning}</span></Table.Cell>
-                  <Table.Cell><span className="text-xs text-gray-500">{item.partOfSpeech ?? '—'}</span></Table.Cell>
-                  <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
-                  <Table.Cell>
-                    <span className="text-xs text-gray-500">
+                  <TableCell><span className="font-medium text-[15px]">{item.surfaceForm}</span></TableCell>
+                  <TableCell><span className="text-[13px] text-text-muted">{item.reading ?? '—'}</span></TableCell>
+                  <TableCell><span className="text-[13px]">{item.meaning}</span></TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.partOfSpeech ?? '—'}</span></TableCell>
+                  <TableCell><MasteryBadge state={item.masteryState} /></TableCell>
+                  <TableCell>
+                    <span className="text-[11px] text-text-muted">
                       {item.masteryState === 'unseen' || item.masteryState === 'introduced' ? '—' : formatDueDate(item.recognitionFsrs)}
                     </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="text-xs text-gray-500">
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-[11px] text-text-muted">
                       {item.masteryState === 'unseen' || item.masteryState === 'introduced' ? '—' : formatDueDate(item.productionFsrs)}
                     </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="text-xs text-gray-500">
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-[11px] text-text-muted">
                       {item.recognitionFsrs.stability > 0 ? `${Math.round(item.recognitionFsrs.stability)}d` : '—'}
                     </span>
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
                 {expandedId === item.id && (
-                  <Table.Row key={`${item.id}-detail`}>
-                    <Table.Cell colSpan={8}>
+                  <TableRow key={`${item.id}-detail`}>
+                    <TableCell colSpan={8}>
                       <ItemDetail item={item} onPromote={handlePromote} />
-                    </Table.Cell>
-                  </Table.Row>
+                    </TableCell>
+                  </TableRow>
                 )}
               </>
             ))}
-          </Table.Body>
-        </Table.Root>
+          </TableBody>
+        </Table>
       )}
     </>
   )
@@ -188,42 +202,42 @@ function ItemDetail({ item, onPromote }: { item: WordBankEntry; onPromote: (id: 
   return (
     <div className="flex gap-4 py-2 flex-wrap">
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">First seen</span>
-        <span className="text-sm">{new Date(item.firstSeen).toLocaleDateString()}</span>
+        <span className="text-[11px] text-text-muted">First seen</span>
+        <span className="text-[13px]">{new Date(item.firstSeen).toLocaleDateString()}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">Exposures</span>
-        <span className="text-sm">{item.exposureCount}</span>
+        <span className="text-[11px] text-text-muted">Exposures</span>
+        <span className="text-[13px]">{item.exposureCount}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">Productions</span>
-        <span className="text-sm">{item.productionCount}</span>
+        <span className="text-[11px] text-text-muted">Productions</span>
+        <span className="text-[13px]">{item.productionCount}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">Rec. Stability</span>
-        <span className="text-sm">{item.recognitionFsrs.stability > 0 ? `${item.recognitionFsrs.stability.toFixed(1)}d` : '—'}</span>
+        <span className="text-[11px] text-text-muted">Rec. Stability</span>
+        <span className="text-[13px]">{item.recognitionFsrs.stability > 0 ? `${item.recognitionFsrs.stability.toFixed(1)}d` : '—'}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">Prod. Stability</span>
-        <span className="text-sm">{item.productionFsrs.stability > 0 ? `${item.productionFsrs.stability.toFixed(1)}d` : '—'}</span>
+        <span className="text-[11px] text-text-muted">Prod. Stability</span>
+        <span className="text-[13px]">{item.productionFsrs.stability > 0 ? `${item.productionFsrs.stability.toFixed(1)}d` : '—'}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-gray-500">Difficulty</span>
-        <span className="text-sm">{item.recognitionFsrs.difficulty > 0 ? item.recognitionFsrs.difficulty.toFixed(1) : '—'}</span>
+        <span className="text-[11px] text-text-muted">Difficulty</span>
+        <span className="text-[13px]">{item.recognitionFsrs.difficulty > 0 ? item.recognitionFsrs.difficulty.toFixed(1) : '—'}</span>
       </div>
       {item.tags.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-gray-500">Tags</span>
+          <span className="text-[11px] text-text-muted">Tags</span>
           <div className="flex gap-1">
             {item.tags.map((t) => (
-              <span key={t} className="inline-flex items-center rounded-full border border-gray-300 px-2 py-0.5 text-xs text-gray-600">{t}</span>
+              <span key={t} className="inline-flex items-center rounded-full border border-border py-0.5 px-2 text-[11px] text-text-secondary">{t}</span>
             ))}
           </div>
         </div>
       )}
       {canPromote && (
         <button
-          className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+          className="inline-flex items-center gap-1 rounded-md bg-bg-secondary py-1.5 px-3 text-[11px] font-medium text-text-secondary border-none cursor-pointer transition-colors duration-150 hover:bg-bg-hover"
           onClick={() => onPromote(item.id)}
         >
           <Play size={12} />
@@ -268,68 +282,72 @@ function GrammarTab() {
   return (
     <>
       <div className="flex gap-3 mb-4 items-center">
-        <TextField.Root
-          placeholder="Search by pattern or name..."
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          style={{ flex: 1, maxWidth: 400 }}
-          size="2"
-        >
-          <TextField.Slot>
-            <Search size={16} />
-          </TextField.Slot>
-        </TextField.Root>
+        <div className="relative flex items-center flex-1 max-w-[400px]">
+          <Search size={16} className="absolute left-3 text-text-muted" />
+          <Input
+            placeholder="Search by pattern or name..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <MasteryFilter value={masteryFilter} onChange={handleMasteryFilter} />
-        <span className="text-sm text-gray-500">{items.length} items</span>
+        <span className="text-[13px] text-text-muted">{items.length} items</span>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-gray-500">No grammar items found.</p>
+        <p className="text-text-muted">No grammar items found.</p>
       ) : (
-        <Table.Root variant="surface" size="2">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Pattern</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Level</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Mastery</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Contexts</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Prod. Weight</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell />
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pattern</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Level</TableHead>
+              <TableHead>Mastery</TableHead>
+              <TableHead>Contexts</TableHead>
+              <TableHead>Prod. Weight</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {items.map((item) => {
               const canPromote = item.masteryState === 'unseen' || item.masteryState === 'introduced'
               return (
-                <Table.Row key={item.id}>
-                  <Table.Cell><span className="font-medium text-sm">{item.patternId}</span></Table.Cell>
-                  <Table.Cell><span className="text-sm">{item.name}</span></Table.Cell>
-                  <Table.Cell><span className="text-xs text-gray-500">{item.cefrLevel ?? '—'}</span></Table.Cell>
-                  <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
-                  <Table.Cell><span className="text-xs text-gray-500">{item.contextCount}</span></Table.Cell>
-                  <Table.Cell><span className="text-xs text-gray-500">{item.productionWeight.toFixed(1)}</span></Table.Cell>
-                  <Table.Cell>
+                <TableRow key={item.id}>
+                  <TableCell><span className="font-medium text-[13px]">{item.patternId}</span></TableCell>
+                  <TableCell><span className="text-[13px]">{item.name}</span></TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.cefrLevel ?? '—'}</span></TableCell>
+                  <TableCell><MasteryBadge state={item.masteryState} /></TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.contextCount}</span></TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.productionWeight.toFixed(1)}</span></TableCell>
+                  <TableCell>
                     {canPromote && (
                       <button
-                        className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+                        className="p-1.5 rounded-md text-text-muted bg-transparent border-none cursor-pointer transition-colors duration-150 hover:bg-bg-hover"
                         onClick={() => handlePromote(item.id)}
                       >
                         <Play size={12} />
                       </button>
                     )}
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </Table.Body>
-        </Table.Root>
+          </TableBody>
+        </Table>
       )}
     </>
   )
 }
 
 // Phrases Tab
+
+const KIND_STYLES: Record<string, { bg: string; color: string }> = {
+  collocation: { bg: 'bg-[rgba(59,130,246,.08)]', color: 'text-[#3b82f6]' },
+  chunk: { bg: 'bg-[rgba(22,163,106,.08)]', color: 'text-[#16a34a]' },
+  pragmatic_formula: { bg: 'bg-[rgba(139,92,246,.08)]', color: 'text-[#8b5cf6]' },
+}
 
 function PhrasesTab() {
   const { items, isLoading, search, reload, setFilters } = useChunks()
@@ -369,73 +387,70 @@ function PhrasesTab() {
     pragmatic_formula: 'Pragmatic',
   }
 
-  const kindColors: Record<string, string> = {
-    collocation: 'bg-blue-50 text-blue-700',
-    chunk: 'bg-green-50 text-green-700',
-    pragmatic_formula: 'bg-purple-50 text-purple-700',
-  }
-
   return (
     <>
       <div className="flex gap-3 mb-4 items-center">
-        <TextField.Root
-          placeholder="Search phrases..."
-          value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
-          style={{ flex: 1, maxWidth: 400 }}
-          size="2"
-        >
-          <TextField.Slot>
-            <Search size={16} />
-          </TextField.Slot>
-        </TextField.Root>
+        <div className="relative flex items-center flex-1 max-w-[400px]">
+          <Search size={16} className="absolute left-3 text-text-muted" />
+          <Input
+            placeholder="Search phrases..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <MasteryFilter value={masteryFilter} onChange={handleMasteryFilter} />
-        <Select.Root value={kindFilter} onValueChange={handleKindFilter} size="2">
-          <Select.Trigger placeholder="Type" />
-          <Select.Content>
-            <Select.Item value="all">All types</Select.Item>
-            <Select.Separator />
-            <Select.Item value="collocation">Collocations</Select.Item>
-            <Select.Item value="chunk">Chunks</Select.Item>
-            <Select.Item value="pragmatic_formula">Pragmatic</Select.Item>
-          </Select.Content>
-        </Select.Root>
-        <span className="text-sm text-gray-500">{items.length} items</span>
+        <Select value={kindFilter} onValueChange={handleKindFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            <SelectSeparator />
+            <SelectItem value="collocation">Collocations</SelectItem>
+            <SelectItem value="chunk">Chunks</SelectItem>
+            <SelectItem value="pragmatic_formula">Pragmatic</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-[13px] text-text-muted">{items.length} items</span>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-gray-500">No phrases found.</p>
+        <p className="text-text-muted">No phrases found.</p>
       ) : (
-        <Table.Root variant="surface" size="2">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeaderCell>Phrase</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Reading</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Meaning</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Register</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Mastery</Table.ColumnHeaderCell>
-              <Table.ColumnHeaderCell>Level</Table.ColumnHeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {items.map((item) => (
-              <Table.Row key={item.id}>
-                <Table.Cell><span className="font-medium text-base">{item.phrase}</span></Table.Cell>
-                <Table.Cell><span className="text-sm text-gray-500">{item.reading ?? '—'}</span></Table.Cell>
-                <Table.Cell><span className="text-sm">{item.meaning}</span></Table.Cell>
-                <Table.Cell>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${kindColors[item.itemKind] ?? 'bg-gray-100 text-gray-700'}`}>
-                    {kindLabels[item.itemKind] ?? item.itemKind}
-                  </span>
-                </Table.Cell>
-                <Table.Cell><span className="text-xs text-gray-500">{item.register ?? '—'}</span></Table.Cell>
-                <Table.Cell><MasteryBadge state={item.masteryState} /></Table.Cell>
-                <Table.Cell><span className="text-xs text-gray-500">{item.cefrLevel ?? '—'}</span></Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Phrase</TableHead>
+              <TableHead>Reading</TableHead>
+              <TableHead>Meaning</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Register</TableHead>
+              <TableHead>Mastery</TableHead>
+              <TableHead>Level</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => {
+              const kindStyle = KIND_STYLES[item.itemKind] ?? { bg: 'bg-bg-secondary', color: 'text-text-secondary' }
+              return (
+                <TableRow key={item.id}>
+                  <TableCell><span className="font-medium text-[15px]">{item.phrase}</span></TableCell>
+                  <TableCell><span className="text-[13px] text-text-muted">{item.reading ?? '—'}</span></TableCell>
+                  <TableCell><span className="text-[13px]">{item.meaning}</span></TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center rounded-full py-0.5 px-2 text-[11px] font-medium ${kindStyle.bg} ${kindStyle.color}`}>
+                      {kindLabels[item.itemKind] ?? item.itemKind}
+                    </span>
+                  </TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.register ?? '—'}</span></TableCell>
+                  <TableCell><MasteryBadge state={item.masteryState} /></TableCell>
+                  <TableCell><span className="text-[11px] text-text-muted">{item.cefrLevel ?? '—'}</span></TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       )}
     </>
   )
@@ -446,26 +461,25 @@ function PhrasesTab() {
 export default function KnowledgePage() {
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Knowledge Base</h1>
+      <h1 className="text-[28px] font-bold mb-4">Knowledge Base</h1>
 
-      {/* Keep Radix Tabs for now */}
-      <Tabs.Root defaultValue="vocabulary">
-        <Tabs.List className="mb-4">
-          <Tabs.Trigger value="vocabulary">Vocabulary</Tabs.Trigger>
-          <Tabs.Trigger value="grammar">Grammar</Tabs.Trigger>
-          <Tabs.Trigger value="phrases">Phrases</Tabs.Trigger>
-        </Tabs.List>
+      <Tabs defaultValue="vocabulary">
+        <TabsList className="mb-4">
+          <TabsTrigger value="vocabulary">Vocabulary</TabsTrigger>
+          <TabsTrigger value="grammar">Grammar</TabsTrigger>
+          <TabsTrigger value="phrases">Phrases</TabsTrigger>
+        </TabsList>
 
-        <Tabs.Content value="vocabulary">
+        <TabsContent value="vocabulary">
           <VocabularyTab />
-        </Tabs.Content>
-        <Tabs.Content value="grammar">
+        </TabsContent>
+        <TabsContent value="grammar">
           <GrammarTab />
-        </Tabs.Content>
-        <Tabs.Content value="phrases">
+        </TabsContent>
+        <TabsContent value="phrases">
           <PhrasesTab />
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

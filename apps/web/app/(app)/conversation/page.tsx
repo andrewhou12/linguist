@@ -15,6 +15,7 @@ import { VocabCard, GrammarCard, CorrectionCard, ReviewPromptCard } from '@/comp
 import { ChallengeCard } from '@/components/challenge-card'
 import { SessionSummaryCard } from '@/components/session-summary'
 import { Spinner } from '@/components/spinner'
+import { cn } from '@/lib/utils'
 
 type Phase = 'planning' | 'conversation' | 'summary'
 
@@ -145,17 +146,20 @@ export default function ConversationPage() {
   if (phase === 'planning') {
     return (
       <div className="max-w-[640px] mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Conversation</h1>
-        <p className="text-base text-gray-500 mb-6">
+        <h1 className="text-[28px] font-bold mb-6">Conversation</h1>
+        <p className="text-[15px] text-text-muted mb-6">
           Start a conversation session. The AI will plan targets based on your knowledge state.
         </p>
         {error && (
-          <div className="mb-3 p-3 bg-red-50 rounded-md">
-            <span className="text-sm text-red-600">{error}</span>
+          <div className="mb-3 p-3 bg-[rgba(200,87,42,.06)] rounded-md">
+            <span className="text-[13px] text-accent-warm">{error}</span>
           </div>
         )}
         <button
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className={cn(
+            'inline-flex items-center gap-2 rounded-md bg-accent-brand px-5 py-2.5 text-[15px] font-medium text-white border-none cursor-pointer transition-opacity',
+            isLoading && 'opacity-50'
+          )}
           onClick={handleStartSession}
           disabled={isLoading}
         >
@@ -178,7 +182,7 @@ export default function ConversationPage() {
     const totalTargets = (sessionPlan.targetVocabulary?.length ?? 0) + (sessionPlan.targetGrammar?.length ?? 0)
     return (
       <div className="max-w-[640px] mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Session Complete</h1>
+        <h1 className="text-[28px] font-bold mb-4">Session Complete</h1>
         {analysis && (
           <SessionSummaryCard
             analysis={analysis}
@@ -188,7 +192,7 @@ export default function ConversationPage() {
         )}
         <div className="flex gap-3 mt-4">
           <button
-            className="rounded-md bg-blue-600 px-5 py-2.5 text-base font-medium text-white hover:bg-blue-700 transition-colors"
+            className="rounded-md bg-accent-brand px-5 py-2.5 text-[15px] font-medium text-white border-none cursor-pointer transition-opacity hover:opacity-90"
             onClick={handleNewSession}
           >
             Start New Session
@@ -202,24 +206,27 @@ export default function ConversationPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Session info bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">
+          <span className="text-[13px] font-medium">
             {sessionPlan?.sessionFocus ?? 'Conversation'}
           </span>
           {sessionPlan && (
             <>
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+              <span className="inline-flex items-center rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-medium text-text-secondary">
                 {sessionPlan.difficultyLevel}
               </span>
-              <span className="inline-flex items-center rounded-full border border-gray-300 px-2 py-0.5 text-xs text-gray-600">
+              <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] text-text-muted">
                 {sessionPlan.register}
               </span>
             </>
           )}
         </div>
         <button
-          className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors"
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md bg-[rgba(200,87,42,.06)] px-3 py-1.5 text-[13px] font-medium text-accent-warm border-none cursor-pointer transition-colors hover:bg-[rgba(200,87,42,.12)]',
+            isLoading && 'opacity-50'
+          )}
           onClick={handleEndSession}
           disabled={isLoading}
         >
@@ -246,7 +253,7 @@ export default function ConversationPage() {
 
           {streamingContent && (
             <div className="py-3">
-              <div className="chat-markdown text-gray-900 leading-relaxed text-[15px]">
+              <div className="chat-markdown text-text-primary leading-[1.7] text-[15px]">
                 <Markdown remarkPlugins={[remarkGfm]}>{streamingContent}</Markdown>
                 <span className="blink-cursor" />
               </div>
@@ -256,7 +263,7 @@ export default function ConversationPage() {
           {isSending && !streamingContent && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
             <div className="flex items-center gap-2 py-3">
               <Spinner size={16} />
-              <span className="text-sm text-gray-500">Thinking...</span>
+              <span className="text-[13px] text-text-muted">Thinking...</span>
             </div>
           )}
 
@@ -267,7 +274,7 @@ export default function ConversationPage() {
       {/* Input */}
       <div className="px-6 pt-3 pb-6">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-end gap-2 border border-gray-300 rounded-3xl py-2 pr-2 pl-5 bg-gray-50">
+          <div className="flex items-end gap-2 border border-border rounded-3xl py-2 pr-2 pl-5 bg-bg-secondary">
             <textarea
               ref={textareaRef}
               value={input}
@@ -278,10 +285,14 @@ export default function ConversationPage() {
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
               rows={1}
-              className="flex-1 resize-none border-none bg-transparent text-gray-900 text-[15px] leading-normal font-[inherit] outline-none py-1 max-h-[200px]"
+              style={{ maxHeight: 200 }}
+              className="flex-1 resize-none border-none bg-transparent text-text-primary text-[15px] leading-normal font-[inherit] outline-none py-1"
             />
             <button
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shrink-0 disabled:opacity-40 hover:bg-blue-700 transition-colors"
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full bg-accent-brand text-white shrink-0 border-none cursor-pointer transition-opacity',
+                (!input.trim() || isSending) && 'opacity-40'
+              )}
               onClick={handleSend}
               disabled={!input.trim() || isSending}
             >
@@ -300,7 +311,7 @@ function MessageSegmentRenderer({ message }: { message: ConversationMessage }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end py-1.5">
-        <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-gray-200 text-gray-900 leading-relaxed text-[15px] whitespace-pre-wrap">
+        <div className="max-w-[75%] px-4 py-2.5 rounded-[20px] bg-bg-active text-text-primary leading-relaxed text-[15px] whitespace-pre-wrap">
           {message.content}
         </div>
       </div>
@@ -334,7 +345,7 @@ function SegmentComponent({ segment }: { segment: MessageSegment }) {
     default:
       if (!segment.content.trim()) return null
       return (
-        <div className="chat-markdown text-gray-900 leading-relaxed text-[15px]">
+        <div className="chat-markdown text-text-primary leading-[1.7] text-[15px]">
           <Markdown remarkPlugins={[remarkGfm]}>{segment.content}</Markdown>
         </div>
       )

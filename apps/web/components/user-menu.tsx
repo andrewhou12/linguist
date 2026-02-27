@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Popover, Separator } from '@radix-ui/themes'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Separator } from '@/components/ui/separator'
 import { LogOut, CircleUser } from 'lucide-react'
 import type { ExpandedLearnerProfile } from '@linguist/shared/types'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 export function UserMenu() {
   const router = useRouter()
@@ -30,84 +32,67 @@ export function UserMenu() {
   }
 
   return (
-    /* Keep Radix Popover for now - complex interactive component */
-    <Popover.Root>
-      <Popover.Trigger>
-        <button className="w-8 h-8 rounded-full bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0 p-0 text-gray-600 hover:text-gray-900 transition-colors">
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="size-8 rounded-full bg-transparent border-none cursor-pointer flex items-center justify-center p-0 text-text-secondary transition-colors duration-100 hover:text-text-primary">
           <CircleUser size={20} />
         </button>
-      </Popover.Trigger>
-      <Popover.Content
+      </PopoverTrigger>
+      <PopoverContent
         side="bottom"
         align="end"
-        style={{ width: 280, padding: 0 }}
+        className="w-[280px] p-0"
       >
         {/* User header */}
         <div className="flex items-center gap-3 p-4">
-          <div className="w-10 min-w-[40px] h-10 min-h-[40px] rounded-full overflow-hidden flex items-center justify-center"
-            style={{ backgroundColor: user?.avatarUrl ? 'transparent' : '#2563eb' }}
-          >
+          <div className={cn(
+            'size-10 min-w-10 min-h-10 rounded-full overflow-hidden flex items-center justify-center',
+            user?.avatarUrl ? 'bg-transparent' : 'bg-accent-brand'
+          )}>
             {user?.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={displayName}
-                width={40}
-                height={40}
-                className="rounded-full object-cover block"
-              />
+              <img src={user.avatarUrl} alt={displayName} width={40} height={40} className="rounded-full object-cover block" />
             ) : (
-              <span className="text-lg font-bold text-white leading-none">
-                {initials}
-              </span>
+              <span className="text-lg font-bold text-white leading-none">{initials}</span>
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-bold truncate">{displayName}</span>
-            <span className="text-xs text-gray-500 truncate">
-              {profile
-                ? `${profile.targetLanguage} (${profile.computedLevel})`
-                : user?.email || 'Loading...'}
+            <span className="text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap">{displayName}</span>
+            <span className="text-[11px] text-text-muted overflow-hidden text-ellipsis whitespace-nowrap">
+              {profile ? `${profile.targetLanguage} (${profile.computedLevel})` : user?.email || 'Loading...'}
             </span>
           </div>
         </div>
 
-        <Separator size="4" />
+        <Separator />
 
         {/* Stats */}
         <div className="flex flex-col gap-2 p-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Current level</span>
-            <span className="text-sm font-medium">{profile?.computedLevel ?? '—'}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Streak</span>
-            <span className="text-sm font-medium">
-              {profile?.currentStreak ?? 0} day{(profile?.currentStreak ?? 0) !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Total reviews</span>
-            <span className="text-sm font-medium">{profile?.totalReviewEvents ?? 0}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm">Sessions</span>
-            <span className="text-sm font-medium">{profile?.totalSessions ?? 0}</span>
-          </div>
+          {[
+            { label: 'Current level', value: profile?.computedLevel ?? '—' },
+            { label: 'Streak', value: `${profile?.currentStreak ?? 0} day${(profile?.currentStreak ?? 0) !== 1 ? 's' : ''}` },
+            { label: 'Total reviews', value: String(profile?.totalReviewEvents ?? 0) },
+            { label: 'Sessions', value: String(profile?.totalSessions ?? 0) },
+          ].map((row) => (
+            <div key={row.label} className="flex justify-between items-center">
+              <span className="text-[13px] text-text-secondary">{row.label}</span>
+              <span className="text-[13px] font-medium">{row.value}</span>
+            </div>
+          ))}
         </div>
 
-        <Separator size="4" />
+        <Separator />
 
         {/* Sign out */}
         <div className="p-2">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer w-full bg-transparent border-none text-gray-600 text-sm hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer w-full bg-transparent border-none text-text-secondary text-[13px] transition-colors duration-100 hover:bg-bg-hover hover:text-text-primary"
           >
             <LogOut size={16} />
             Sign out
           </button>
         </div>
-      </Popover.Content>
-    </Popover.Root>
+      </PopoverContent>
+    </Popover>
   )
 }
