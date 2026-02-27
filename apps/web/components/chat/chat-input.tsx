@@ -10,9 +10,11 @@ interface ChatInputProps {
   onSend: () => void
   disabled?: boolean
   placeholder?: string
+  showRomaji?: boolean
+  onToggleRomaji?: () => void
 }
 
-export function ChatInput({ value, onChange, onSend, disabled, placeholder }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSend, disabled, placeholder, showRomaji, onToggleRomaji }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const adjustTextarea = useCallback(() => {
@@ -25,7 +27,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder }: Ch
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
         e.preventDefault()
         onSend()
       }
@@ -80,6 +82,21 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder }: Ch
           <button className="w-7 h-7 rounded-full border border-border bg-bg-pure flex items-center justify-center text-text-muted text-[15px] leading-none cursor-default hover:bg-bg-hover transition-colors" title="Attach">
             +
           </button>
+          {onToggleRomaji && (
+            <button
+              className={cn(
+                'h-7 rounded-full border px-2.5 flex items-center gap-1 text-[11px] font-medium transition-colors',
+                showRomaji
+                  ? 'border-accent-brand/30 bg-accent-brand/10 text-accent-brand'
+                  : 'border-border bg-bg-pure text-text-muted hover:bg-bg-hover'
+              )}
+              onClick={onToggleRomaji}
+              title={showRomaji ? 'Hide romaji' : 'Show romaji above all text'}
+            >
+              <span className="text-[12px] font-jp font-bold leading-none">あ</span>
+              <span>→ a</span>
+            </button>
+          )}
         </div>
         <span className="text-[11px] text-text-placeholder select-none">
           ⏎ send · ⇧⏎ newline

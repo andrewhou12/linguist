@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
@@ -9,6 +9,9 @@ import remarkGfm from 'remark-gfm'
 import type { ConversationMessage, ExpandedSessionPlan } from '@linguist/shared/types'
 import { api } from '@/lib/api'
 import { parseMessage, type MessageSegment } from '@/lib/message-parser'
+import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'
+import { RomajiText } from '@/components/romaji-text'
 import { VocabCard, GrammarCard, CorrectionCard, ReviewPromptCard } from '@/components/conversation-cards'
 import { AnnotatedMessage, type Annotation } from '@/components/annotated-message'
 import { SessionAnalysisPanel } from '@/components/session-analysis-panel'
@@ -21,6 +24,16 @@ export default function SessionDetailPage() {
   const id = params.id as string
   const [session, setSession] = useState<SessionDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { showRomaji, toggle: toggleRomaji } = useRomaji()
+  const transcript = useMemo(
+    () => (session?.transcript ?? []) as ConversationMessage[],
+    [session]
+  )
+  const assistantTexts = useMemo(
+    () => transcript.filter((m) => m.role === 'assistant').map((m) => m.content),
+    [transcript]
+  )
+  const { getAnnotated } = useAnnotatedTexts(assistantTexts, showRomaji)
 
   useEffect(() => {
     if (!id) return
@@ -52,7 +65,6 @@ export default function SessionDetailPage() {
     )
   }
 
-  const transcript = (session.transcript ?? []) as ConversationMessage[]
   const plan = session.sessionPlan as ExpandedSessionPlan | null
   const targetsHit = (session.targetsHit ?? []) as number[]
   const errorsLogged = (session.errorsLogged ?? []) as Array<{ itemId: number; errorType: string; contextQuote: string }>
@@ -119,11 +131,25 @@ export default function SessionDetailPage() {
         </div>
       </div>
 
-      {plan?.sessionFocus && (
-        <p className="text-[13px] text-text-muted mb-4">
-          {plan.sessionFocus}
-        </p>
-      )}
+      <div className="flex items-center justify-between mb-4">
+        {plan?.sessionFocus ? (
+          <p className="text-[13px] text-text-muted m-0">
+            {plan.sessionFocus}
+          </p>
+        ) : <span />}
+        <button
+          className={`h-7 rounded-full border px-2.5 flex items-center gap-1 text-[11px] font-medium transition-colors ${
+            showRomaji
+              ? 'border-accent-brand/30 bg-accent-brand/10 text-accent-brand'
+              : 'border-border bg-bg-pure text-text-muted hover:bg-bg-hover'
+          }`}
+          onClick={toggleRomaji}
+          title={showRomaji ? 'Hide romaji' : 'Show romaji above all text'}
+        >
+          <span className="text-[12px] font-jp font-bold leading-none">あ</span>
+          <span>→ a</span>
+        </button>
+      </div>
 
       {/* Annotated Transcript */}
       <div className="mb-4">
@@ -142,12 +168,13 @@ export default function SessionDetailPage() {
             )
           }
 
-          const segments = parseMessage(msg.content)
+          const annotatedContent = showRomaji ? getAnnotated(msg.content) : msg.content
+          const segments = parseMessage(annotatedContent)
           return (
             <AnnotatedMessage key={i} annotations={annotations}>
               <div className="py-3">
                 {segments.map((seg, j) => (
-                  <SegmentRenderer key={j} segment={seg} />
+                  <SegmentRenderer key={j} segment={seg} showRomaji={showRomaji} />
                 ))}
               </div>
             </AnnotatedMessage>
@@ -167,7 +194,7 @@ export default function SessionDetailPage() {
   )
 }
 
-function SegmentRenderer({ segment }: { segment: MessageSegment }) {
+function SegmentRenderer({ segment, showRomaji }: { segment: MessageSegment; showRomaji: boolean }) {
   switch (segment.type) {
     case 'vocab_card':
       return <VocabCard segment={segment} />
@@ -182,9 +209,19 @@ function SegmentRenderer({ segment }: { segment: MessageSegment }) {
     case 'text':
     default:
       if (!segment.content.trim()) return null
+      if (showRomaji) {
+        return (
+          <RomajiText
+            text={segment.content}
+            className="chat-markdown text-text-primary leading-[1.7] text-[15px]"
+          />
+        )
+      }
       return (
         <div className="chat-markdown text-text-primary leading-[1.7] text-[15px]">
-          <Markdown remarkPlugins={[remarkGfm]}>{segment.content}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {stripRubyAnnotations(segment.content)}
+          </Markdown>
         </div>
       )
   }

@@ -164,6 +164,19 @@
 .chat-markdown th { border-bottom: 2px solid var(--border); padding: 8px 12px; text-align: left; font-weight: 600; }
 .chat-markdown td { border-bottom: 1px solid var(--border); padding: 8px 12px; }
 
+.chat-markdown ruby {
+  font-feature-settings: normal;
+  ruby-align: center;
+}
+.chat-markdown ruby rt {
+  font-size: 0.55em;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  font-family: var(--font-sans);
+}
+.chat-markdown ruby rp { display: none; }
+
 /* ── Calligraphy grid background ── */
 .calligraphy-grid {
   position: relative;

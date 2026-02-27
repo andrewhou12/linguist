@@ -1,13 +1,16 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from '@linguist/shared/types'
+import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { RomajiText } from '@/components/romaji-text'
 
 interface MessageBubbleProps {
   message: ChatMessage
   isStreaming?: boolean
+  showRomaji?: boolean
 }
 
-export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
+export function MessageBubble({ message, isStreaming, showRomaji }: MessageBubbleProps) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end py-1.5">
@@ -21,7 +24,11 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   return (
     <div className="py-3">
       <div className="chat-markdown text-text-primary leading-[1.7] text-[15px]">
-        <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+        {showRomaji ? (
+          <RomajiText text={message.content} />
+        ) : (
+          <Markdown remarkPlugins={[remarkGfm]}>{stripRubyAnnotations(message.content)}</Markdown>
+        )}
         {isStreaming && <span className="blink-cursor" />}
       </div>
     </div>

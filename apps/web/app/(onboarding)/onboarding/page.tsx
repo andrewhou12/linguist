@@ -495,7 +495,7 @@ function ReadingChallengeStep({
             value={userInput}
             onChange={(e) => { if (!checked) setUserInput(e.target.value) }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                 if (!checked && userInput.trim()) handleCheck()
                 else if (checked) handleNext()
               }
@@ -669,7 +669,7 @@ function ComprehensionStep({
             value={userInput}
             onChange={(e) => { if (!checked) setUserInput(e.target.value) }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 if (!checked && userInput.trim()) handleCheck()
                 else if (checked) handleNext()

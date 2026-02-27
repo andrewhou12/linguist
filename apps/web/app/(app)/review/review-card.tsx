@@ -81,7 +81,7 @@ export function ReviewCard({ item, onGrade }: ReviewCardProps) {
                   placeholder="Type your answer..."
                   value={typedAnswer}
                   onChange={(e) => setTypedAnswer(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); showAnswer() } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); showAnswer() } }}
                   autoFocus
                   className="text-base"
                 />

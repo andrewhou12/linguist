@@ -13,13 +13,18 @@ const log = createLogger('core:analyzer')
 
 export function buildAnalysisPrompt(
   transcript: ConversationMessage[],
-  plan: ExpandedSessionPlan
+  plan: ExpandedSessionPlan,
+  knownSurfaceForms?: string[]
 ): string {
+  const knownVocabSection = knownSurfaceForms && knownSurfaceForms.length > 0
+    ? `\nLearner's known vocabulary (already in word bank):\n${knownSurfaceForms.join(', ')}\n`
+    : ''
+
   return `Analyze this conversation transcript and return JSON.
 
 Session plan:
 ${JSON.stringify(plan, null, 2)}
-
+${knownVocabSection}
 Transcript:
 ${transcript.map((m) => `[${m.role}] ${m.content}`).join('\n')}
 
@@ -27,7 +32,7 @@ Analyze the LEARNER's messages (role: "user") for:
 1. Which target items were successfully produced by the learner
 2. Errors made by the learner (wrong word, wrong grammar, wrong reading)
 3. Avoidance events where the learner avoided target items despite opportunity
-4. New items the learner encountered for the first time
+4. New vocabulary items: any Japanese word used by the assistant or learner that is NOT in the known vocabulary list above. Include words from [VOCAB_CARD] blocks and any other significant vocabulary. Exclude basic particles and conjunctions.
 5. Register accuracy: did the learner maintain the target register (${plan.pragmaticTargets.targetRegister})?
 6. Communication strategies: circumlocution (talking around unknown words), L1 fallbacks (switching to native language), silence/avoidance
 7. Per-item context logs: for each item the learner interacted with, what modality and context

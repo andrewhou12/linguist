@@ -22,12 +22,16 @@ const TAG_MAP: Record<string, MessageSegmentType> = {
 const BLOCK_REGEX = /\[(VOCAB_CARD|GRAMMAR_CARD|REVIEW_PROMPT|CORRECTION)\]([\s\S]*?)\[\/\1\]/g
 const TARGETS_HIT_REGEX = /\[TARGETS_HIT:\s*([^\]]*)\]/
 
+function stripRuby(text: string): string {
+  return text.replace(/\{([^}|]+)\|[^}]+\}/g, '$1')
+}
+
 function parseKeyValueBlock(content: string): Record<string, string> {
   const data: Record<string, string> = {}
   for (const line of content.split('\n')) {
     const match = line.match(/^\s*(\w+(?:_\w+)*):\s*(.+)$/)
     if (match) {
-      data[match[1].trim()] = match[2].trim()
+      data[match[1].trim()] = stripRuby(match[2].trim())
     }
   }
   return data

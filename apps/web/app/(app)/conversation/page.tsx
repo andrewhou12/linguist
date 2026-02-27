@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Square } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -11,6 +11,9 @@ import type {
 } from '@linguist/shared/types'
 import { api } from '@/lib/api'
 import { parseMessage, extractTargetsHit, type MessageSegment } from '@/lib/message-parser'
+import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'
+import { RomajiText } from '@/components/romaji-text'
 import { VocabCard, GrammarCard, CorrectionCard, ReviewPromptCard } from '@/components/conversation-cards'
 import { ChallengeCard } from '@/components/challenge-card'
 import { MessageBlock } from '@/components/chat/message-block'
@@ -44,6 +47,12 @@ export default function ConversationPage() {
   const [showSummaryModal, setShowSummaryModal] = useState(false)
   const sessionStartTime = useRef(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { showRomaji, toggle: toggleRomaji } = useRomaji()
+  const assistantTexts = useMemo(
+    () => messages.filter((m) => m.role === 'assistant').map((m) => m.content),
+    [messages]
+  )
+  const { getAnnotated } = useAnnotatedTexts(assistantTexts, showRomaji)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -289,12 +298,12 @@ export default function ConversationPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-6 py-4">
           {messages.map((msg, i) => (
-            <MessageSegmentRenderer key={i} message={msg} />
+            <MessageSegmentRenderer key={i} message={msg} showRomaji={showRomaji} getAnnotated={getAnnotated} />
           ))}
 
           {/* Streaming content */}
           {streamingContent && (
-            <MessageBlock role="assistant" content={streamingContent} isStreaming />
+            <MessageBlock role="assistant" content={streamingContent} isStreaming showRomaji={showRomaji} />
           )}
 
           {/* Loading indicator */}
@@ -332,6 +341,8 @@ export default function ConversationPage() {
             onSend={handleSend}
             disabled={isSending}
             placeholder="Type your message..."
+            showRomaji={showRomaji}
+            onToggleRomaji={toggleRomaji}
           />
         </div>
       </div>
@@ -341,7 +352,7 @@ export default function ConversationPage() {
 
 // Message rendering with structured cards
 
-function MessageSegmentRenderer({ message }: { message: ConversationMessage }) {
+function MessageSegmentRenderer({ message, showRomaji, getAnnotated }: { message: ConversationMessage; showRomaji: boolean; getAnnotated: (text: string) => string }) {
   if (message.role === 'user') {
     return (
       <MessageBlock
@@ -352,22 +363,24 @@ function MessageSegmentRenderer({ message }: { message: ConversationMessage }) {
     )
   }
 
-  const segments = parseMessage(message.content)
+  const annotatedContent = showRomaji ? getAnnotated(message.content) : message.content
+  const segments = parseMessage(annotatedContent)
 
   return (
     <MessageBlock
       role="assistant"
       content=""
       timestamp={message.timestamp}
+      showRomaji={showRomaji}
     >
       {segments.map((segment, i) => (
-        <SegmentComponent key={i} segment={segment} />
+        <SegmentComponent key={i} segment={segment} showRomaji={showRomaji} />
       ))}
     </MessageBlock>
   )
 }
 
-function SegmentComponent({ segment }: { segment: MessageSegment }) {
+function SegmentComponent({ segment, showRomaji }: { segment: MessageSegment; showRomaji: boolean }) {
   switch (segment.type) {
     case 'vocab_card':
       return <VocabCard segment={segment} />
@@ -382,9 +395,19 @@ function SegmentComponent({ segment }: { segment: MessageSegment }) {
     case 'text':
     default:
       if (!segment.content.trim()) return null
+      if (showRomaji) {
+        return (
+          <RomajiText
+            text={segment.content}
+            className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]"
+          />
+        )
+      }
       return (
         <div className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]">
-          <Markdown remarkPlugins={[remarkGfm]}>{segment.content}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {stripRubyAnnotations(segment.content)}
+          </Markdown>
         </div>
       )
   }
