@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { DictEntry } from '@/lib/kana-dictionary'
 
 export interface MasteryInfo {
@@ -13,63 +13,71 @@ export interface EnrichedCandidate extends DictEntry {
 }
 
 /**
- * Cross-references dictionary candidates with the learner's word bank.
- * Debounced API call with per-surface-form caching.
+ * Bulk-prefetches the learner's entire word bank on mount, then provides
+ * synchronous mastery lookups and mastery-aware candidate sorting.
+ *
+ * Sorting order:
+ *   1. Known words (in word bank), sorted by dictionary frequency (lower = more common)
+ *   2. Unknown words, sorted by dictionary frequency
+ *   3. Kana fallbacks (meaning === '(kana)') always last
  */
 export function useIMEMastery(candidates: DictEntry[]): EnrichedCandidate[] {
-  const [masteryMap, setMasteryMap] = useState<Record<string, MasteryInfo>>({})
-  const cacheRef = useRef<Record<string, MasteryInfo | null>>({})
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [masteryMap, setMasteryMap] = useState<Map<string, MasteryInfo>>(new Map())
+  const [loaded, setLoaded] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const fetchMastery = useCallback(async (surfaceForms: string[]) => {
+  const fetchAllMastery = useCallback(async () => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
-      const res = await fetch('/api/ime/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ surfaceForms }),
-      })
+      const res = await fetch('/api/ime/mastery-bulk', { signal: controller.signal })
       if (!res.ok) return
       const data: Record<string, MasteryInfo> = await res.json()
-
-      // Update cache
-      for (const sf of surfaceForms) {
-        cacheRef.current[sf] = data[sf] ?? null
+      const map = new Map<string, MasteryInfo>()
+      for (const [sf, info] of Object.entries(data)) {
+        map.set(sf, info)
       }
-      // Update state with all cached data
-      const newMap: Record<string, MasteryInfo> = {}
-      for (const [sf, info] of Object.entries(cacheRef.current)) {
-        if (info) newMap[sf] = info
-      }
-      setMasteryMap(newMap)
-    } catch {
+      setMasteryMap(map)
+      setLoaded(true)
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
       // Silently fail — mastery indicators are non-critical
     }
   }, [])
 
   useEffect(() => {
-    if (candidates.length === 0) return
-
-    // Find surface forms not yet cached
-    const uncached = candidates
-      .map((c) => c.surface)
-      .filter((sf) => !(sf in cacheRef.current))
-
-    if (uncached.length === 0) return
-
-    // Debounce API call
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      fetchMastery(uncached)
-    }, 150)
-
+    fetchAllMastery()
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
+      abortRef.current?.abort()
     }
-  }, [candidates, fetchMastery])
+  }, [fetchAllMastery])
 
-  // Merge mastery data onto candidates
-  return candidates.map((c) => ({
-    ...c,
-    mastery: cacheRef.current[c.surface] ?? masteryMap[c.surface] ?? null,
-  }))
+  // Enrich and re-sort candidates synchronously from the prefetched map
+  return useMemo(() => {
+    const enriched: EnrichedCandidate[] = candidates.map((c) => ({
+      ...c,
+      mastery: masteryMap.get(c.surface) ?? null,
+    }))
+
+    if (!loaded) return enriched
+
+    const known: EnrichedCandidate[] = []
+    const unknown: EnrichedCandidate[] = []
+    const kana: EnrichedCandidate[] = []
+
+    for (const c of enriched) {
+      if (c.meaning === '(kana)') {
+        kana.push(c)
+      } else if (c.mastery) {
+        known.push(c)
+      } else {
+        unknown.push(c)
+      }
+    }
+
+    // Within each group, preserve dictionary frequency order (already sorted by freq from lookup)
+    return [...known, ...unknown, ...kana]
+  }, [candidates, masteryMap, loaded])
 }
