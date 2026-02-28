@@ -56,11 +56,11 @@ export default function HistoryPage() {
               const date = new Date(session.timestamp)
               const mins = session.durationSeconds ? Math.max(1, Math.round(session.durationSeconds / 60)) : null
               return (
-                <TableRow key={session.id}>
+                <TableRow key={session.id} className="cursor-pointer">
                   <TableCell>
                     <Link
                       href={`/history/${session.id}`}
-                      className="no-underline text-accent-warm"
+                      className="no-underline text-accent-warm transition-opacity duration-100 hover:opacity-75"
                     >
                       <span className="text-[13px] font-medium block">
                         {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}

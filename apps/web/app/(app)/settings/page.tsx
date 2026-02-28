@@ -144,7 +144,7 @@ function SettingsRow({
   icon: React.ReactNode; label: string; description: string; children?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between py-3 px-1 gap-3">
+    <div className="flex items-center justify-between py-3 px-4 gap-3 transition-colors duration-100 hover:bg-bg-hover rounded-lg">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="w-7 h-7 rounded-md bg-bg-secondary shrink-0 text-text-secondary flex items-center justify-center">
           {icon}
