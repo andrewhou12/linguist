@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { ReviewSummary, WeeklyStats } from '@lingle/shared/types'
+import type { ReviewSummary, ReviewQueueItem, WeeklyStats } from '@lingle/shared/types'
 import { useFrontier } from '@/hooks/use-frontier'
 import { DailyBrief } from './daily-brief'
 import { FrontierContainer } from './frontier/frontier-container'
@@ -11,9 +11,10 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<ReviewSummary | null>(null)
-  const [dueCount, setDueCount] = useState<number | null>(null)
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null)
+  const cachedQueue = api.peekCache<ReviewQueueItem[]>('/review/queue')
+  const [summary, setSummary] = useState<ReviewSummary | null>(() => api.peekCache<ReviewSummary>('/review/summary') ?? null)
+  const [dueCount, setDueCount] = useState<number | null>(cachedQueue ? cachedQueue.length : null)
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(() => api.peekCache<WeeklyStats>('/dashboard/weekly-stats') ?? null)
   const { data: frontierData } = useFrontier()
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function DashboardPage() {
 
       <div className="flex gap-4 flex-wrap">
         {/* Due for Review */}
-        <div className="min-w-[200px] flex-1 rounded-xl border border-border bg-bg p-4">
+        <div className="min-w-[200px] flex-1 rounded-xl border border-border-subtle bg-bg-pure p-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xl">📋</span>
@@ -60,7 +61,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Reviewed Today */}
-        <div className="min-w-[200px] flex-1 rounded-xl border border-border bg-bg p-4">
+        <div className="min-w-[200px] flex-1 rounded-xl border border-border-subtle bg-bg-pure p-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xl">✅</span>
@@ -86,7 +87,7 @@ export default function DashboardPage() {
         </div>
 
         {/* This Week */}
-        <div className="min-w-[360px] flex-[2] rounded-xl border border-border bg-bg p-4">
+        <div className="min-w-[360px] flex-[2] rounded-xl border border-border-subtle bg-bg-pure p-4">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xl">📊</span>

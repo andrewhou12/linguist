@@ -192,16 +192,24 @@ export interface TomBrief {
   notes: string
 }
 
+export interface TargetHitEntry {
+  itemId: number
+  messageIndex?: number
+  contextQuote?: string
+}
+
 export interface PostSessionAnalysis {
-  targetsHit: number[]
+  targetsHit: Array<number | TargetHitEntry>
   errorsLogged: Array<{
     itemId: number
     errorType: string
     contextQuote: string
+    messageIndex?: number
   }>
   avoidanceEvents: Array<{
     itemId: number
     contextQuote: string
+    messageIndex?: number
   }>
   newItemsEncountered: Array<{
     surfaceForm: string

@@ -82,7 +82,10 @@ export function SessionSummaryModal({ isOpen, onClose, analysis, plan, durationS
                   label: c.surfaceForm ?? c.patternId ?? 'New item',
                 })),
               ].map((target) => {
-                const isHit = analysis.targetsHit?.map(String).includes(target.id) ?? false
+                const hitIds = (analysis.targetsHit ?? []).map((t) =>
+                  String(typeof t === 'number' ? t : t.itemId)
+                )
+                const isHit = hitIds.includes(target.id)
                 return (
                   <div key={target.id} className="flex items-center gap-2">
                     {isHit ? (

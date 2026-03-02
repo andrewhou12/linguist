@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { WordBankChunkEntry } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useChunks(initialFilters?: { masteryState?: string; itemKind?: string }) {
-  const [items, setItems] = useState<WordBankChunkEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [items, setItems] = useState<WordBankChunkEntry[]>(() => api.peekCache<WordBankChunkEntry[]>('/chunks') ?? [])
+  const [isLoading, setIsLoading] = useState(() => !api.peekCache('/chunks'))
   const [filters, setFilters] = useState(initialFilters)
+  const skipLoadingRef = useRef(!!api.peekCache('/chunks'))
 
   const loadItems = useCallback(async () => {
-    setIsLoading(true)
+    if (!skipLoadingRef.current) setIsLoading(true)
+    skipLoadingRef.current = false
     try {
       const result = await api.chunksList(filters)
       setItems(result)

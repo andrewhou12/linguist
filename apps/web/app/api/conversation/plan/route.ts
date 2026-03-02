@@ -17,7 +17,17 @@ import { generateRecommendations } from '@lingle/core/curriculum/recommender'
 
 const anthropic = new Anthropic()
 
-export const POST = withAuth(async (_request, { userId }) => {
+export const POST = withAuth(async (request, { userId }) => {
+  let topicHint: string | undefined
+  try {
+    const body = await request.json()
+    if (body.topicHint && typeof body.topicHint === 'string') {
+      topicHint = body.topicHint
+    }
+  } catch {
+    // No body or invalid JSON — that's fine, topicHint stays undefined
+  }
+
   const profile = await prisma.learnerProfile.findUniqueOrThrow({ where: { userId } })
 
   // Build learner summary (same logic as desktop conversation.ts)
@@ -142,7 +152,7 @@ export const POST = withAuth(async (_request, { userId }) => {
   const brief = generateExpandedDailyBrief(briefInput)
 
   // Call Claude for session plan
-  const planningPrompt = buildPlanningPrompt(learner, brief)
+  const planningPrompt = buildPlanningPrompt(learner, brief, topicHint)
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,

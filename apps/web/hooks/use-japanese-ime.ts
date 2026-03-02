@@ -52,7 +52,9 @@ const IME_STORAGE_KEY = 'lingle-ime-active'
 
 function getStoredIMEState(): boolean {
   if (typeof window === 'undefined') return false
-  return localStorage.getItem(IME_STORAGE_KEY) === 'true'
+  const stored = localStorage.getItem(IME_STORAGE_KEY)
+  // Default to active — this is a Japanese learning app
+  return stored === null ? true : stored === 'true'
 }
 
 /** Auto-convert kana using segmentation — handles multi-word, conjugation, hiragana-preferred */

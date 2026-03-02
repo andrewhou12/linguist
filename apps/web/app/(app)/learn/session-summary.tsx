@@ -22,7 +22,9 @@ export function SessionSummary({
   const plannedVocab = plan.targetVocabulary ?? []
   const plannedGrammar = plan.targetGrammar ?? []
   const allPlanned = [...plannedVocab, ...plannedGrammar]
-  const targetsHit = new Set(analysis?.targetsHit ?? [])
+  const targetsHit = new Set(
+    (analysis?.targetsHit ?? []).map((t) => typeof t === 'number' ? t : t.itemId)
+  )
 
   return (
     <div className="max-w-[640px] mx-auto">

@@ -26,13 +26,64 @@ import type {
 } from '@lingle/shared/types'
 
 class LingleApiClient {
+  private cache = new Map<string, { data: unknown; ts: number }>()
+  private inflight = new Map<string, Promise<unknown>>()
+  private static STALE_AFTER = 30_000 // revalidate in background after 30s
+
+  // Synchronous cache read for initializing React state without loading flash
+  peekCache<T>(path: string): T | undefined {
+    const entry = this.cache.get(path)
+    return entry ? (entry.data as T) : undefined
+  }
+
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
+    const method = options?.method?.toUpperCase() ?? 'GET'
+    const isRead = method === 'GET'
+
+    // For reads: return cached data instantly, revalidate in background if stale
+    if (isRead) {
+      const cached = this.cache.get(path)
+
+      if (cached) {
+        const age = Date.now() - cached.ts
+        // Stale — kick off background refresh, but still return cached data now
+        if (age > LingleApiClient.STALE_AFTER && !this.inflight.has(path)) {
+          const promise = this.fetchAndCache<T>(path, options)
+          this.inflight.set(path, promise)
+          promise.finally(() => this.inflight.delete(path))
+        }
+        return cached.data as T
+      }
+
+      // No cache at all — must wait for fetch
+      const existing = this.inflight.get(path)
+      if (existing) return existing as Promise<T>
+
+      const promise = this.fetchAndCache<T>(path, options)
+      this.inflight.set(path, promise)
+      promise.finally(() => this.inflight.delete(path))
+      return promise
+    }
+
+    // Mutations: execute then invalidate entire cache
     const res = await fetch(`/api${path}`, {
       headers: { 'Content-Type': 'application/json' },
       ...options,
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
+    this.cache.clear()
     return res.json()
+  }
+
+  private async fetchAndCache<T>(path: string, options?: RequestInit): Promise<T> {
+    const res = await fetch(`/api${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    const data = await res.json()
+    this.cache.set(path, { data, ts: Date.now() })
+    return data as T
   }
 
   // User
@@ -65,8 +116,11 @@ class LingleApiClient {
   wordbankSearch = (query: string) => this.request<WordBankEntry[]>(`/wordbank/search?q=${encodeURIComponent(query)}`)
 
   // Conversation
-  conversationPlan = () =>
-    this.request<ExpandedSessionPlan & { _sessionId: string }>('/conversation/plan', { method: 'POST' })
+  conversationPlan = (topicHint?: string) =>
+    this.request<ExpandedSessionPlan & { _sessionId: string }>('/conversation/plan', {
+      method: 'POST',
+      ...(topicHint ? { body: JSON.stringify({ topicHint }) } : {}),
+    })
   // Simple non-streaming send for pages that don't use useChat (e.g. learn page)
   conversationSend = async (sessionId: string, message: string): Promise<ConversationMessage> => {
     const userMsg = {
@@ -257,6 +311,20 @@ class LingleApiClient {
       method: 'POST',
       body: JSON.stringify(result),
     })
+  // Prefetch all common page data into cache
+  prefetch = () => {
+    Promise.all([
+      this.reviewGetSummary(),
+      this.reviewGetQueue(),
+      this.dashboardGetWeeklyStats(),
+      this.dashboardGetFrontier(),
+      this.wordbankList(),
+      this.grammarList(),
+      this.chunksList(),
+      this.profileGet(),
+      this.conversationList(),
+    ]).catch(() => {}) // silent — pages will retry on mount if any fail
+  }
 }
 
 export const api = new LingleApiClient()

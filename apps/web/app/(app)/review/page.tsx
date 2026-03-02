@@ -54,9 +54,9 @@ export default function ReviewPage() {
         <h2 className="text-xl font-bold">Review</h2>
         <span className="text-[13px] text-text-muted">{currentIndex + 1} / {queue.length}</span>
       </div>
-      <div className="h-1 rounded-sm bg-bg-active overflow-hidden mb-6">
+      <div className="h-1 rounded-full bg-bg-active overflow-hidden mb-6">
         <div
-          className="h-full rounded-sm bg-accent-brand transition-[width] duration-300 ease-in-out"
+          className="h-full rounded-full bg-accent-brand transition-[width] duration-300 ease-in-out"
           style={{ width: `${progress}%` }}
         />
       </div>

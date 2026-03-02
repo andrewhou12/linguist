@@ -208,6 +208,16 @@
   border-radius: 6px;
 }
 
+@keyframes logo-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.logo-shimmer {
+  background: linear-gradient(90deg, var(--text-primary) 30%, var(--accent-warm) 50%, var(--text-primary) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logo-shimmer 5s ease-in-out infinite;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

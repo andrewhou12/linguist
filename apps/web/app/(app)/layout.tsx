@@ -7,37 +7,48 @@ import type { ReactNode } from 'react'
 import {
   MoreHorizontal,
   LogOut,
+  MessageCircle,
+  Zap,
+  BookOpen,
+  PenLine,
+  BookMarked,
+  Clock,
+  Flame,
+  Settings,
+  BarChart3,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { ConversationView } from '@/components/conversation-view'
 
 /* ── Types ── */
 
 interface NavItem {
   href: string
   label: string
-  emoji: string
+  icon: LucideIcon
   badge?: string
 }
 
 /* ── Nav Config ── */
 
 const LEARN_ITEMS: NavItem[] = [
-  { href: '/conversation', label: 'Practice', emoji: '🗣️' },
-  { href: '/review', label: 'Flashcards', emoji: '⚡' },
-  { href: '/knowledge?tab=reading', label: 'Reading', emoji: '📖' },
-  { href: '/knowledge?tab=grammar', label: 'Grammar', emoji: '✏️' },
+  { href: '/conversation', label: 'Practice', icon: MessageCircle },
+  { href: '/review', label: 'Flashcards', icon: Zap },
+  { href: '/knowledge?tab=reading', label: 'Reading', icon: BookOpen },
+  { href: '/knowledge?tab=grammar', label: 'Grammar', icon: PenLine },
 ]
 
 const MY_STUFF_ITEMS: NavItem[] = [
-  { href: '/knowledge', label: 'Vocabulary', emoji: '📚' },
-  { href: '/history', label: 'History', emoji: '📜' },
-  { href: '/insights', label: 'Study Streak', emoji: '🔥' },
-  { href: '/settings', label: 'Settings', emoji: '⚙️' },
+  { href: '/knowledge', label: 'Vocabulary', icon: BookMarked },
+  { href: '/history', label: 'History', icon: Clock },
+  { href: '/insights', label: 'Study Streak', icon: Flame },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 /* ── Breadcrumb label map ── */
@@ -66,19 +77,19 @@ function LogoIcon() {
   )
 }
 
-function NavLink({ href, label, emoji, badge, isActive }: NavItem & { isActive: boolean }) {
+function NavLink({ href, label, icon: Icon, badge, isActive }: NavItem & { isActive: boolean }) {
   return (
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-3 px-2.5 py-[8px] rounded-lg text-[14px] no-underline transition-[background,color] duration-100',
+        'flex items-center gap-3 px-3 py-1.5 rounded-md text-[14px] font-medium no-underline transition-[background,color] duration-100',
         isActive
-          ? 'font-medium text-text-primary bg-bg-active'
-          : 'font-normal text-text-secondary bg-transparent hover:bg-bg-hover hover:text-text-primary'
+          ? 'text-text-primary bg-bg-active'
+          : 'text-text-secondary bg-transparent hover:bg-bg-hover hover:text-text-primary'
       )}
     >
-      <span className="w-5 text-center text-[18px] leading-none shrink-0">{emoji}</span>
-      <span className="flex-1">{label}</span>
+      <Icon size={16} className="shrink-0" />
+      <span className="flex-1 truncate">{label}</span>
       {badge !== undefined && badge !== '' && (
         <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-accent-warm text-white text-[10.5px] font-bold leading-none">
           {badge}
@@ -107,8 +118,8 @@ function ProgressWidget() {
         <div className="h-full rounded-full bg-accent-brand transition-[width] duration-300" style={{ width: '0%' }} />
       </div>
       <div className="flex items-center gap-2.5 mt-3">
-        <span className="text-[12px] text-text-muted">📊 Level 1</span>
-        <span className="text-[12px] text-text-muted">🔥 0 day streak</span>
+        <span className="flex items-center gap-1 text-[12px] text-text-muted"><BarChart3 size={12} /> Level 1</span>
+        <span className="flex items-center gap-1 text-[12px] text-text-muted"><Flame size={12} /> 0 day streak</span>
       </div>
     </div>
   )
@@ -116,11 +127,11 @@ function ProgressWidget() {
 
 function UserFooter() {
   const router = useRouter()
-  const [user, setUser] = useState<{ email?: string; name?: string; avatarUrl?: string } | null>(null)
+  const [user, setUser] = useState<{ email?: string; name?: string } | null>(null)
 
   useEffect(() => {
     api.userGetMe().then((u) => {
-      if (u) setUser({ email: u.email ?? undefined, name: u.name ?? undefined, avatarUrl: u.avatarUrl ?? undefined })
+      if (u) setUser({ email: u.email ?? undefined, name: u.name ?? undefined })
     }).catch(() => {})
   }, [])
 
@@ -138,15 +149,8 @@ function UserFooter() {
       <Popover>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-3 w-full px-2.5 py-2.5 rounded-lg bg-transparent border-none cursor-pointer transition-colors duration-100 hover:bg-bg-hover">
-            <div className={cn(
-              'w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0',
-              user?.avatarUrl ? 'bg-transparent' : 'bg-gradient-to-br from-accent-brand to-accent-warm'
-            )}>
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt={displayName} width={36} height={36} className="rounded-full object-cover block" />
-              ) : (
-                <span className="text-[13px] font-bold text-white leading-none">{initials}</span>
-              )}
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-accent-brand">
+              <span className="text-[13px] font-bold text-white leading-none">{initials}</span>
             </div>
             <div className="flex flex-col min-w-0 flex-1 text-left">
               <span className="text-[14px] font-medium text-text-primary truncate">{displayName}</span>
@@ -173,6 +177,9 @@ function UserFooter() {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+
+  // Prefetch all page data on first mount so every page is instant
+  useEffect(() => { api.prefetch() }, [])
 
   const isActive = (href: string) => {
     const basePath = href.split('?')[0]
@@ -232,10 +239,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 flex-1 overflow-auto calligraphy-grid">
+        {/* Content — regular pages */}
+        <div className={cn('p-6 flex-1 overflow-auto calligraphy-grid', pathname === '/conversation' && 'hidden')}>
           <div className="relative z-[1]">
             {children}
+          </div>
+        </div>
+
+        {/* Persistent conversation view — stays mounted across navigations */}
+        <div className={cn('p-6 flex-1 overflow-auto', pathname !== '/conversation' && 'hidden')}>
+          <div className="relative z-[1] h-full">
+            <ConversationView />
           </div>
         </div>
       </div>

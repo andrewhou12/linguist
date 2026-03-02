@@ -20,13 +20,15 @@ export function buildAnalysisPrompt(
     ? `\nLearner's known vocabulary (already in word bank):\n${knownSurfaceForms.join(', ')}\n`
     : ''
 
+  const numberedTranscript = transcript.map((m, i) => `[${i}] [${m.role}] ${m.content}`).join('\n')
+
   return `Analyze this conversation transcript and return JSON.
 
 Session plan:
 ${JSON.stringify(plan, null, 2)}
 ${knownVocabSection}
-Transcript:
-${transcript.map((m) => `[${m.role}] ${m.content}`).join('\n')}
+Transcript (each message is numbered with its index):
+${numberedTranscript}
 
 Analyze the LEARNER's messages (role: "user") for:
 1. Which target items were successfully produced by the learner
@@ -37,11 +39,13 @@ Analyze the LEARNER's messages (role: "user") for:
 6. Communication strategies: circumlocution (talking around unknown words), L1 fallbacks (switching to native language), silence/avoidance
 7. Per-item context logs: for each item the learner interacted with, what modality and context
 
+IMPORTANT: For targets_hit, errors_logged, and avoidance_events, always include the "message_index" field referencing the message number from the transcript above where the event occurred.
+
 Respond with ONLY valid JSON matching this schema:
 {
-  "targets_hit": [item_ids],
-  "errors_logged": [{ "item_id": number, "error_type": string, "context_quote": string }],
-  "avoidance_events": [{ "item_id": number, "context_quote": string }],
+  "targets_hit": [{ "item_id": number, "message_index": number, "context_quote": string }],
+  "errors_logged": [{ "item_id": number, "error_type": string, "context_quote": string, "message_index": number }],
+  "avoidance_events": [{ "item_id": number, "context_quote": string, "message_index": number }],
   "new_items_encountered": [{ "surface_form": string, "context_quote": string }],
   "overall_assessment": "one sentence",
   "register_accuracy": {
@@ -79,19 +83,33 @@ export function parseAnalysis(raw: string): ExpandedPostSessionAnalysis {
     newItems: parsed.new_items_encountered?.length ?? 0,
     contextLogs: parsed.context_logs?.length ?? 0,
   })
+  // Handle targets_hit as either [number] (old) or [{ item_id, message_index, context_quote }] (new)
+  const targetsHit = (parsed.targets_hit ?? []).map(
+    (t: number | { item_id: number; message_index?: number; context_quote?: string }) => {
+      if (typeof t === 'number') return t
+      return {
+        itemId: t.item_id,
+        messageIndex: t.message_index,
+        contextQuote: t.context_quote,
+      }
+    }
+  )
+
   return {
-    targetsHit: parsed.targets_hit ?? [],
+    targetsHit,
     errorsLogged: (parsed.errors_logged ?? []).map(
-      (e: { item_id: number; error_type: string; context_quote: string }) => ({
+      (e: { item_id: number; error_type: string; context_quote: string; message_index?: number }) => ({
         itemId: e.item_id,
         errorType: e.error_type,
         contextQuote: e.context_quote,
+        messageIndex: e.message_index,
       })
     ),
     avoidanceEvents: (parsed.avoidance_events ?? []).map(
-      (a: { item_id: number; context_quote: string }) => ({
+      (a: { item_id: number; context_quote: string; message_index?: number }) => ({
         itemId: a.item_id,
         contextQuote: a.context_quote,
+        messageIndex: a.message_index,
       })
     ),
     newItemsEncountered: (parsed.new_items_encountered ?? []).map(

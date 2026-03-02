@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type {
   ReviewQueueItem,
   ReviewSubmission,
@@ -22,17 +22,20 @@ export interface SessionStats {
 }
 
 export function useReview() {
-  const [queue, setQueue] = useState<ReviewQueueItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const cachedQueue = api.peekCache<ReviewQueueItem[]>('/review/queue')
+  const [queue, setQueue] = useState<ReviewQueueItem[]>(cachedQueue ?? [])
+  const [isLoading, setIsLoading] = useState(!cachedQueue)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [sessionStats, setSessionStats] = useState<SessionStats>({
     reviewed: 0,
     correct: 0,
     masteryChanges: [],
   })
+  const skipLoadingRef = useRef(!!cachedQueue)
 
   const loadQueue = useCallback(async () => {
-    setIsLoading(true)
+    if (!skipLoadingRef.current) setIsLoading(true)
+    skipLoadingRef.current = false
     const items = await api.reviewGetQueue()
     setQueue(items)
     setCurrentIndex(0)

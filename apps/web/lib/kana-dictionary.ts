@@ -52,14 +52,28 @@ const HIRAGANA_PREFERRED = new Set([
   'おはよう', 'こんにちは', 'こんばんは', 'ありがとう', 'すみません',
   'ごめん', 'ごめんなさい', 'おやすみ', 'おやすみなさい', 'さようなら',
   'いただきます', 'ごちそうさま', 'ごちそうさまでした',
-  // Common adverbs / conjunctions that stay kana
-  'そして', 'しかし', 'でも', 'だから', 'それから', 'ところで',
+  // Common adverbs that stay kana
+  'あまり', 'たくさん', 'なかなか', 'ぜひ', 'つまり', 'ほとんど',
+  'なるほど', 'さすが', 'せっかく', 'ようやく', 'まさか', 'やっと',
+  'そろそろ', 'だんだん', 'さっぱり', 'めったに', 'たいてい',
+  'いろいろ', 'けっこう', 'まったく', 'ぜんぜん',
   'やはり', 'やっぱり', 'たぶん', 'もちろん', 'ちょっと',
   'とても', 'すごく', 'もう', 'まだ', 'もっと', 'ずっと',
   'いつも', 'たまに', 'ときどき',
+  // Conjunctions / connectors that stay kana
+  'そして', 'しかし', 'でも', 'だから', 'それから', 'ところで',
+  'ところが', 'すなわち', 'したがって', 'ただし', 'および',
+  'あるいは', 'それでも', 'それでは', 'それなのに',
+  // Question words typically in kana
+  'いつ', 'なぜ',
+  // Auxiliary that stays kana
+  'ください',
   // Common auxiliary / copula
   'です', 'ます', 'ません', 'ました', 'でした', 'ではない',
   'だった', 'ている', 'てる', 'ておく', 'てある',
+  // Te-forms of hiragana-preferred verbs
+  'して', 'きて', 'いて', 'あって', 'なって', 'できて',
+  'いって', 'みて', 'おいて', 'くれて', 'もらって', 'あげて',
   // Common verbs often left in kana
   'する', 'いる', 'ある', 'なる', 'できる', 'いく', 'くる',
   'みる', 'おく', 'あげる', 'もらう', 'くれる',
@@ -565,6 +579,12 @@ function checkWord(candidate: string): { match: boolean; surface: string | null 
 
   const conj = conjugatedLookup(candidate)
   if (conj.length > 0 && conj[0].surface !== candidate) {
+    // If the base (dictionary) form is hiragana-preferred, keep as kana.
+    // E.g., います → base いる is hiragana-preferred → stays as います, not 居ます.
+    const deconjs = deconjugate(candidate)
+    if (deconjs.some(d => HIRAGANA_PREFERRED.has(d.baseReading))) {
+      return { match: true, surface: null }
+    }
     return { match: true, surface: conj[0].surface }
   }
 
@@ -630,6 +650,78 @@ function findBestSplit(
       bestScore = score
       bestLen = len
       bestSurface = result.match ? result.surface : null
+    }
+  }
+
+  // ─── Te-form boundary check ─────────────────────────────────────
+  // If the best match contains an internal て/で, check whether
+  // splitting at that boundary (te-form + auxiliary continuation)
+  // produces an equal or better score.  This prevents greedy matches
+  // like してい→指定 from winning over the grammatically correct
+  // して + います pattern.
+  if (bestLen > 1) {
+    const bestCandidate = kana.slice(pos, pos + bestLen)
+    for (let i = 0; i < bestCandidate.length - 1; i++) {
+      const ch = bestCandidate[i]
+      if (ch !== 'て' && ch !== 'で') continue
+
+      const teLen = i + 1
+      if (teLen < 2) continue // need at least a verb stem before て/で
+
+      const teForm = bestCandidate.slice(0, teLen)
+      const teResult = checkWord(teForm)
+      if (!teResult.match) continue
+
+      // Score the remainder if we split at this て/で boundary
+      const splitNextPos = pos + teLen
+      const splitNextMaxLen = Math.min(kana.length - splitNextPos, 12)
+      let splitNextLen = 0
+      for (let len2 = splitNextMaxLen; len2 >= 1; len2--) {
+        const nextCandidate = kana.slice(splitNextPos, splitNextPos + len2)
+        const nextResult = len2 >= 2 ? checkWord(nextCandidate) : { match: false, surface: null }
+        if (nextResult.match || (len2 === 1 && HIRAGANA_PREFERRED.has(nextCandidate))) {
+          splitNextLen = len2
+          break
+        }
+      }
+
+      const teSplitScore = teLen + splitNextLen
+      if (teSplitScore >= bestScore) {
+        bestLen = teLen
+        bestSurface = teResult.surface
+        bestScore = teSplitScore
+        break
+      }
+    }
+  }
+
+  // ─── Particle boundary check ──────────────────────────────────────
+  // When a single-char particle ties with the best match, and the
+  // particle's lookahead word is LONGER than the current best match,
+  // prefer the particle split.  This prevents rare greedy matches
+  // like とお→十 from winning over と + 思う, while preserving
+  // legitimate longer words like とおい→遠い and でかける→出かける.
+  if (bestLen > 1) {
+    const firstChar = kana[pos]
+    if (HIRAGANA_PREFERRED.has(firstChar)) {
+      const particleNextPos = pos + 1
+      const particleNextMaxLen = Math.min(kana.length - particleNextPos, 12)
+      let particleLookaheadLen = 0
+      for (let len2 = particleNextMaxLen; len2 >= 1; len2--) {
+        const nextCandidate = kana.slice(particleNextPos, particleNextPos + len2)
+        const nextResult = len2 >= 2 ? checkWord(nextCandidate) : { match: false, surface: null }
+        if (nextResult.match || (len2 === 1 && HIRAGANA_PREFERRED.has(nextCandidate))) {
+          particleLookaheadLen = len2
+          break
+        }
+      }
+
+      const particleScore = 1 + particleLookaheadLen
+      if (particleScore >= bestScore && particleLookaheadLen > bestLen) {
+        bestLen = 1
+        bestSurface = null
+        bestScore = particleScore
+      }
     }
   }
 

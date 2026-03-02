@@ -27,7 +27,8 @@ export interface LearnerSummary {
 
 export function buildPlanningPrompt(
   learner: LearnerSummary,
-  brief: ExpandedTomBrief
+  brief: ExpandedTomBrief,
+  topicHint?: string
 ): string {
   const curriculumSection = learner.curriculumNewItems.length > 0
     ? `\nCurriculum recommendations (i+1 items to naturally introduce):\n${learner.curriculumNewItems
@@ -85,7 +86,7 @@ ${modalitySection}${pragmaticSection}${curriculumSection}${transferSection}
 ToM daily brief:
 ${JSON.stringify(brief, null, 2)}
 
-Respond with only valid JSON matching this schema:
+${topicHint ? `The learner has requested this topic: '${topicHint}'. Incorporate it into the session_focus.\n\n` : ''}Respond with only valid JSON matching this schema:
 {
   "target_vocabulary": number[],
   "target_grammar": number[],

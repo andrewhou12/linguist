@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { ConversationMessage, ExpandedSessionPlan } from '@lingle/shared/types'
+import type { ConversationMessage, ExpandedSessionPlan, TargetHitEntry } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 import { parseMessage, type MessageSegment } from '@/lib/message-parser'
 import { stripRubyAnnotations } from '@/lib/ruby-annotator'
@@ -66,27 +66,44 @@ export default function SessionDetailPage() {
   }
 
   const plan = session.sessionPlan as ExpandedSessionPlan | null
-  const targetsHit = (session.targetsHit ?? []) as number[]
-  const errorsLogged = (session.errorsLogged ?? []) as Array<{ itemId: number; errorType: string; contextQuote: string }>
-  const avoidanceEvents = (session.avoidanceEvents ?? []) as Array<{ itemId: number; contextQuote: string }>
+  const rawTargetsHit = (session.targetsHit ?? []) as Array<number | TargetHitEntry>
+  const errorsLogged = (session.errorsLogged ?? []) as Array<{ itemId: number; errorType: string; contextQuote: string; messageIndex?: number }>
+  const avoidanceEvents = (session.avoidanceEvents ?? []) as Array<{ itemId: number; contextQuote: string; messageIndex?: number }>
   const targetsPlanned = (session.targetsPlanned ?? { vocabulary: [], grammar: [] }) as { vocabulary: number[]; grammar: number[] }
+
+  // Normalize targetsHit: old sessions store number[], new sessions store TargetHitEntry[]
+  const normalizedTargetsHit: TargetHitEntry[] = rawTargetsHit.map((t) =>
+    typeof t === 'number' ? { itemId: t } : t
+  )
+  // For the analysis panel, extract just the item IDs
+  const targetsHitIds: number[] = normalizedTargetsHit.map((t) => t.itemId)
 
   const date = new Date(session.timestamp)
   const mins = session.durationSeconds ? Math.max(1, Math.round(session.durationSeconds / 60)) : null
 
-  // Build annotation index: for each message, match context quotes
-  function getAnnotationsForMessage(content: string): Annotation[] {
+  // Build annotation index: match by message_index first, fall back to substring matching
+  function getAnnotationsForMessage(messageIndex: number, content: string): Annotation[] {
     const annotations: Annotation[] = []
-    for (const id of targetsHit) {
-      annotations.push({ type: 'target_hit', label: `Target #${id}` })
+    for (const hit of normalizedTargetsHit) {
+      if (hit.messageIndex != null && hit.messageIndex === messageIndex) {
+        annotations.push({ type: 'target_hit', label: hit.contextQuote || `Target #${hit.itemId}` })
+      }
     }
     for (const err of errorsLogged) {
-      if (err.contextQuote && content.includes(err.contextQuote)) {
+      if (err.messageIndex != null) {
+        if (err.messageIndex === messageIndex) {
+          annotations.push({ type: 'error', label: err.contextQuote || `${err.errorType} on #${err.itemId}` })
+        }
+      } else if (err.contextQuote && content.includes(err.contextQuote)) {
         annotations.push({ type: 'error', label: err.contextQuote })
       }
     }
     for (const ev of avoidanceEvents) {
-      if (ev.contextQuote && content.includes(ev.contextQuote)) {
+      if (ev.messageIndex != null) {
+        if (ev.messageIndex === messageIndex) {
+          annotations.push({ type: 'avoidance', label: ev.contextQuote || `Item #${ev.itemId}` })
+        }
+      } else if (ev.contextQuote && content.includes(ev.contextQuote)) {
         annotations.push({ type: 'avoidance', label: ev.contextQuote })
       }
     }
@@ -154,17 +171,17 @@ export default function SessionDetailPage() {
       {/* Annotated Transcript */}
       <div className="mb-4">
         {transcript.map((msg, i) => {
-          const annotations = msg.role === 'user' ? [] : getAnnotationsForMessage(msg.content).filter(
-            (a) => a.type === 'error' || a.type === 'avoidance'
-          )
+          const annotations = getAnnotationsForMessage(i, msg.content)
 
           if (msg.role === 'user') {
             return (
-              <div key={i} className="flex justify-end py-1.5">
-                <div className="max-w-[75%] px-4 py-2.5 rounded-[20px] bg-bg-active text-text-primary leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {msg.content}
+              <AnnotatedMessage key={i} annotations={annotations}>
+                <div className="flex justify-end py-1.5">
+                  <div className="max-w-[75%] px-4 py-2.5 rounded-[20px] bg-bg-active text-text-primary leading-relaxed text-[15px] whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
                 </div>
-              </div>
+              </AnnotatedMessage>
             )
           }
 
@@ -185,7 +202,7 @@ export default function SessionDetailPage() {
       {/* Session Analysis */}
       <SessionAnalysisPanel
         targetsPlanned={targetsPlanned}
-        targetsHit={targetsHit}
+        targetsHit={targetsHitIds}
         errorsLogged={errorsLogged}
         avoidanceEvents={avoidanceEvents}
         durationSeconds={session.durationSeconds}
