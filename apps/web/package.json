@@ -6,8 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "mkdir -p public/dict && cp node_modules/kuromoji/dict/*.gz public/dict/ 2>/dev/null || true"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.46",
