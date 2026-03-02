@@ -16,8 +16,8 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./*"],
-      "@linguist/shared/*": ["../../packages/shared/src/*"],
-      "@linguist/core/*": ["../../packages/core/src/*"]
+      "@lingle/shared/*": ["../../packages/shared/src/*"],
+      "@lingle/core/*": ["../../packages/core/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

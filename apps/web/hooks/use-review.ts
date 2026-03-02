@@ -6,7 +6,7 @@ import type {
   ReviewSubmission,
   ReviewSummary,
   ItemType,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export interface SessionStats {

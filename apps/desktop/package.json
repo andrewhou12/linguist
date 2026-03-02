@@ -1,8 +1,8 @@
 {
-  "name": "@linguist/desktop",
+  "name": "@lingle/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Linguist desktop app (Electron)",
+  "description": "Lingle desktop app (Electron)",
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -17,9 +17,9 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@linguist/core": "workspace:*",
-    "@linguist/shared": "workspace:*",
-    "@linguist/db": "workspace:*",
+    "@lingle/core": "workspace:*",
+    "@lingle/shared": "workspace:*",
+    "@lingle/db": "workspace:*",
     "@prisma/client": "^6.3.0",
     "@radix-ui/themes": "^3.2.1",
     "@supabase/supabase-js": "^2.97.0",

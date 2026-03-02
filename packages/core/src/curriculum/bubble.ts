@@ -1,4 +1,4 @@
-import type { ItemType, KnowledgeBubble, LevelBreakdown } from '@linguist/shared/types'
+import type { ItemType, KnowledgeBubble, LevelBreakdown } from '@lingle/shared/types'
 import { loadJapaneseReferenceCorpus } from './reference-data'
 import { createLogger } from '../logger'
 

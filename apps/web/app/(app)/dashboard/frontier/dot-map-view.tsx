@@ -1,4 +1,4 @@
-import type { FrontierData } from '@linguist/shared/types'
+import type { FrontierData } from '@lingle/shared/types'
 import { DotMapGrid } from './components/dot-map-grid'
 import { DotMapLegend } from './components/dot-map-legend'
 

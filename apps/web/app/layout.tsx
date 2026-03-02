@@ -20,8 +20,11 @@ const notoSerifJP = Noto_Serif_JP({
 })
 
 export const metadata: Metadata = {
-  title: 'Linguist — Modern Language Learning',
+  title: 'Lingle — Modern Language Learning',
   description: 'The first Japanese learning system with a live model of exactly what you know.',
+  icons: {
+    icon: '/icon.svg',
+  },
 }
 
 export default function RootLayout({

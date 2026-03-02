@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { Check, X, AlertTriangle, Clock, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { PostSessionAnalysis, ExpandedSessionPlan } from '@linguist/shared/types'
+import type { PostSessionAnalysis, ExpandedSessionPlan } from '@lingle/shared/types'
 
 interface SessionSummaryModalProps {
   isOpen: boolean

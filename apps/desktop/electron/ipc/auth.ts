@@ -173,7 +173,7 @@ function openOAuthPopup(url: string): Promise<string> {
     const popup = new BrowserWindow({
       width: 500,
       height: 700,
-      title: 'Sign in — Linguist',
+      title: 'Sign in — Lingle',
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

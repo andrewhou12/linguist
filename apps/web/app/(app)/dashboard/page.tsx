@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { ReviewSummary, WeeklyStats } from '@linguist/shared/types'
+import type { ReviewSummary, WeeklyStats } from '@lingle/shared/types'
 import { useFrontier } from '@/hooks/use-frontier'
 import { DailyBrief } from './daily-brief'
 import { FrontierContainer } from './frontier/frontier-container'

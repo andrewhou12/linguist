@@ -9,7 +9,7 @@ export function UserMenu() {
   const [profile, setProfile] = useState<ExpandedLearnerProfile | null>(null)
 
   useEffect(() => {
-    window.linguist.profileGet().then(setProfile)
+    window.lingle.profileGet().then(setProfile)
   }, [])
 
   const displayName = user?.name || user?.email || 'Learner'

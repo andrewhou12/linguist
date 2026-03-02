@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, RefreshCw, ArrowRight } from 'lucide-react'
-import type { KnowledgeBubble, CurriculumRecommendation } from '@linguist/shared/types'
+import type { KnowledgeBubble, CurriculumRecommendation } from '@lingle/shared/types'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
 

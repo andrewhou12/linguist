@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Linguist Landing Page — Complete Redesign
+   Lingle Landing Page — Complete Redesign
    ══════════════════════════════════════════ */
 
 /* ── NAV ── */
@@ -275,11 +275,11 @@
 .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: var(--radius-2xl); overflow: hidden; font-size: 14px; }
 .compare-table th { padding: 14px 20px; background: var(--bg-secondary); font-size: 12.5px; font-weight: 600; color: var(--text-secondary); text-align: left; border-bottom: 1px solid var(--border); }
 .compare-table th:first-child { width: 36%; color: var(--text-primary); }
-.compare-table-linguist-th { background: var(--accent-brand) !important; color: rgba(255,255,255,.9) !important; }
+.compare-table-lingle-th { background: var(--accent-brand) !important; color: rgba(255,255,255,.9) !important; }
 .compare-table td { padding: 13px 20px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: middle; }
 .compare-table tr:last-child td { border-bottom: none; }
 .compare-table td:first-child { color: var(--text-primary); font-weight: 500; }
-.compare-table-linguist-td { background: rgba(47,47,47,.02); color: var(--text-primary); font-weight: 500; }
+.compare-table-lingle-td { background: rgba(47,47,47,.02); color: var(--text-primary); font-weight: 500; }
 .check-yes { color: #16a34a; font-weight: 600; }
 .check-partial { color: #ca8a04; }
 .check-no { color: var(--text-muted); }

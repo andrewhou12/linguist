@@ -1,4 +1,4 @@
-# LINGUIST
+# LINGLE
 ## Full-Stack Language Learning
 ### Working Product Vision · v2.1
 ### February 2026
@@ -7,7 +7,7 @@
 
 ## 1. What We Are Building
 
-Linguist is a full-stack language learning system. Not a flashcard app with a chatbot bolted on. Not a conversation partner that forgets you between sessions. A complete, integrated system that covers every dimension of language acquisition — input, explicit instruction, vocabulary retention, grammar internalisation, production practice — and makes them work together rather than in isolation.
+Lingle is a full-stack language learning system. Not a flashcard app with a chatbot bolted on. Not a conversation partner that forgets you between sessions. A complete, integrated system that covers every dimension of language acquisition — input, explicit instruction, vocabulary retention, grammar internalisation, production practice — and makes them work together rather than in isolation.
 
 The organizing principle is simple: the learner has a persistent knowledge state, and everything in the product reads from it and writes to it. Every flashcard review, every conversation turn, every native clip watched — all of it updates the same underlying model of what the learner knows. The system uses that model to decide what the learner encounters next, at what difficulty, in what format, with what support.
 
@@ -15,7 +15,7 @@ The goal is not to be the best flashcard app, or the best conversation partner, 
 
 ### The Five Dimensions of Acquisition
 
-Every learner needs all five of these to achieve real fluency. Every existing product covers at most two. Linguist covers all five.
+Every learner needs all five of these to achieve real fluency. Every existing product covers at most two. Lingle covers all five.
 
 - **Comprehensible Input:** Exposure to how the language actually sounds and flows — native conversations, real media, authentic text — calibrated to be just above the learner's current level.
 - **Explicit Instruction:** Structured introduction of vocabulary and grammar patterns with clear explanation, example, and immediate practice.
@@ -27,7 +27,7 @@ Every learner needs all five of these to achieve real fluency. Every existing pr
 
 ## 2. The Knowledge Model
 
-The knowledge model is the product's core data structure. Everything reads from it; everything writes to it. It is the primary moat — a learner who has used Linguist for six months has a detailed, accurate, deeply personalised model of their competence that no other product can replicate or import.
+The knowledge model is the product's core data structure. Everything reads from it; everything writes to it. It is the primary moat — a learner who has used Lingle for six months has a detailed, accurate, deeply personalised model of their competence that no other product can replicate or import.
 
 ### What It Tracks
 
@@ -68,7 +68,7 @@ Burned items are not retired. They are the foundation. Every piece of content th
 
 Previous versions of this document described a fixed sequential pipeline (review → input → conversation → lesson). That approach guarantees coverage of all learning dimensions but creates a rigid, class-schedule experience that discourages daily use. A 35–50 minute mandatory session means skipped days, and skipped days kill the learning model.
 
-Instead, Linguist presents a **flexible activity model** where conversation is the gravitational center, other activities exist as support infrastructure, and the knowledge model ensures the right items get coverage regardless of which path the learner takes.
+Instead, Lingle presents a **flexible activity model** where conversation is the gravitational center, other activities exist as support infrastructure, and the knowledge model ensures the right items get coverage regardless of which path the learner takes.
 
 ### The Home Screen
 
@@ -109,9 +109,9 @@ The intelligence is in how the system compensates for the learner's actual behav
 
 Kanji recognition is fundamentally different from vocabulary and grammar acquisition. It is **visual pattern matching** — the learner must see the character, recall its readings and meanings, and build associations between components. Conversation cannot teach this. You could talk to a character for a year and never learn to distinguish 持 from 待 from 特.
 
-Linguist needs a dedicated kanji/reading track that runs parallel to everything else, with its own SRS schedule. This track is not part of the conversation loop — it's its own activity.
+Lingle needs a dedicated kanji/reading track that runs parallel to everything else, with its own SRS schedule. This track is not part of the conversation loop — it's its own activity.
 
-**Open question:** Should Linguist build a full kanji learning system (similar to WaniKani's radical → kanji → vocabulary progression), or integrate with existing tools via API and focus engineering effort on the parts no one else does well? The build-vs-integrate decision has significant scope implications for V1.
+**Open question:** Should Lingle build a full kanji learning system (similar to WaniKani's radical → kanji → vocabulary progression), or integrate with existing tools via API and focus engineering effort on the parts no one else does well? The build-vs-integrate decision has significant scope implications for V1.
 
 **If built in-house:**
 - Radical → kanji → vocabulary dependency chain
@@ -122,7 +122,7 @@ Linguist needs a dedicated kanji/reading track that runs parallel to everything 
 **If integrated (e.g., WaniKani API):**
 - Sync learner's kanji state from external tool
 - Use synced state to inform vocabulary introduction (don't introduce vocabulary with unknown kanji)
-- Focus Linguist's engineering on conversation, curriculum, and the knowledge model
+- Focus Lingle's engineering on conversation, curriculum, and the knowledge model
 
 ---
 
@@ -134,7 +134,7 @@ Expose the learner to how the target language actually sounds and flows — the 
 
 ### The Problem With Existing Input Tools
 
-Existing input tools (Language Reactor, NHK Web Easy, graded readers) treat input as passive consumption. You watch, you look things up, nothing is connected to your learning history. Linguist's input layer is the opposite: every word encountered is checked against the learner's word bank, every unknown word is logged, the content selection is driven by the 98% comprehension threshold, and the vocabulary encountered feeds the SRS queue.
+Existing input tools (Language Reactor, NHK Web Easy, graded readers) treat input as passive consumption. You watch, you look things up, nothing is connected to your learning history. Lingle's input layer is the opposite: every word encountered is checked against the learner's word bank, every unknown word is logged, the content selection is driven by the 98% comprehension threshold, and the vocabulary encountered feeds the SRS queue.
 
 ### Content Types
 
@@ -243,7 +243,7 @@ Each flashcard shows not just the item but a context sentence — ideally a sent
 
 ### The Core Bet
 
-The conversation partner is where Linguist creates its sharpest differentiation. Unlike any existing product, the agent enters every session having read the learner's full knowledge state and generated a structured plan. It knows exactly what to target, what to avoid breaking, what to let go, and what to push on. The learner experiences this as a conversation that somehow always puts them in exactly the right productive struggle.
+The conversation partner is where Lingle creates its sharpest differentiation. Unlike any existing product, the agent enters every session having read the learner's full knowledge state and generated a structured plan. It knows exactly what to target, what to avoid breaking, what to let go, and what to push on. The learner experiences this as a conversation that somehow always puts them in exactly the right productive struggle.
 
 ### Two Conversation Modes
 
@@ -370,7 +370,7 @@ The system tracks what the learner actually does and adjusts recommendations. If
 
 ## 5. Cumulative Density — The Experience Building on Itself
 
-This is the dimension that separates Linguist from everything else at a fundamental level. Every other product teaches items and files them away. Linguist treats everything the learner has ever learned as active material — always available, always in use, always being extended into new contexts.
+This is the dimension that separates Lingle from everything else at a fundamental level. Every other product teaches items and files them away. Lingle treats everything the learner has ever learned as active material — always available, always in use, always being extended into new contexts.
 
 ### The Vocabulary Density Contract
 
@@ -387,7 +387,7 @@ If generated content doesn't meet these proportions, it is regenerated. This is 
 
 Individual words are only part of what needs to be learned. Natural language production depends heavily on chunks — multi-word units that are retrieved and produced as wholes rather than assembled from parts. 食べるのが好き, ありがとうございます, ~てもらえますか, なんか~みたいな — these are not assembled by grammar rules in the moment of production. They are stored and retrieved as units.
 
-Linguist tracks chunks explicitly alongside individual vocabulary items. Once a chunk's component words are at Journeyman or above, the chunk is introduced in context — first in input (clips, mini-dramas), then in lessons, then targeted in conversation. The mastery state machine applies to chunks exactly as it does to individual items. Production of a full chunk in conversation is the highest-value evidence event in the system.
+Lingle tracks chunks explicitly alongside individual vocabulary items. Once a chunk's component words are at Journeyman or above, the chunk is introduced in context — first in input (clips, mini-dramas), then in lessons, then targeted in conversation. The mastery state machine applies to chunks exactly as it does to individual items. Production of a full chunk in conversation is the highest-value evidence event in the system.
 
 ### The Agent's Long Memory
 
@@ -397,7 +397,7 @@ This enables deliberate vocabulary recycling across sessions. If the learner use
 
 The learner experiences this as a relationship with a character who remembers them. The system benefits from this as a precision instrument for cross-context consolidation. Both are true simultaneously.
 
-### Rising Linguistic Surface Over Time
+### Rising Lingleic Surface Over Time
 
 As the learner's Master and Burned vocabulary expands, the baseline of every conversation rises. The vocabulary density contract means that a session at month six produces richer, more idiomatically dense content than a session at week one — not because the system switched modes, but because the learner's known vocabulary horizon has expanded and the generation constraint naturally produces denser content against it.
 
@@ -493,7 +493,7 @@ Goal: prove the knowledge model works. A motivated learner should want to use th
 
 ## 9. Open Questions
 
-- **Kanji track: build or integrate?** Building a full kanji learning system (radical → kanji → vocabulary) is a significant engineering effort. Integrating with WaniKani or similar via API lets Linguist focus on its differentiators. The decision affects V1 scope substantially.
+- **Kanji track: build or integrate?** Building a full kanji learning system (radical → kanji → vocabulary) is a significant engineering effort. Integrating with WaniKani or similar via API lets Lingle focus on its differentiators. The decision affects V1 scope substantially.
 
 - **Chunk identification:** How does the system identify which multi-word sequences to track as chunks vs. decompose into individual items? Frequency-based extraction from a native corpus is the likely answer, but the threshold requires validation.
 
@@ -503,7 +503,7 @@ Goal: prove the knowledge model works. A motivated learner should want to use th
 
 - **Curated clip sourcing and rights:** The clip library requires real content. What is the licensing strategy? NHK Web Easy (openly available), public domain content, and licensed clips via partnership are three different paths with very different build timelines.
 
-- **Cold start experience:** New users with empty word banks get no immediate value from the knowledge model. The first-week experience needs to be compelling before the model is rich enough to feel magical. Explicit user communication: "Linguist is building a model of you. After 10 sessions it will start to feel different."
+- **Cold start experience:** New users with empty word banks get no immediate value from the knowledge model. The first-week experience needs to be compelling before the model is rich enough to feel magical. Explicit user communication: "Lingle is building a model of you. After 10 sessions it will start to feel different."
 
 - **Context window management:** A rich learner profile for a 12-month learner can exceed 50,000 tokens. Tiered profile injection strategy (full detail on active items, summarized state for Expert/Master/Burned, aggregate statistics for inactive categories) needs validation at scale.
 

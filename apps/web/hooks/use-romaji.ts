@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 
-const STORAGE_KEY = 'linguist-show-romaji'
+const STORAGE_KEY = 'lingle-show-romaji'
 const HAS_KANJI = /[\u4e00-\u9faf\u3400-\u4dbf]/
 const HAS_ANNOTATION = /\{[^}|]+\|[^}]+\}/
 

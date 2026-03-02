@@ -69,7 +69,7 @@ export function SignInPage() {
       >
         <Flex direction="column" align="center" gap="2">
           <Text size="8" weight="bold" style={{ letterSpacing: '-0.02em' }}>
-            Linguist
+            Lingle
           </Text>
           <Text size="3" color="gray" align="center">
             Your AI-powered language learning companion

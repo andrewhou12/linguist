@@ -7,7 +7,7 @@ import {
   type RecordLogItem,
   Rating,
 } from 'ts-fsrs'
-import type { FsrsState, ReviewGrade, ReviewQueueItem } from '@linguist/shared/types'
+import type { FsrsState, ReviewGrade, ReviewQueueItem } from '@lingle/shared/types'
 import { createLogger } from '../logger'
 
 const log = createLogger('core:fsrs')

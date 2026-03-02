@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { computeReviewQueue } from '@linguist/core/fsrs/scheduler'
-import type { FsrsState } from '@linguist/shared/types'
-import { MasteryState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import { computeReviewQueue } from '@lingle/core/fsrs/scheduler'
+import type { FsrsState } from '@lingle/shared/types'
+import { MasteryState } from '@lingle/shared/types'
 
 const MAX_QUEUE_SIZE = 200
 

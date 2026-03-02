@@ -28,8 +28,8 @@ export function LearnPage() {
     setIsLoading(true)
     try {
       const [bubbleData, recs] = await Promise.all([
-        window.linguist.curriculumGetBubble(),
-        window.linguist.curriculumGetRecommendations(),
+        window.lingle.curriculumGetBubble(),
+        window.lingle.curriculumGetRecommendations(),
       ])
       setBubble(bubbleData)
       setRecommendations(recs)
@@ -45,7 +45,7 @@ export function LearnPage() {
 
   const handleSkip = useCallback(async (id: number) => {
     try {
-      await window.linguist.curriculumSkipItem(id)
+      await window.lingle.curriculumSkipItem(id)
     } catch (err) {
       console.error('Failed to skip item:', err)
     }
@@ -54,7 +54,7 @@ export function LearnPage() {
   const handleRefresh = useCallback(async () => {
     setIsLoading(true)
     try {
-      const recs = await window.linguist.curriculumRegenerate()
+      const recs = await window.lingle.curriculumRegenerate()
       setRecommendations(recs)
     } catch (err) {
       console.error('Failed to regenerate:', err)
@@ -69,14 +69,14 @@ export function LearnPage() {
       const toIntroduce = recommendations.filter((r) => r.id != null)
       for (const rec of toIntroduce) {
         try {
-          await window.linguist.curriculumIntroduceItem(rec.id!)
+          await window.lingle.curriculumIntroduceItem(rec.id!)
         } catch {
           // Item may already exist — continue
         }
       }
 
       // Create session plan
-      const plan = await window.linguist.conversationPlan()
+      const plan = await window.lingle.conversationPlan()
       setSessionPlan(plan)
       setSessionId(plan._sessionId ?? null)
       setMessages([])
@@ -99,7 +99,7 @@ export function LearnPage() {
       setMessages((prev) => [...prev, userMsg])
       setIsSending(true)
       try {
-        const response = await window.linguist.conversationSend(sessionId, content)
+        const response = await window.lingle.conversationSend(sessionId, content)
         setMessages((prev) => [...prev, response])
       } catch (err) {
         console.error('Failed to send message:', err)
@@ -113,7 +113,7 @@ export function LearnPage() {
     if (!sessionId) return
     setIsLoading(true)
     try {
-      const result = await window.linguist.conversationEnd(sessionId)
+      const result = await window.lingle.conversationEnd(sessionId)
       setAnalysis(result)
     } catch (err) {
       console.error('Failed to end session:', err)

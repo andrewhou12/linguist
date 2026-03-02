@@ -14,9 +14,9 @@ export function DashboardPage() {
   const { data: frontierData } = useFrontier()
 
   useEffect(() => {
-    window.linguist.reviewGetSummary().then(setSummary)
-    window.linguist.reviewGetQueue().then((q) => setDueCount(q.length))
-    window.linguist.dashboardGetWeeklyStats().then(setWeeklyStats)
+    window.lingle.reviewGetSummary().then(setSummary)
+    window.lingle.reviewGetQueue().then((q) => setDueCount(q.length))
+    window.lingle.dashboardGetWeeklyStats().then(setWeeklyStats)
   }, [])
 
   const isLoading = summary === null || dueCount === null || weeklyStats === null

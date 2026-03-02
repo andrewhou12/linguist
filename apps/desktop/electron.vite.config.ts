@@ -9,7 +9,7 @@ const corePath = resolve(__dirname, '../../packages/core/src')
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({
-      exclude: ['@linguist/shared', '@linguist/core', '@linguist/db'],
+      exclude: ['@lingle/shared', '@lingle/core', '@lingle/db'],
     })],
     build: {
       lib: {
@@ -25,7 +25,7 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin({
-      exclude: ['@linguist/shared'],
+      exclude: ['@lingle/shared'],
     })],
     build: {
       lib: {

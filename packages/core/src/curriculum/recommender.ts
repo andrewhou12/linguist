@@ -2,7 +2,7 @@ import type {
   CurriculumRecommendation,
   ItemType,
   KnowledgeBubble,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import {
   loadJapaneseReferenceCorpus,
   type ReferenceVocabItem,

@@ -2,7 +2,7 @@
 
 ## CEFR Levels
 
-Linguist uses the **Common European Framework of Reference for Languages (CEFR)** scale internally. These are the standard levels used by language programs and tests worldwide:
+Lingle uses the **Common European Framework of Reference for Languages (CEFR)** scale internally. These are the standard levels used by language programs and tests worldwide:
 
 | CEFR Level | Description | Rough Ability |
 |---|---|---|

@@ -7,7 +7,7 @@ import type {
   ExpandedSessionPlan,
   ConversationMessage,
   PostSessionAnalysis,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { SessionPreview } from './session-preview'
 import { ConversationView } from './conversation-view'
 import { SessionSummary } from './session-summary'

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Check, X, ArrowRight, LayoutDashboard } from 'lucide-react'
-import type { ExpandedSessionPlan, PostSessionAnalysis } from '@linguist/shared/types'
+import type { ExpandedSessionPlan, PostSessionAnalysis } from '@lingle/shared/types'
 
 interface SessionSummaryProps {
   plan: ExpandedSessionPlan

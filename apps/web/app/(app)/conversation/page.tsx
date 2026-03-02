@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Square } from 'lucide-react'
+import { Square, BookText } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChat } from '@ai-sdk/react'
@@ -9,13 +9,18 @@ import { DefaultChatTransport, type UIMessage } from 'ai'
 import type {
   ExpandedSessionPlan,
   PostSessionAnalysis,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { api } from '@/lib/api'
 import { stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'
 import { useTTS } from '@/hooks/use-tts'
 import { RomajiText } from '@/components/romaji-text'
 import { VocabCard, GrammarCard, CorrectionCard, ReviewPromptCard } from '@/components/conversation-cards'
+import { NaturalnessBadge } from '@/components/chat/naturalness-badge'
+import { SentenceXRayButton } from '@/components/chat/sentence-xray'
+import { LivingText } from '@/components/chat/living-text'
+import { ComprehensionScore } from '@/components/chat/comprehension-score'
+import { useLivingText, type AnnotatedToken, type ComprehensionStats } from '@/hooks/use-living-text'
 import { ChallengeCard } from '@/components/challenge-card'
 import { MessageBlock } from '@/components/chat/message-block'
 import { ChatInput } from '@/components/chat/chat-input'
@@ -49,6 +54,8 @@ export default function ConversationPage() {
   sessionIdRef.current = sessionId
   const { showRomaji, toggle: toggleRomaji } = useRomaji()
   const tts = useTTS()
+  const [livingTextEnabled, setLivingTextEnabled] = useState(false)
+  const livingText = useLivingText()
 
   const transport = useMemo(
     () =>
@@ -108,6 +115,49 @@ export default function ConversationPage() {
         return next
       })
     }
+  }, [messages])
+
+  // Build naturalness map: user message ID → { rating, note }
+  const naturalnessMap = useMemo(() => {
+    const map = new Map<string, { rating: 'great' | 'good' | 'needs_work'; note?: string }>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg.role !== 'assistant') continue
+      // Find the preceding user message
+      const prevUser = i > 0 && messages[i - 1].role === 'user' ? messages[i - 1] : null
+      if (!prevUser) continue
+      for (const part of msg.parts) {
+        const partType = (part as { type: string }).type
+        if (partType === 'tool-rateNaturalness') {
+          const toolPart = part as { type: string; state: string; output?: unknown }
+          if (toolPart.state === 'output-available' && toolPart.output) {
+            const output = toolPart.output as { rating: 'great' | 'good' | 'needs_work'; note?: string }
+            map.set(prevUser.id, output)
+          }
+        }
+      }
+    }
+    return map
+  }, [messages])
+
+  // Extract dynamic suggestions from the latest assistant message
+  const dynamicSuggestions = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'assistant') continue
+      for (const part of msg.parts) {
+        const partType = (part as { type: string }).type
+        if (partType === 'tool-suggestResponses') {
+          const toolPart = part as { type: string; state: string; output?: unknown }
+          if (toolPart.state === 'output-available' && toolPart.output) {
+            const output = toolPart.output as { suggestions: string[] }
+            if (output.suggestions?.length > 0) return output.suggestions
+          }
+        }
+      }
+      break // Only check the latest assistant message
+    }
+    return null
   }, [messages])
 
   useEffect(() => {
@@ -291,17 +341,32 @@ export default function ConversationPage() {
             </>
           )}
         </div>
-        <button
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg bg-warm-soft px-3 py-1.5 text-[13px] font-medium text-accent-warm border-none cursor-pointer transition-colors hover:bg-warm-med',
-            isLoading && 'opacity-50'
-          )}
-          onClick={handleEndSession}
-          disabled={isLoading}
-        >
-          <Square size={12} />
-          End Session
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className={cn(
+              'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium border-none cursor-pointer transition-colors',
+              livingTextEnabled
+                ? 'bg-accent-brand/10 text-accent-brand'
+                : 'bg-bg-secondary text-text-muted hover:text-text-secondary'
+            )}
+            onClick={() => setLivingTextEnabled((v) => !v)}
+            title="Toggle Living Text"
+          >
+            <BookText size={12} />
+            Living Text
+          </button>
+          <button
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg bg-warm-soft px-3 py-1.5 text-[13px] font-medium text-accent-warm border-none cursor-pointer transition-colors hover:bg-warm-med',
+              isLoading && 'opacity-50'
+            )}
+            onClick={handleEndSession}
+            disabled={isLoading}
+          >
+            <Square size={12} />
+            End Session
+          </button>
+        </div>
       </div>
 
       {/* Challenge card */}
@@ -322,6 +387,9 @@ export default function ConversationPage() {
               message={msg}
               showRomaji={showRomaji}
               getAnnotated={getAnnotated}
+              naturalness={msg.role === 'user' ? naturalnessMap.get(msg.id) : undefined}
+              livingTextEnabled={livingTextEnabled}
+              livingText={livingText}
               onPlay={
                 msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim())
                   ? () => {
@@ -362,7 +430,7 @@ export default function ConversationPage() {
           {/* Suggestion chips — only show when no messages yet or after assistant reply */}
           {(messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !isSending)) && (
             <SuggestionChips
-              suggestions={DEFAULT_SUGGESTIONS}
+              suggestions={dynamicSuggestions ?? DEFAULT_SUGGESTIONS}
               onSelect={handleSuggestionSelect}
             />
           )}
@@ -389,6 +457,9 @@ function UIMessageRenderer({
   message,
   showRomaji,
   getAnnotated,
+  naturalness,
+  livingTextEnabled,
+  livingText,
   onPlay,
   onStop,
   isPlayingAudio,
@@ -397,6 +468,9 @@ function UIMessageRenderer({
   message: UIMessage
   showRomaji: boolean
   getAnnotated: (text: string) => string
+  naturalness?: { rating: 'great' | 'good' | 'needs_work'; note?: string }
+  livingTextEnabled?: boolean
+  livingText?: { ready: boolean; annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
   onPlay?: () => void
   onStop?: () => void
   isPlayingAudio?: boolean
@@ -411,11 +485,22 @@ function UIMessageRenderer({
       <MessageBlock
         role="user"
         content={textContent}
-      />
+      >
+        {naturalness && (
+          <NaturalnessBadge rating={naturalness.rating} note={naturalness.note} />
+        )}
+      </MessageBlock>
     )
   }
 
+  const useLiving = livingTextEnabled && livingText?.ready && !isStreaming
+
   // Assistant message — render parts
+  const assistantText = message.parts
+    .filter((p) => p.type === 'text')
+    .map((p) => (p as { type: 'text'; text: string }).text)
+    .join('')
+
   return (
     <MessageBlock
       role="assistant"
@@ -427,8 +512,18 @@ function UIMessageRenderer({
       isStreaming={isStreaming}
     >
       {message.parts.map((part, i) => (
-        <PartRenderer key={i} part={part} showRomaji={showRomaji} getAnnotated={getAnnotated} />
+        <PartRenderer
+          key={i}
+          part={part}
+          showRomaji={showRomaji}
+          getAnnotated={getAnnotated}
+          livingTextEnabled={useLiving}
+          livingText={livingText}
+        />
       ))}
+      {!isStreaming && assistantText.trim() && (
+        <SentenceXRayButton sentence={assistantText} />
+      )}
     </MessageBlock>
   )
 }
@@ -437,15 +532,25 @@ function PartRenderer({
   part,
   showRomaji,
   getAnnotated,
+  livingTextEnabled,
+  livingText,
 }: {
   part: UIMessage['parts'][number]
   showRomaji: boolean
   getAnnotated: (text: string) => string
+  livingTextEnabled?: boolean
+  livingText?: { ready: boolean; annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
 }) {
   // Type narrowing via the type field
   if (part.type === 'text') {
     const text = (part as { type: 'text'; text: string }).text
     if (!text.trim()) return null
+
+    // Living Text mode: tokenize + mastery-color
+    if (livingTextEnabled && livingText) {
+      return <LivingTextPart text={text} livingText={livingText} />
+    }
+
     const displayText = showRomaji ? getAnnotated(text) : text
     if (showRomaji) {
       return (
@@ -491,4 +596,43 @@ function PartRenderer({
 
   // step-start, reasoning, etc. — ignore
   return null
+}
+
+function LivingTextPart({
+  text,
+  livingText,
+}: {
+  text: string
+  livingText: { annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
+}) {
+  const [tokens, setTokens] = useState<AnnotatedToken[] | null>(null)
+  const [stats, setStats] = useState<ComprehensionStats | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    livingText.annotateText(text).then((result) => {
+      if (cancelled) return
+      setTokens(result)
+      setStats(livingText.computeComprehension(result))
+    })
+    return () => { cancelled = true }
+  }, [text, livingText])
+
+  if (!tokens) {
+    // Fallback to plain text while tokenizing
+    return (
+      <div className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]">
+        <Markdown remarkPlugins={[remarkGfm]}>
+          {stripRubyAnnotations(text)}
+        </Markdown>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <LivingText tokens={tokens} />
+      {stats && <ComprehensionScore stats={stats} />}
+    </>
+  )
 }

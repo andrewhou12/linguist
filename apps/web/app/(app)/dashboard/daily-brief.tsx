@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { FrontierData, TomBrief } from '@linguist/shared/types'
+import type { FrontierData, TomBrief } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 

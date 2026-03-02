@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { FrontierData } from '@linguist/shared/types'
+import type { FrontierData } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useFrontier() {

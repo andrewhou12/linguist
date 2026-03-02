@@ -1,4 +1,4 @@
-import type { FrontierData } from '@linguist/shared/types'
+import type { FrontierData } from '@lingle/shared/types'
 import { RadarChart } from './components/radar-chart'
 import { LevelProgressBar } from './components/level-progress-bar'
 

@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { FrontierItem } from '@linguist/shared/types'
+import type { FrontierItem } from '@lingle/shared/types'
 import { MASTERY_ORDER, MASTERY_LABELS } from '@/constants/mastery'
 import { cn } from '@/lib/utils'
 

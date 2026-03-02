@@ -952,7 +952,7 @@ function deduplicateItems(items: GrammarItem[]): GrammarItem[] {
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log("=== Linguist Grammar Corpus Builder (jlptsensei source) ===");
+  log("=== Lingle Grammar Corpus Builder (jlptsensei source) ===");
   log("");
 
   const { useCache, singleLevel } = parseArgs();

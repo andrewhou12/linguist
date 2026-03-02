@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
-import type { ReviewQueueItem, ReviewGrade } from '@linguist/shared/types'
+import type { ReviewQueueItem, ReviewGrade } from '@lingle/shared/types'
 import { formatMasteryLabel } from '@/constants/mastery'
 
 interface ReviewCardProps {

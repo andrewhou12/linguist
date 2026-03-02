@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { generateExpandedDailyBrief, type ExpandedBriefInput } from '@linguist/core/tom/analyzer'
-import type { FsrsState, PragmaticState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import { generateExpandedDailyBrief, type ExpandedBriefInput } from '@lingle/core/tom/analyzer'
+import type { FsrsState, PragmaticState } from '@lingle/shared/types'
 
 export const POST = withAuth(async (_request, { userId }) => {
   const lexicalItems = await prisma.lexicalItem.findMany({

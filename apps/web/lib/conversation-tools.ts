@@ -1,6 +1,6 @@
 import { tool, jsonSchema } from 'ai'
-import { prisma } from '@linguist/db'
-import { createInitialFsrsState } from '@linguist/core/fsrs/scheduler'
+import { prisma } from '@lingle/db'
+import { createInitialFsrsState } from '@lingle/core/fsrs/scheduler'
 import type { Prisma } from '@prisma/client'
 
 // Schema definitions as JSON Schema objects for AI SDK tool()
@@ -70,6 +70,39 @@ const reviewPromptSchema = jsonSchema<{
     item_id: { type: 'string', description: 'ID of the item being reviewed' },
   },
   required: ['prompt', 'answer'],
+})
+
+const rateNaturalnessSchema = jsonSchema<{
+  rating: 'great' | 'good' | 'needs_work'
+  note?: string
+}>({
+  type: 'object',
+  properties: {
+    rating: {
+      type: 'string',
+      enum: ['great', 'good', 'needs_work'],
+      description: 'How natural the learner\'s Japanese sounded: great (native-like), good (understandable, minor issues), needs_work (unnatural phrasing or structure)',
+    },
+    note: {
+      type: 'string',
+      description: 'Optional brief note about what made it natural or what could improve',
+    },
+  },
+  required: ['rating'],
+})
+
+const suggestResponsesSchema = jsonSchema<{
+  suggestions: string[]
+}>({
+  type: 'object',
+  properties: {
+    suggestions: {
+      type: 'array',
+      items: { type: 'string' },
+      description: '2-3 contextual response suggestions in the target language that the learner could say next',
+    },
+  },
+  required: ['suggestions'],
 })
 
 const markTargetsHitSchema = jsonSchema<{
@@ -218,6 +251,26 @@ export function createConversationTools(userId: string, sessionId: string) {
       execute: async ({ prompt, answer, item_type, item_id }) => {
         // No-op — display only
         return { prompt, answer, item_type, item_id }
+      },
+    }),
+
+    rateNaturalness: tool({
+      description:
+        'Rate how natural the learner\'s Japanese was in their most recent message. Call this for every user message that contains Japanese text.',
+      inputSchema: rateNaturalnessSchema,
+      execute: async ({ rating, note }) => {
+        // No-op — display only, rendered as NaturalnessBadge on user messages
+        return { rating, note }
+      },
+    }),
+
+    suggestResponses: tool({
+      description:
+        'Suggest 2-3 contextual responses the learner could say next. Call this at the end of every response.',
+      inputSchema: suggestResponsesSchema,
+      execute: async ({ suggestions }) => {
+        // No-op — display only, rendered as suggestion chips
+        return { suggestions }
       },
     }),
 

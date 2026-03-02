@@ -1,8 +1,8 @@
-# Linguist — Claude Code Instructions (V1)
+# Lingle — Claude Code Instructions (V1)
 
 ## What We're Building
 
-Linguist is a desktop-first language learning agent. Its core idea: the learner has a **knowledge state**, and every interaction updates it. The app always knows where the learner is and uses that to decide what they should encounter next.
+Lingle is a desktop-first language learning agent. Its core idea: the learner has a **knowledge state**, and every interaction updates it. The app always knows where the learner is and uses that to decide what they should encounter next.
 
 V1 goal: a working daily-use app that proves the knowledge model works. A learner who uses it for 30 days should have a demonstrably more accurate, personalized knowledge model — and the conversation agent's session plans should visibly improve over time.
 
@@ -26,7 +26,7 @@ The **learner profile** is the product. Everything reads from it; everything wri
 ### File Structure
 
 ```
-linguist/
+lingle/
 ├── electron/
 │   ├── main.ts              # App entry, window management, Supabase start/stop
 │   ├── preload.ts           # Context bridge — exposes IPC to renderer safely
@@ -306,7 +306,7 @@ The daily anchor habit. Fast, clean, locally computed.
 
 ### 4. Conversation Partner
 
-This is Linguist's primary differentiator. The agent reads the learner profile before every session and has **explicit goals** derived from it.
+This is Lingle's primary differentiator. The agent reads the learner profile before every session and has **explicit goals** derived from it.
 
 #### Pre-Session Planning
 
@@ -494,9 +494,9 @@ Speaker output + transcript logged to DB
 - If latency becomes the bottleneck at scale: evaluate **Cartesia Sonic** (40–90ms TTFA, ~73% cheaper, slightly lower naturalness)
 
 ### Why Not OpenAI Realtime API
-The Realtime API (speech-to-speech, no explicit STT/TTS step) is explicitly **not recommended** for Linguist:
+The Realtime API (speech-to-speech, no explicit STT/TTS step) is explicitly **not recommended** for Lingle:
 - Locks the entire pipeline to OpenAI — no ability to swap in Claude or adjust the LLM independently
-- No access to the intermediate transcript, which Linguist needs to log errors, update the learner profile, and run post-session analysis
+- No access to the intermediate transcript, which Lingle needs to log errors, update the learner profile, and run post-session analysis
 - Japanese handling mid-conversation is reportedly inconsistent
 - No control over TTS voice quality
 

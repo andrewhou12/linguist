@@ -12,8 +12,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@linguist/shared/*": ["../shared/src/*"],
-      "@linguist/shared": ["../shared/src/types.ts"]
+      "@lingle/shared/*": ["../shared/src/*"],
+      "@lingle/shared": ["../shared/src/types.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.json"]

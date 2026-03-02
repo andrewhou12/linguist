@@ -1,4 +1,4 @@
-import type { FsrsState } from '@linguist/shared/types'
+import type { FsrsState } from '@lingle/shared/types'
 import { createLogger } from '../logger'
 
 const log = createLogger('core:profile')

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
+import { prisma } from '@lingle/db'
 
 export const GET = withAuth(async (_request, { userId }) => {
   const items = await prisma.lexicalItem.findMany({

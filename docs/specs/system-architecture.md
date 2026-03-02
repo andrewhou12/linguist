@@ -1,4 +1,4 @@
-# Linguist: System Architecture & Core Mechanics
+# Lingle: System Architecture & Core Mechanics
 
 How the app works at a fundamental level — what's in the database, how knowledge is tracked, how new concepts are introduced, and how they're tested.
 

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { computeKnowledgeBubble, type BubbleItemInput } from '@linguist/core/curriculum/bubble'
-import { generateCurriculumPlan } from '@linguist/core/curriculum/planner'
-import { getItemsForLevel } from '@linguist/core/curriculum/reference-data'
-import { createInitialFsrsState } from '@linguist/core/fsrs/scheduler'
+import { prisma } from '@lingle/db'
+import { computeKnowledgeBubble, type BubbleItemInput } from '@lingle/core/curriculum/bubble'
+import { generateCurriculumPlan } from '@lingle/core/curriculum/planner'
+import { getItemsForLevel } from '@lingle/core/curriculum/reference-data'
+import { createInitialFsrsState } from '@lingle/core/fsrs/scheduler'
 import type { Prisma } from '@prisma/client'
 
 /**

@@ -9,7 +9,7 @@ export function useConversation() {
 
   const startSession = useCallback(async () => {
     setIsLoading(true)
-    const sessionPlan = await window.linguist.conversationPlan()
+    const sessionPlan = await window.lingle.conversationPlan()
     setPlan(sessionPlan)
     setSessionId(sessionPlan._sessionId ?? crypto.randomUUID())
     setMessages([])
@@ -29,7 +29,7 @@ export function useConversation() {
       setMessages((prev) => [...prev, userMessage])
 
       setIsLoading(true)
-      const response = await window.linguist.conversationSend(sessionId, content)
+      const response = await window.lingle.conversationSend(sessionId, content)
       setMessages((prev) => [...prev, response])
       setIsLoading(false)
 
@@ -40,7 +40,7 @@ export function useConversation() {
 
   const endSession = useCallback(async (): Promise<PostSessionAnalysis | null> => {
     if (!sessionId) return null
-    const analysis = await window.linguist.conversationEnd(sessionId)
+    const analysis = await window.lingle.conversationEnd(sessionId)
     setSessionId(null)
     return analysis
   }, [sessionId])

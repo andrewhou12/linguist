@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  transpilePackages: ['@linguist/core', '@linguist/shared', '@linguist/db'],
+  transpilePackages: ['@lingle/core', '@lingle/shared', '@lingle/db'],
 }
 
 export default config

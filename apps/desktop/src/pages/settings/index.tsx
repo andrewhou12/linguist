@@ -20,7 +20,7 @@ export function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    window.linguist.profileGet().then((p) => {
+    window.lingle.profileGet().then((p) => {
       setProfile(p)
       setIsLoading(false)
     })
@@ -34,7 +34,7 @@ export function SettingsPage() {
       nativeLanguage: string
     }>
   ) => {
-    const updated = await window.linguist.profileUpdate(updates)
+    const updated = await window.lingle.profileUpdate(updates)
     setProfile(updated)
   }
 

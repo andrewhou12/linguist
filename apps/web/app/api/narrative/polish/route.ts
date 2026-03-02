@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
 import Anthropic from '@anthropic-ai/sdk'
-import { buildPolishPrompt } from '@linguist/core/narrative/prompt'
+import { buildPolishPrompt } from '@lingle/core/narrative/prompt'
 
 const anthropic = new Anthropic()
 

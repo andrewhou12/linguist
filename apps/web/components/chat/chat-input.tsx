@@ -17,7 +17,7 @@ interface ChatInputProps {
   onToggleRomaji?: () => void
 }
 
-const IME_TOOLTIP_KEY = 'linguist-ime-tooltip-dismissed'
+const IME_TOOLTIP_KEY = 'lingle-ime-tooltip-dismissed'
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent)
 const TOGGLE_KEY_LABEL = IS_MAC ? '⌘Space' : 'Ctrl+Space'
 

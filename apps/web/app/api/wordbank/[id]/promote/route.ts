@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { createInitialFsrsState } from '@linguist/core/fsrs/scheduler'
+import { prisma } from '@lingle/db'
+import { createInitialFsrsState } from '@lingle/core/fsrs/scheduler'
 import type { Prisma } from '@prisma/client'
 
 export const POST = withAuth(async (request, { userId }) => {

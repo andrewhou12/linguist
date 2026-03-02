@@ -145,7 +145,7 @@ export default function LandingPage() {
       <nav className={s.nav}>
         <Link href="/" className={s['nav-logo']}>
           <div className={s['nav-logo-mark']}><LogoSVG /></div>
-          <span className={s['nav-logo-text']}>Linguist</span>
+          <span className={s['nav-logo-text']}>Lingle</span>
         </Link>
         <div className={s['nav-links']}>
           <a href="#adaptive" className={s['nav-link']}>The Engine</a>
@@ -175,7 +175,7 @@ export default function LandingPage() {
           <span className={s['hero-title-jp']}>あなたに合わせて、進化し続ける</span>
         </div>
         <p className={s['hero-sub']}>
-          Linguist is the first Japanese learning system with a <strong>live model of exactly what you know.</strong> It guides you forward and leads you to mastery through natural conversation — <strong>adapting its feedback, corrections, and challenges to you in real time.</strong>
+          Lingle is the first Japanese learning system with a <strong>live model of exactly what you know.</strong> It guides you forward and leads you to mastery through natural conversation — <strong>adapting its feedback, corrections, and challenges to you in real time.</strong>
         </p>
         <div className={s['hero-actions']}>
           <Link href="/sign-in" className={s['btn-hero']}>Start learning free →</Link>
@@ -200,14 +200,14 @@ export default function LandingPage() {
               <div className={s['chrome-dot']} />
               <div className={s['chrome-dot']} />
             </div>
-            <div className={s['chrome-bar']}>app.linguist.ai</div>
+            <div className={s['chrome-bar']}>app.lingle.ai</div>
           </div>
           <div className={s['frame-body']}>
             {/* SIDEBAR */}
             <div className={s['frame-sidebar']}>
               <div className={s['frame-logo-row']}>
                 <div className={s['frame-logo-mark']}><LogoSVG size={15} /></div>
-                <span className={s['frame-logo-name']}>Linguist</span>
+                <span className={s['frame-logo-name']}>Lingle</span>
               </div>
               <div className={s['frame-section-label']}>Practice</div>
               <div className={`${s['frame-nav-item']} ${s['frame-nav-item-active']}`}>
@@ -663,7 +663,7 @@ export default function LandingPage() {
             <div className={s['fluency-banner-icon']}>🎯</div>
             <div>
               <div className={s['fluency-banner-title']}>The goal is always <em>conversational fluency</em></div>
-              <div className={s['fluency-banner-text']}>Everything in Linguist exists in service of one thing: holding a real conversation in Japanese.</div>
+              <div className={s['fluency-banner-text']}>Everything in Lingle exists in service of one thing: holding a real conversation in Japanese.</div>
             </div>
           </div>
         </div>
@@ -745,7 +745,7 @@ export default function LandingPage() {
         </div>
         <div className={s['testimonials-grid']}>
           <div className={`${s['testimonial-card']} ${s.reveal}`}>
-            <p className={s['testimonial-quote']}>&ldquo;Linguist is the first app where I feel like it actually knows me — the right word shows up right when I&apos;m ready.&rdquo;</p>
+            <p className={s['testimonial-quote']}>&ldquo;Lingle is the first app where I feel like it actually knows me — the right word shows up right when I&apos;m ready.&rdquo;</p>
             <span className={s['testimonial-jp']}>知ってる言葉がどんどん広がる感覚</span>
             <div className={s['testimonial-author']}>
               <div className={s['testimonial-avatar']}>KS</div>
@@ -780,11 +780,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── WHY LINGUIST (Comparison) ── */}
+      {/* ── WHY LINGLE (Comparison) ── */}
       <section className={s.section}>
         <div className={s.reveal}>
-          <div className={s['section-label']}>Why Linguist</div>
-          <h2 className={s['section-title']}>Every other app teaches Japanese.<br/>Linguist <em>learns</em> you.</h2>
+          <div className={s['section-label']}>Why Lingle</div>
+          <h2 className={s['section-title']}>Every other app teaches Japanese.<br/>Lingle <em>learns</em> you.</h2>
         </div>
         <div className={`${s['compare-wrap']} ${s.reveal}`}>
           <table className={s['compare-table']}>
@@ -793,7 +793,7 @@ export default function LandingPage() {
                 <th>Capability</th>
                 <th>Duolingo</th>
                 <th>Anki + tutor</th>
-                <th className={s['compare-table-linguist-th']}>Linguist</th>
+                <th className={s['compare-table-lingle-th']}>Lingle</th>
               </tr>
             </thead>
             <tbody>
@@ -801,37 +801,37 @@ export default function LandingPage() {
                 <td>Personalized to your exact knowledge</td>
                 <td className={s['check-partial']}>Partial</td>
                 <td className={s['check-no']}>No</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>Yes — every mode, always</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>Yes — every mode, always</td>
               </tr>
               <tr>
                 <td>Proactive — acts before you forget</td>
                 <td className={s['check-no']}>No</td>
                 <td className={s['check-no']}>No</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>Monitors retention continuously</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>Monitors retention continuously</td>
               </tr>
               <tr>
                 <td>Conversations target weak points</td>
                 <td className={s['check-no']}>No</td>
                 <td className={s['check-partial']}>Depends</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>Every session, automatically</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>Every session, automatically</td>
               </tr>
               <tr>
                 <td>SRS updated by conversation</td>
                 <td className={s['check-no']}>No</td>
                 <td className={s['check-no']}>No</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>Production = longer interval</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>Production = longer interval</td>
               </tr>
               <tr>
                 <td>Requires production to advance</td>
                 <td className={s['check-no']}>No</td>
                 <td className={s['check-partial']}>Partial</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>Always — conversation gated</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>Always — conversation gated</td>
               </tr>
               <tr>
                 <td>Native content calibrated to level</td>
                 <td className={s['check-no']}>No</td>
                 <td className={s['check-no']}>No</td>
-                <td className={`${s['compare-table-linguist-td']} ${s['check-yes']}`}>98% comprehension threshold</td>
+                <td className={`${s['compare-table-lingle-td']} ${s['check-yes']}`}>98% comprehension threshold</td>
               </tr>
             </tbody>
           </table>
@@ -884,9 +884,9 @@ export default function LandingPage() {
         <div className={s['footer-left']}>
           <Link href="/" className={s['footer-logo']}>
             <div className={s['footer-logo-mark']}><LogoSVG size={17} /></div>
-            <span className={s['footer-logo-name']}>Linguist</span>
+            <span className={s['footer-logo-name']}>Lingle</span>
           </Link>
-          <span className={s['footer-copy']}>© 2026 Linguist. All rights reserved.</span>
+          <span className={s['footer-copy']}>© 2026 Lingle. All rights reserved.</span>
         </div>
         <div className={s['footer-links']}>
           <a href="#" className={s['footer-link']}>Privacy</a>

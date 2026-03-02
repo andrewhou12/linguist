@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Linguist Architecture Diagram Generator (v3 — Curriculum Engine)
+ * Lingle Architecture Diagram Generator (v3 — Curriculum Engine)
  * Generates a comprehensive .excalidraw file representing the full codebase architecture.
  *
  * Updated: 2026-02-26 to reflect curriculum spine system, multi-word units, and authoritative corpus.
@@ -281,19 +281,19 @@ const Z0_X = 60;
 const Z0_Y = 60;
 const Z0_W = 1840;
 
-elements.push(sectionLabel({ x: Z0_X, y: Z0_Y, content: "Linguist — Turborepo + pnpm Monorepo Architecture" }));
+elements.push(sectionLabel({ x: Z0_X, y: Z0_Y, content: "Lingle — Turborepo + pnpm Monorepo Architecture" }));
 elements.push(text({ x: Z0_X, y: Z0_Y + 42, content: "Multi-platform language learning agent: Desktop (Electron) + Web (Next.js) sharing core business logic", size: 14, family: 1, color: "#868e96" }));
 
 // Workspace layout box
 const z0BodyLines = [
-  'linguist/                          Turborepo root — orchestrates build, dev, typecheck across all packages',
+  'lingle/                          Turborepo root — orchestrates build, dev, typecheck across all packages',
   '├── apps/',
-  '│   ├── desktop/   @linguist/desktop     Electron 34 + electron-vite + React 19   (apps/desktop/electron/ + apps/desktop/src/)',
-  '│   └── web/       @linguist/web          Next.js 15 + App Router + Turbopack      (apps/web/app/ + apps/web/lib/)',
+  '│   ├── desktop/   @lingle/desktop     Electron 34 + electron-vite + React 19   (apps/desktop/electron/ + apps/desktop/src/)',
+  '│   └── web/       @lingle/web          Next.js 15 + App Router + Turbopack      (apps/web/app/ + apps/web/lib/)',
   '├── packages/',
-  '│   ├── core/      @linguist/core         Pure TS business logic (FSRS, mastery, ToM, conversation, curriculum engine + spine, pragmatics, onboarding)',
-  '│   ├── shared/    @linguist/shared        TypeScript types + enums only — importable everywhere',
-  '│   └── db/        @linguist/db            Prisma client singleton + schema + migrations',
+  '│   ├── core/      @lingle/core         Pure TS business logic (FSRS, mastery, ToM, conversation, curriculum engine + spine, pragmatics, onboarding)',
+  '│   ├── shared/    @lingle/shared        TypeScript types + enums only — importable everywhere',
+  '│   └── db/        @lingle/db            Prisma client singleton + schema + migrations',
   '├── prisma/                                schema.prisma, migrations/, seed.ts',
   '└── supabase/                              Supabase CLI config (config.toml)',
 ];
@@ -333,7 +333,7 @@ const desktopRendererLines = [
   "Pages:   Dashboard | Review | Learn | Knowledge | Chat | Settings | SignIn | Onboarding",
   "",
   "Hooks:   useReview | useConversation | useFrontier | useWordbank",
-  "         All call window.linguist.xxx() (IPC bridge — never direct DB access)",
+  "         All call window.lingle.xxx() (IPC bridge — never direct DB access)",
   "",
   "State:   AuthProvider (Context) — user, needsOnboarding, completeOnboarding()",
   "Routing: Auth gate -> Onboarding gate -> App Shell (sidebar nav)",
@@ -356,12 +356,12 @@ elements.push(...arrow({
   startX: desktopX + Z1_HALF_W / 2, startY: desktopBridgeY,
   endX: desktopX + Z1_HALF_W / 2, endY: desktopBridgeY + ARROW_LEN,
   color: COLORS.redBorder, strokeW: 3,
-  label: "window.linguist.xxx() -> ipcRenderer.invoke()", labelOffsetX: 10, labelOffsetY: -20,
+  label: "window.lingle.xxx() -> ipcRenderer.invoke()", labelOffsetX: 10, labelOffsetY: -20,
 }));
 
 // Preload Bridge
 const preloadLines = [
-  "contextBridge.exposeInMainWorld('linguist', api)",
+  "contextBridge.exposeInMainWorld('lingle', api)",
   "Auto-generates camelCase API from IPC_CHANNELS — 50+ methods",
 ];
 const preloadH = autoH(preloadLines.length);
@@ -392,10 +392,10 @@ const mainLines = [
   "electron/db.ts           PrismaClient singleton (getDb() / disconnectDb())",
   "electron/auth-state.ts   In-memory userId singleton (set on login, cleared on logout)",
   "electron/logger.ts       Logging utility",
-  "electron/ipc/            14 domain handler files -> calls @linguist/core",
+  "electron/ipc/            14 domain handler files -> calls @lingle/core",
   "",
   "In-memory:  activeSessions Map + currentUserId (auth-state)",
-  "Pattern:    Handler -> getCurrentUserId() -> @linguist/core functions -> Prisma writes",
+  "Pattern:    Handler -> getCurrentUserId() -> @lingle/core functions -> Prisma writes",
 ];
 const mainH = autoH(mainLines.length);
 const mainY = mainArrowY + ARROW_LEN + ARROW_GAP;
@@ -480,7 +480,7 @@ elements.push(...arrow({
   startX: webX + Z1_HALF_W / 2, startY: webApiArrowY,
   endX: webX + Z1_HALF_W / 2, endY: webApiArrowY + ARROW_LEN,
   color: COLORS.tealBorder, strokeW: 3,
-  label: "Next.js API Route handlers -> @linguist/core + @linguist/db", labelOffsetX: 10, labelOffsetY: -20,
+  label: "Next.js API Route handlers -> @lingle/core + @lingle/db", labelOffsetX: 10, labelOffsetY: -20,
 }));
 
 // API Routes
@@ -495,7 +495,7 @@ const webApiLines = [
   "/api/chat/         POST (streaming)             /api/dashboard/    frontier, weekly-stats",
   "/api/pragmatic/    GET/PUT                      /api/user/         me",
   "",
-  "Every route: getSupabaseUser() -> @linguist/core functions -> @linguist/db Prisma writes",
+  "Every route: getSupabaseUser() -> @lingle/core functions -> @lingle/db Prisma writes",
   "conversation/send: SSE streaming via anthropic.messages.stream() -> ReadableStream",
 ];
 const webApiH = autoH(webApiLines.length);
@@ -516,7 +516,7 @@ const webBottom = webApiY + webApiH;
 // --- Parity callout between Desktop and Web ---
 const parityLines = [
   "Desktop IPC handlers and Web API routes",
-  "call identical @linguist/core logic",
+  "call identical @lingle/core logic",
 ];
 const parityH = autoH(parityLines.length);
 const parityY = Math.max(desktopBottom, webBottom) + 30;
@@ -607,7 +607,7 @@ const WR_X = Z2_X + Z2_W + 60;
 const WR_Y = Z2_Y;
 
 elements.push(sectionLabel({ x: WR_X, y: WR_Y, content: "Zone 2b: Web API Routes", size: 24 }));
-elements.push(text({ x: WR_X, y: WR_Y + 32, content: "apps/web/app/api/ — 35+ routes. 1:1 parity with desktop IPC + MVP additions. Same @linguist/core calls.", size: 13, family: 3, color: "#868e96" }));
+elements.push(text({ x: WR_X, y: WR_Y + 32, content: "apps/web/app/api/ — 35+ routes. 1:1 parity with desktop IPC + MVP additions. Same @lingle/core calls.", size: 13, family: 3, color: "#868e96" }));
 
 const apiRouteGroups = [
   { route: "/api/review/", methods: "queue  submit  summary", maps: "reviews.ts" },
@@ -651,7 +651,7 @@ const Z3_X = 60;
 const Z3_Y = Math.max(Z2_BOTTOM, WR_BOTTOM) + ZONE_GAP;
 const Z3_W = 620;
 
-elements.push(sectionLabel({ x: Z3_X, y: Z3_Y, content: "Zone 3: @linguist/core  (packages/core/src/)" }));
+elements.push(sectionLabel({ x: Z3_X, y: Z3_Y, content: "Zone 3: @lingle/core  (packages/core/src/)" }));
 elements.push(text({ x: Z3_X, y: Z3_Y + 38, content: "Pure TypeScript functions. Zero imports from Electron, React, Next.js, or Prisma. Data in -> data out.", size: 12, family: 1, color: "#868e96" }));
 
 const coreModules = [
@@ -804,11 +804,11 @@ coreModules.forEach((mod) => {
 
 const Z3_BOTTOM = coreY;
 
-// --- @linguist/shared and @linguist/db (right of Zone 3) ---
+// --- @lingle/shared and @lingle/db (right of Zone 3) ---
 const PKG_X = Z3_X + Z3_W + 60;
 const PKG_Y = Z3_Y;
 
-// @linguist/shared
+// @lingle/shared
 const sharedLines = [
   "ONLY package importable from ALL layers",
   "Types and enums ONLY — no logic",
@@ -843,7 +843,7 @@ const sharedH = autoH(sharedLines.length);
 {
   const { elements: els } = titledBox({
     x: PKG_X, y: PKG_Y + 60, w: 440, h: sharedH,
-    title: "@linguist/shared  (packages/shared/src/types.ts)",
+    title: "@lingle/shared  (packages/shared/src/types.ts)",
     titleBg: COLORS.yellow, titleBorder: COLORS.yellowBorder,
     bodyBg: "#fffbeb", bodyBorder: COLORS.yellowBorder,
     bodyLines: sharedLines,
@@ -851,7 +851,7 @@ const sharedH = autoH(sharedLines.length);
   elements.push(...els);
 }
 
-// @linguist/db
+// @lingle/db
 const dbLines = [
   "Prisma client singleton package",
   "Exports: getDb(), PrismaClient type",
@@ -868,7 +868,7 @@ const dbY = PKG_Y + 60 + sharedH + 30;
 {
   const { elements: els } = titledBox({
     x: PKG_X, y: dbY, w: 440, h: dbH,
-    title: "@linguist/db  (packages/db/)",
+    title: "@lingle/db  (packages/db/)",
     titleBg: COLORS.purple, titleBorder: COLORS.purpleBorder,
     bodyBg: "#f8f0ff", bodyBorder: COLORS.purpleBorder,
     bodyLines: dbLines,
@@ -898,7 +898,7 @@ const Z4_X = 60;
 const Z4_Y = Math.max(Z3_BOTTOM, PKG_BOTTOM) + ZONE_GAP;
 const Z4_W = 1840;
 
-elements.push(sectionLabel({ x: Z4_X, y: Z4_Y, content: "Zone 4: Database Schema  (@linguist/db — Prisma + Hosted Supabase Postgres)" }));
+elements.push(sectionLabel({ x: Z4_X, y: Z4_Y, content: "Zone 4: Database Schema  (@lingle/db — Prisma + Hosted Supabase Postgres)" }));
 elements.push(text({ x: Z4_X, y: Z4_Y + 38, content: "Multi-tenant: every model has userId field + @@index([userId]) — all queries scoped by authenticated user", size: 12, family: 3, color: COLORS.redBorder }));
 
 const models = [
@@ -1144,15 +1144,15 @@ const flowALines = [
   " 2. -> useReview.submitReview(submission)",
   "",
   " Desktop path:                          Web path:",
-  "  3a. window.linguist.reviewSubmit()     3b. fetch('/api/review/submit')",
+  "  3a. window.lingle.reviewSubmit()     3b. fetch('/api/review/submit')",
   "  4a. IPC -> electron/ipc/reviews.ts     4b. API route handler",
   "",
-  " 5. -> @linguist/core/fsrs:    scheduleReview(currentFsrs, 'good')",
-  " 6. -> @linguist/core/mastery:  computeNextMasteryState(context)",
-  " 7. -> @linguist/db:  UPDATE LexicalItem SET fsrs, masteryState",
-  " 8. -> @linguist/db:  CREATE ReviewEvent row",
-  " 9. -> @linguist/db:  CREATE ItemContextLog row",
-  "10. -> (every 10th review) @linguist/core/profile: recalculateProfile()",
+  " 5. -> @lingle/core/fsrs:    scheduleReview(currentFsrs, 'good')",
+  " 6. -> @lingle/core/mastery:  computeNextMasteryState(context)",
+  " 7. -> @lingle/db:  UPDATE LexicalItem SET fsrs, masteryState",
+  " 8. -> @lingle/db:  CREATE ReviewEvent row",
+  " 9. -> @lingle/db:  CREATE ItemContextLog row",
+  "10. -> (every 10th review) @lingle/core/profile: recalculateProfile()",
   "11. -> Return { newMasteryState, newFsrsState }",
   "",
   "Total latency: ~5-15ms (all local, no network for scheduling)",
@@ -1230,10 +1230,10 @@ const flowCLines = [
   "",
   " 1. tom.runAnalysis() -> IPC handler or API route",
   " 2. Fetch all items (journeyman+), recent sessions, recent reviews",
-  " 3. -> @linguist/core/tom: detectAvoidance(items, sessions)",
-  " 4. -> @linguist/core/tom: detectConfusionPairs(errors across sessions)",
-  " 5. -> @linguist/core/tom: detectRegression(items, recentReviews)",
-  " 6. -> @linguist/core/tom: detectModalityGap(items)",
+  " 3. -> @lingle/core/tom: detectAvoidance(items, sessions)",
+  " 4. -> @lingle/core/tom: detectConfusionPairs(errors across sessions)",
+  " 5. -> @lingle/core/tom: detectRegression(items, recentReviews)",
+  " 6. -> @lingle/core/tom: detectModalityGap(items)",
   " 7. UPSERT TomInference rows (create new / update existing)",
   " 8. Mark resolved inferences as resolved=true",
   " 9. generateExpandedDailyBrief(allInferences)",
@@ -1377,7 +1377,7 @@ const claudeH = autoH(claudeLines.length);
 // Supabase
 const supabaseLines = [
   "Hosted Supabase instance",
-  "@linguist/db Prisma ORM for all DB access",
+  "@lingle/db Prisma ORM for all DB access",
   "",
   "Auth Service (Google OAuth):",
   "  Desktop: PKCE flow via @supabase/supabase-js",
@@ -1519,14 +1519,14 @@ const rulesLines = [
   "1. apps/ NEVER import from each other",
   "   (desktop and web are independent)",
   "",
-  "2. @linguist/core has ZERO deps on",
+  "2. @lingle/core has ZERO deps on",
   "   Electron, React, Next.js, or Prisma",
   "   (pure functions only)",
   "",
   "3. Only IPC handlers (desktop) and",
-  "   API routes (web) touch @linguist/db",
+  "   API routes (web) touch @lingle/db",
   "",
-  "4. @linguist/shared is the ONLY",
+  "4. @lingle/shared is the ONLY",
   "   package importable everywhere",
   "",
   "5. All DB queries scoped by userId",
@@ -1632,7 +1632,7 @@ const v2H = autoH(v2Lines.length);
 const excalidrawFile = {
   type: "excalidraw",
   version: 2,
-  source: "linguist-architecture-generator",
+  source: "lingle-architecture-generator",
   elements,
   appState: {
     gridSize: 20,

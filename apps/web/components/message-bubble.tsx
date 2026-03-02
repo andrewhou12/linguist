@@ -1,6 +1,6 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { ChatMessage } from '@linguist/shared/types'
+import type { ChatMessage } from '@lingle/shared/types'
 import { stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { RomajiText } from '@/components/romaji-text'
 

@@ -184,7 +184,7 @@ async function main() {
   const user = await prisma.user.create({
     data: {
       id: TEST_USER_ID,
-      email: 'test@linguist.dev',
+      email: 'test@lingle.ai',
       name: 'Test Learner',
       onboardingCompleted: true,
     },

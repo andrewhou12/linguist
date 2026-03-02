@@ -1,22 +1,22 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { createInitialFsrsState } from '@linguist/core/fsrs/scheduler'
-import type { OnboardingResult } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import { createInitialFsrsState } from '@lingle/core/fsrs/scheduler'
+import type { OnboardingResult } from '@lingle/shared/types'
 import type { Prisma } from '@prisma/client'
 import {
   ASSESSMENT_ITEMS,
   getAssessmentItemsForLevel,
   computeLevelFromChallenges,
   getLevelCefrMapping,
-} from '@linguist/core/onboarding/assessment-data'
+} from '@lingle/core/onboarding/assessment-data'
 import {
   getItemsBelowLevel,
   getItemsForLevel,
   getCollocationsByLevel,
   getChunksByLevel,
   getPragmaticFormulasByLevel,
-} from '@linguist/core/curriculum/reference-data'
+} from '@lingle/core/curriculum/reference-data'
 
 export const POST = withAuth(async (request, { userId }) => {
   const result: OnboardingResult = await request.json()

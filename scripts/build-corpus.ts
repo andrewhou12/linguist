@@ -1,7 +1,7 @@
 #!/usr/bin/env npx tsx
 /**
  * build-corpus.ts — Download JMdict data and JLPT level mappings, then
- * generate the vocabulary.json corpus used by Linguist's curriculum engine.
+ * generate the vocabulary.json corpus used by Lingle's curriculum engine.
  *
  * Usage:
  *   npx tsx scripts/build-corpus.ts
@@ -159,7 +159,7 @@ async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "linguist-build-corpus/1.0",
+      "User-Agent": "lingle-build-corpus/1.0",
     },
   });
   if (!res.ok) {
@@ -170,7 +170,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 async function downloadFile(url: string, dest: string): Promise<void> {
   const res = await fetch(url, {
-    headers: { "User-Agent": "linguist-build-corpus/1.0" },
+    headers: { "User-Agent": "lingle-build-corpus/1.0" },
   });
   if (!res.ok) {
     throw new Error(
@@ -576,11 +576,11 @@ async function loadJMdict(tmpDir: string): Promise<JMdictFile> {
 // ─── Main build pipeline ────────────────────────────────────────────────────
 
 async function main() {
-  log("=== Linguist Vocabulary Corpus Builder ===");
+  log("=== Lingle Vocabulary Corpus Builder ===");
   log("");
 
   // Create temp directory for downloads
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "linguist-corpus-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lingle-corpus-"));
   log(`Working directory: ${tmpDir}`);
 
   try {
@@ -844,7 +844,7 @@ main().catch((err) => {
   console.error("");
   console.error("This script downloads JMdict and JLPT data from GitHub,");
   console.error("cross-references them, and generates vocabulary.json for");
-  console.error("the Linguist curriculum engine.");
+  console.error("the Lingle curriculum engine.");
   console.error("");
   console.error("Requirements:");
   console.error("  - Node.js 18+ (for native fetch)");

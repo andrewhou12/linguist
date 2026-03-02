@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '@shared/types'
 
 // Build the API object from IPC_CHANNELS — each channel becomes an invoke wrapper
-type LinguistApi = {
+type LingleApi = {
   [K in keyof typeof IPC_CHANNELS as Uncapitalize<
     K extends `${infer Domain}_${infer Rest}` ? `${Lowercase<Domain>}${Capitalize<Lowercase<Rest>>}` : Lowercase<K>
   >]: (...args: unknown[]) => Promise<unknown>
@@ -35,5 +35,5 @@ const streamListeners: Record<string, unknown> = {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-contextBridge.exposeInMainWorld('linguist', { ...api, ...streamListeners })
+contextBridge.exposeInMainWorld('lingle', { ...api, ...streamListeners })
 contextBridge.exposeInMainWorld('platform', process.platform)

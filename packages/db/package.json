@@ -1,5 +1,5 @@
 {
-  "name": "@linguist/db",
+  "name": "@lingle/db",
   "version": "0.0.0",
   "private": true,
   "main": "./src/client.ts",

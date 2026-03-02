@@ -1,4 +1,4 @@
-# Linguist Design System
+# Lingle Design System
 
 Reference spec for sizing, color, typography, and component conventions across the web app.
 

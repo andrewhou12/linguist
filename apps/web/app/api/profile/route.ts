@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import type { ExpandedLearnerProfile } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import type { ExpandedLearnerProfile } from '@lingle/shared/types'
 
 export const GET = withAuth(async (_request, { userId }) => {
   const profile = await prisma.learnerProfile.findUnique({ where: { userId } })

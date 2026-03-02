@@ -18,12 +18,12 @@ export function DailyBrief({ frontier }: { frontier: FrontierData }) {
       // Build the draft immediately from existing data
       let brief: TomBrief | null = null
       try {
-        brief = await window.linguist.tomGetBrief()
+        brief = await window.lingle.tomGetBrief()
       } catch {
         // ToM brief unavailable — proceed without it
       }
 
-      const draft = await window.linguist.narrativeBuildDraft(frontier, brief)
+      const draft = await window.lingle.narrativeBuildDraft(frontier, brief)
       if (cancelled) return
 
       // Show template text right away
@@ -40,7 +40,7 @@ export function DailyBrief({ frontier }: { frontier: FrontierData }) {
 
       // Call API for polish
       try {
-        const polished = await window.linguist.narrativePolish(draft)
+        const polished = await window.lingle.narrativePolish(draft)
         if (cancelled) return
         if (polished && polished !== draft.templateText) {
           setText(polished)

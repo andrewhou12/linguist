@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import type { WordBankChunkEntry } from '@linguist/shared/types'
+import type { WordBankChunkEntry } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useChunks(initialFilters?: { masteryState?: string; itemKind?: string }) {
