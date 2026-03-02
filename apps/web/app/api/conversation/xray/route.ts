@@ -29,14 +29,24 @@ Return ONLY valid JSON — no markdown fences, no explanation. The format must b
 
 Be thorough: include every token including particles and punctuation. For particles, give their grammatical function as the meaning (e.g. "topic marker", "object marker").`,
     prompt: sentence,
-    maxOutputTokens: 1024,
+    maxOutputTokens: 4096,
   })
 
   let cleaned = text.trim()
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```$/, '')
   }
-  const parsed = JSON.parse(cleaned)
+
+  let parsed
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    console.error('[xray] Failed to parse LLM response:', cleaned.slice(-100))
+    return NextResponse.json(
+      { error: 'Failed to parse analysis response' },
+      { status: 502 }
+    )
+  }
 
   return NextResponse.json(parsed)
 })

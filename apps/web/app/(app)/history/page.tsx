@@ -10,8 +10,8 @@ import { Skeleton } from '@/components/skeleton'
 type SessionListItem = Awaited<ReturnType<typeof api.conversationList>>[number]
 
 export default function HistoryPage() {
-  const [sessions, setSessions] = useState<SessionListItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [sessions, setSessions] = useState<SessionListItem[]>(() => api.peekCache<SessionListItem[]>('/conversation/list') ?? [])
+  const [isLoading, setIsLoading] = useState(() => !api.peekCache('/conversation/list'))
 
   useEffect(() => {
     api.conversationList().then((data) => {
@@ -81,7 +81,7 @@ export default function HistoryPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Target size={12} className="text-green-600" />
+                      <Target size={12} className="text-green" />
                       <span className="text-[13px]">
                         {session.targetsHitCount}/{session.targetsPlannedCount}
                       </span>

@@ -145,7 +145,7 @@ Fraunces is used for the logo and italic display text. Noto Serif JP covers Japa
 
 **Section labels**: `11px` uppercase, `tracking-[.07em]`, `pt-5 pb-2` spacing.
 
-**Nav links**: `14px` text, `18px` emoji in `w-5` container, `py-[8px] px-2.5`, `gap-3`. Active state: `font-medium bg-bg-active`. Inactive: `text-text-secondary hover:bg-bg-hover`.
+**Nav links**: `14px` text `font-medium`, `15px` emoji in `w-5` container, `py-1.5 px-3`, `gap-3`, `rounded-md`. Active state: `bg-bg-active text-text-primary`. Inactive: `text-text-secondary hover:bg-bg-hover`.
 
 **Progress widget**: `13px` labels, `12px` sub-text, `h-2` progress bar, `p-4` padding, `rounded-xl`.
 

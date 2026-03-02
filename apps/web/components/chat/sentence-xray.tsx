@@ -5,7 +5,7 @@ import { Scan, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-interface XRayToken {
+export interface XRayToken {
   surface: string
   reading: string
   romaji: string
@@ -13,7 +13,7 @@ interface XRayToken {
   meaning: string
 }
 
-const posColors: Record<string, string> = {
+export const posColors: Record<string, string> = {
   noun: 'bg-blue-soft text-blue',
   verb: 'bg-green-soft text-green',
   adj: 'bg-purple-soft text-purple',
@@ -23,6 +23,28 @@ const posColors: Record<string, string> = {
   aux: 'bg-bg-secondary text-text-muted',
   punct: 'bg-transparent text-text-muted',
   other: 'bg-bg-secondary text-text-secondary',
+}
+
+export function XRayTokenGrid({ tokens }: { tokens: XRayToken[] }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {tokens.map((token, i) => (
+        <div key={i} className="flex flex-col items-center gap-0.5 px-1.5 py-1">
+          <span className="text-[10px] text-text-muted font-mono">{token.romaji}</span>
+          <span className="text-[15px] font-jp font-medium text-text-primary">{token.surface}</span>
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-medium',
+              posColors[token.pos] ?? posColors.other
+            )}
+          >
+            {token.pos}
+          </span>
+          <span className="text-[10px] text-text-secondary text-center max-w-[80px] leading-tight">{token.meaning}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 interface SentenceXRayButtonProps {
@@ -63,6 +85,7 @@ export function SentenceXRayButton({ sentence }: SentenceXRayButtonProps) {
       <button
         onClick={handleClick}
         disabled={isLoading}
+        title="X-Ray (or select text + ⌘E)"
         className={cn(
           'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border-none cursor-pointer transition-colors',
           isOpen
@@ -80,23 +103,7 @@ export function SentenceXRayButton({ sentence }: SentenceXRayButtonProps) {
 
       {isOpen && tokens && (
         <div className="mt-2 p-3 bg-bg-secondary rounded-lg border border-border-subtle">
-          <div className="flex flex-wrap gap-1">
-            {tokens.map((token, i) => (
-              <div key={i} className="flex flex-col items-center gap-0.5 px-1.5 py-1">
-                <span className="text-[10px] text-text-muted font-mono">{token.romaji}</span>
-                <span className="text-[15px] font-jp font-medium text-text-primary">{token.surface}</span>
-                <span
-                  className={cn(
-                    'inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-medium',
-                    posColors[token.pos] ?? posColors.other
-                  )}
-                >
-                  {token.pos}
-                </span>
-                <span className="text-[10px] text-text-secondary text-center max-w-[80px] leading-tight">{token.meaning}</span>
-              </div>
-            ))}
-          </div>
+          <XRayTokenGrid tokens={tokens} />
         </div>
       )}
     </div>

@@ -1,18 +1,20 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { WordBankEntry, WordBankFilters } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useWordbank(initialFilters?: WordBankFilters) {
-  const [items, setItems] = useState<WordBankEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [items, setItems] = useState<WordBankEntry[]>(() => api.peekCache<WordBankEntry[]>('/wordbank') ?? [])
+  const [isLoading, setIsLoading] = useState(() => !api.peekCache('/wordbank'))
   const [filters, setFilters] = useState<WordBankFilters | undefined>(
     initialFilters
   )
+  const skipLoadingRef = useRef(!!api.peekCache('/wordbank'))
 
   const loadItems = useCallback(async () => {
-    setIsLoading(true)
+    if (!skipLoadingRef.current) setIsLoading(true)
+    skipLoadingRef.current = false
     const result = await api.wordbankList(filters)
     setItems(result)
     setIsLoading(false)

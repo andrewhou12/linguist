@@ -54,7 +54,7 @@ export const POST = withAuth(async (request, { userId }) => {
   await prisma.conversationSession.update({
     where: { id: sessionId },
     data: {
-      targetsHit: analysis.targetsHit,
+      targetsHit: analysis.targetsHit as unknown as Prisma.InputJsonValue,
       errorsLogged: analysis.errorsLogged as unknown as Prisma.InputJsonValue,
       avoidanceEvents: analysis.avoidanceEvents as unknown as Prisma.InputJsonValue,
     },

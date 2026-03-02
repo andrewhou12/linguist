@@ -15,13 +15,14 @@ interface ChatInputProps {
   placeholder?: string
   showRomaji?: boolean
   onToggleRomaji?: () => void
+  minRows?: number
 }
 
 const IME_TOOLTIP_KEY = 'lingle-ime-tooltip-dismissed'
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent)
 const TOGGLE_KEY_LABEL = IS_MAC ? '⌘Space' : 'Ctrl+Space'
 
-export function ChatInput({ value, onChange, onSend, disabled, placeholder, showRomaji, onToggleRomaji }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSend, disabled, placeholder, showRomaji, onToggleRomaji, minRows = 1 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [showTooltip, setShowTooltip] = useState(false)
 
@@ -152,7 +153,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
                 }
               }}
               placeholder={dynamicPlaceholder}
-              rows={1}
+              rows={minRows}
               style={{ maxHeight: 200 }}
               className="w-full resize-none border-none bg-transparent text-text-primary text-[14.5px] leading-normal font-[inherit] outline-none py-1.5 placeholder:text-text-placeholder relative z-10"
             />

@@ -98,14 +98,13 @@ export function MessageBlock({ role, content, timestamp, isStreaming, userName, 
               </button>
             )}
           </div>
-          {(content || isStreaming) && (
+          {content && (
             <div className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]">
-              {content && (showRomaji ? (
+              {showRomaji ? (
                 <RomajiText text={content} />
               ) : (
                 <Markdown remarkPlugins={[remarkGfm]}>{stripRubyAnnotations(content)}</Markdown>
-              ))}
-              {isStreaming && <span className="blink-cursor" />}
+              )}
             </div>
           )}
           {children}

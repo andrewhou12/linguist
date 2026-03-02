@@ -59,12 +59,15 @@ export function SessionSummaryCard({
             <hr className="border-t border-border m-0" />
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-medium text-text-muted">Targets Hit</span>
-              {analysis.targetsHit.map((id) => (
-                <div key={id} className="flex items-center gap-2">
-                  <Check size={12} className="text-green-600" />
-                  <span className="text-[13px]">Item #{id}</span>
-                </div>
-              ))}
+              {analysis.targetsHit.map((t, i) => {
+                const itemId = typeof t === 'number' ? t : t.itemId
+                return (
+                  <div key={itemId ?? i} className="flex items-center gap-2">
+                    <Check size={12} className="text-green-600" />
+                    <span className="text-[13px]">Item #{itemId}</span>
+                  </div>
+                )
+              })}
             </div>
           </>
         )}

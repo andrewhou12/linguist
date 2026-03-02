@@ -10,8 +10,8 @@ import { api } from '@/lib/api'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [profile, setProfile] = useState<ExpandedLearnerProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [profile, setProfile] = useState<ExpandedLearnerProfile | null>(() => api.peekCache<ExpandedLearnerProfile>('/profile') ?? null)
+  const [isLoading, setIsLoading] = useState(() => !api.peekCache('/profile'))
 
   useEffect(() => {
     api.profileGet().then((p) => {
