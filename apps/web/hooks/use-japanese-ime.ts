@@ -48,7 +48,7 @@ export interface UseJapaneseIMEReturn {
   reset: () => void
 }
 
-const IME_STORAGE_KEY = 'linguist-ime-active'
+const IME_STORAGE_KEY = 'lingle-ime-active'
 
 function getStoredIMEState(): boolean {
   if (typeof window === 'undefined') return false

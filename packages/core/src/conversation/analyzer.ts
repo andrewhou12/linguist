@@ -6,7 +6,7 @@ import type {
   ContextType,
   LearningModality,
   ItemType,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { createLogger } from '../logger'
 
 const log = createLogger('core:analyzer')

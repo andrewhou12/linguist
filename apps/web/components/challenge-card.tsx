@@ -2,7 +2,7 @@
 
 import { Check, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ExpandedSessionPlan } from '@linguist/shared/types'
+import type { ExpandedSessionPlan } from '@lingle/shared/types'
 
 interface ChallengeCardProps {
   plan: ExpandedSessionPlan

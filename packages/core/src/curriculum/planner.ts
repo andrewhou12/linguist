@@ -4,7 +4,7 @@ import type {
   ItemType,
   UnitProgress,
   ChunkTriggerResult,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import type { BubbleItemInput } from './bubble'
 import type { ExpandedBriefInput } from '../tom/analyzer'
 import { generateRecommendations } from './recommender'

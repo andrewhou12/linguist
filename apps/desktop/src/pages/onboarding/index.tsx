@@ -74,7 +74,7 @@ export function OnboardingPage() {
     if (step !== 'assessment') return
     let cancelled = false
     setLoading(true)
-    window.linguist
+    window.lingle
       .onboardingGetAssessment(selfReportedLevel)
       .then((items) => { if (!cancelled) setAssessmentItems(items) })
       .catch((err) => console.error('Failed to load assessment items:', err))
@@ -86,7 +86,7 @@ export function OnboardingPage() {
     if (step !== 'reading_challenge') return
     let cancelled = false
     setLoading(true)
-    window.linguist
+    window.lingle
       .onboardingGetReadingChallenge(selfReportedLevel)
       .then((items) => { if (!cancelled) setReadingItems(items) })
       .catch((err) => console.error('Failed to load reading challenge:', err))
@@ -98,7 +98,7 @@ export function OnboardingPage() {
     if (step !== 'comprehension') return
     let cancelled = false
     setLoading(true)
-    window.linguist
+    window.lingle
       .onboardingGetComprehension(selfReportedLevel)
       .then((items) => { if (!cancelled) setComprehensionItems(items) })
       .catch((err) => console.error('Failed to load comprehension items:', err))
@@ -127,7 +127,7 @@ export function OnboardingPage() {
         readingChallengeResults: readingResults,
         comprehensionResults,
       }
-      const { computedLevel: level } = await window.linguist.onboardingComplete(result)
+      const { computedLevel: level } = await window.lingle.onboardingComplete(result)
       setComputedLevel(level)
     } finally {
       setSubmitting(false)

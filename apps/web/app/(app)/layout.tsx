@@ -189,7 +189,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2.5 px-3.5 pt-4 pb-3">
           <LogoIcon />
           <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-tight">
-            Linguist
+            Lingle
           </span>
         </div>
 

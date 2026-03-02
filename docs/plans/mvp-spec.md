@@ -1,4 +1,4 @@
-# Linguist MVP — Technical Specification
+# Lingle MVP — Technical Specification
 
 ## February 2026
 
@@ -192,7 +192,7 @@ Below the transcript, a **session analysis panel** shows:
 The sidebar shows only the three MVP surfaces plus settings. All other pages stay in the codebase but are removed from the nav:
 
 ```
-Linguist
+Lingle
 
 ├─ Conversation    (primary — the learning interface)
 ├─ Knowledge Base  (vocab + grammar + phrases)

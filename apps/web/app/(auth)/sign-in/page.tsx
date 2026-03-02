@@ -57,7 +57,7 @@ export default function SignInPage() {
       <div className="flex flex-col items-center gap-8 max-w-[400px] w-full p-6">
         <div className="flex flex-col items-center gap-2">
           <span className="text-[32px] font-bold tracking-tight font-serif italic">
-            Linguist
+            Lingle
           </span>
           <span className="text-[15px] text-text-muted text-center">
             Your AI-powered language learning companion

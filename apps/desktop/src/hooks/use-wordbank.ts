@@ -10,7 +10,7 @@ export function useWordbank(initialFilters?: WordBankFilters) {
 
   const loadItems = useCallback(async () => {
     setIsLoading(true)
-    const result = await window.linguist.wordbankList(filters)
+    const result = await window.lingle.wordbankList(filters)
     setItems(result)
     setIsLoading(false)
   }, [filters])
@@ -27,7 +27,7 @@ export function useWordbank(initialFilters?: WordBankFilters) {
       partOfSpeech?: string
       tags?: string[]
     }) => {
-      const newItem = await window.linguist.wordbankAdd(data)
+      const newItem = await window.lingle.wordbankAdd(data)
       setItems((prev) => [newItem, ...prev])
       return newItem
     },
@@ -36,7 +36,7 @@ export function useWordbank(initialFilters?: WordBankFilters) {
 
   const search = useCallback(async (query: string) => {
     setIsLoading(true)
-    const results = await window.linguist.wordbankSearch(query)
+    const results = await window.lingle.wordbankSearch(query)
     setItems(results)
     setIsLoading(false)
   }, [])

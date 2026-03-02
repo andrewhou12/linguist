@@ -6,7 +6,7 @@ export function useFrontier() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    window.linguist.dashboardGetFrontier().then((result) => {
+    window.lingle.dashboardGetFrontier().then((result) => {
       setData(result)
       setIsLoading(false)
     })

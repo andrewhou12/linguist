@@ -6,7 +6,7 @@ import type {
   ExpandedTomBrief,
   PragmaticState,
   CurriculumRecommendation,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { createLogger } from '../logger'
 
 const log = createLogger('core:planner')
@@ -201,5 +201,7 @@ BEHAVIORAL RULES:
 15. After each learner message, if the learner successfully produced any target items, use the \`markTargetsHit\` tool with the item IDs. If none were hit, do not call this tool.
 16. Card budget for this session: ${cardBudget}. Never use display tools (displayVocabCard, displayGrammarCard, displayCorrection, displayReviewPrompt) more than this many times total. Never stack tool calls back-to-back — at least 3 conversational turns between display tool uses.
 17. After turn 20, begin wrapping up. Do not introduce new vocabulary or grammar after this point.
-18. IMPORTANT: Always annotate kanji words with their hiragana reading using curly brace syntax: {漢字|かんじ}. For example: {友達|ともだち}と{東京|とうきょう}に{行|い}きました。 Annotate every word containing kanji. Do not annotate pure hiragana, katakana, or romaji.`
+18. IMPORTANT: Always annotate kanji words with their hiragana reading using curly brace syntax: {漢字|かんじ}. For example: {友達|ともだち}と{東京|とうきょう}に{行|い}きました。 Annotate every word containing kanji. Do not annotate pure hiragana, katakana, or romaji.
+19. After every user message that contains Japanese text, call the \`rateNaturalness\` tool to rate how natural their Japanese was. Use "great" for native-like phrasing, "good" for understandable with minor issues, "needs_work" for unnatural phrasing. Add a brief note when helpful.
+20. At the end of every response, call the \`suggestResponses\` tool with 2-3 contextual suggestions in ${learner.targetLanguage} that the learner could say next. Make them relevant to the conversation flow and appropriate for the learner's level.`
 }

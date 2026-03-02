@@ -1,5 +1,5 @@
 {
-  "name": "@linguist/core",
+  "name": "@lingle/core",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -7,7 +7,7 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@linguist/shared": "workspace:*",
+    "@lingle/shared": "workspace:*",
     "ts-fsrs": "^4.5.0"
   }
 }

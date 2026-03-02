@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { recalculateProfile } from '@linguist/core/profile/calculator'
-import type { FsrsState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import { recalculateProfile } from '@lingle/core/profile/calculator'
+import type { FsrsState } from '@lingle/shared/types'
 
 export const POST = withAuth(async (_request, { userId }) => {
   const lexicalItems = await prisma.lexicalItem.findMany({

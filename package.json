@@ -1,12 +1,12 @@
 {
-  "name": "linguist",
+  "name": "lingle",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.28.2",
-  "description": "Linguist language learning platform",
+  "description": "Lingle language learning platform",
   "scripts": {
-    "dev:desktop": "pnpm --filter @linguist/desktop dev",
-    "dev:web": "pnpm --filter @linguist/web dev",
+    "dev:desktop": "pnpm --filter @lingle/desktop dev",
+    "dev:web": "pnpm --filter @lingle/web dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "db:migrate": "prisma migrate dev",

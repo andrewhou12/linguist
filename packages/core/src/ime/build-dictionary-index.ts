@@ -122,7 +122,7 @@ function extractMeaning(senses: JMdictSense[]): string {
 
 async function downloadFile(url: string, dest: string): Promise<void> {
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'linguist-build-dict/1.0' },
+    headers: { 'User-Agent': 'lingle-build-dict/1.0' },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status} downloading ${url}`)
   writeFileSync(dest, Buffer.from(await res.arrayBuffer()))
@@ -201,7 +201,7 @@ async function downloadJMdict(tmpDir: string): Promise<JMdictFile> {
   log('Fetching jmdict-simplified release info...')
 
   const res = await fetch(JMDICT_RELEASES_API, {
-    headers: { Accept: 'application/json', 'User-Agent': 'linguist-build-dict/1.0' },
+    headers: { Accept: 'application/json', 'User-Agent': 'lingle-build-dict/1.0' },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status} fetching release info`)
   const releaseInfo = (await res.json()) as {
@@ -271,7 +271,7 @@ async function main() {
   log('Sources: JMdict common-only + JPDB frequency data')
   log('')
 
-  const tmpDir = mkdtempSync(join(tmpdir(), 'linguist-dict-'))
+  const tmpDir = mkdtempSync(join(tmpdir(), 'lingle-dict-'))
 
   try {
     // Download both in parallel

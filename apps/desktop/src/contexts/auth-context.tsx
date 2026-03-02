@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   useEffect(() => {
-    window.linguist
+    window.lingle
       .authGetSession()
       .then((result) => {
         const u = result?.user ?? null
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     setError(null)
     try {
-      const result = await window.linguist.authSignInGoogle()
+      const result = await window.lingle.authSignInGoogle()
       setUser(result.user)
       if (!result.user.onboardingCompleted) {
         setNeedsOnboarding(true)
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await window.linguist.authSignOut()
+      await window.lingle.authSignOut()
       setUser(null)
       setNeedsOnboarding(false)
     } catch (err) {

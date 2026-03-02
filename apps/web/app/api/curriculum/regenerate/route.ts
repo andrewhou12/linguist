@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { computeKnowledgeBubble, type BubbleItemInput } from '@linguist/core/curriculum/bubble'
-import { generateRecommendations } from '@linguist/core/curriculum/recommender'
+import { prisma } from '@lingle/db'
+import { computeKnowledgeBubble, type BubbleItemInput } from '@lingle/core/curriculum/bubble'
+import { generateRecommendations } from '@lingle/core/curriculum/recommender'
 
 export const POST = withAuth(async (_request, { userId }) => {
   await prisma.curriculumItem.deleteMany({

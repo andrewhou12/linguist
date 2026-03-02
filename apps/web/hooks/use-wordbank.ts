@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import type { WordBankEntry, WordBankFilters } from '@linguist/shared/types'
+import type { WordBankEntry, WordBankFilters } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useWordbank(initialFilters?: WordBankFilters) {

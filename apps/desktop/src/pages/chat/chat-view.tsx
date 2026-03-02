@@ -34,14 +34,14 @@ export function ChatView({
 
   // Set up IPC event listeners once
   useEffect(() => {
-    const cleanupChunk = window.linguist.chatOnChunk((data) => {
+    const cleanupChunk = window.lingle.chatOnChunk((data) => {
       if (data.conversationId === conversationIdRef.current) {
         streamingRef.current += data.delta
         setStreamingContent(streamingRef.current)
       }
     })
 
-    const cleanupDone = window.linguist.chatOnDone((data) => {
+    const cleanupDone = window.lingle.chatOnDone((data) => {
       if (data.conversationId === conversationIdRef.current) {
         if (streamingRef.current) {
           onAssistantMessageRef.current(
@@ -60,7 +60,7 @@ export function ChatView({
       cleanupChunk()
       cleanupDone()
       if (isStreamingRef.current) {
-        window.linguist.chatStop(conversationIdRef.current)
+        window.lingle.chatStop(conversationIdRef.current)
       }
     }
   }, [])
@@ -104,11 +104,11 @@ export function ChatView({
       ...messages,
       { role: 'user', content: text },
     ]
-    window.linguist.chatSend(conversationId, allMessages).catch(() => {})
+    window.lingle.chatSend(conversationId, allMessages).catch(() => {})
   }, [input, isStreaming, conversationId, messages, onUserMessage])
 
   const handleStop = useCallback(() => {
-    window.linguist.chatStop(conversationId)
+    window.lingle.chatStop(conversationId)
   }, [conversationId])
 
   const handleKeyDown = useCallback(

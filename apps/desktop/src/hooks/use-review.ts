@@ -31,7 +31,7 @@ export function useReview() {
 
   const loadQueue = useCallback(async () => {
     setIsLoading(true)
-    const items = await window.linguist.reviewGetQueue()
+    const items = await window.lingle.reviewGetQueue()
     setQueue(items)
     setCurrentIndex(0)
     setSessionStats({ reviewed: 0, correct: 0, masteryChanges: [] })
@@ -48,7 +48,7 @@ export function useReview() {
   const submitReview = useCallback(
     async (submission: ReviewSubmission) => {
       const currentCard = queue[currentIndex]
-      const result = await window.linguist.reviewSubmit(submission)
+      const result = await window.lingle.reviewSubmit(submission)
 
       setSessionStats((prev) => {
         const isCorrect =
@@ -79,7 +79,7 @@ export function useReview() {
   )
 
   const getSummary = useCallback(async (): Promise<ReviewSummary> => {
-    return window.linguist.reviewGetSummary()
+    return window.lingle.reviewGetSummary()
   }, [])
 
   return {

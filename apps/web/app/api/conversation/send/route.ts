@@ -1,9 +1,9 @@
 import { streamText, type UIMessage, convertToModelMessages } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
+import { prisma } from '@lingle/db'
 import { createConversationTools } from '@/lib/conversation-tools'
-import type { ConversationMessage } from '@linguist/shared/types'
+import type { ConversationMessage } from '@lingle/shared/types'
 import type { Prisma } from '@prisma/client'
 
 export const POST = withAuth(async (request, { userId }) => {

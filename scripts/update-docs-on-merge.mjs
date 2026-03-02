@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Linguist — Auto-update architecture diagram and progress notes on merge.
+ * Lingle — Auto-update architecture diagram and progress notes on merge.
  *
  * Triggered by GitHub Actions when a PR is merged to main. Reads the merged PR diff,
  * current architecture diagram, and recent progress notes, then asks Claude
@@ -118,12 +118,12 @@ if (existsSync(PROGRESS_DIR)) {
 
 // ─── 2. Build the prompt ────────────────────────────────────────────────────
 
-const systemPrompt = `You are a documentation updater for Linguist, a Japanese language learning application built as a Turborepo monorepo.
+const systemPrompt = `You are a documentation updater for Lingle, a Japanese language learning application built as a Turborepo monorepo.
 
-About Linguist:
+About Lingle:
 - AI-powered Japanese learning agent that builds a probabilistic knowledge model of each learner
 - Architecture: Next.js 15 web app (apps/web/) + Electron desktop app (apps/desktop/) sharing business logic
-- Shared packages: @linguist/core (pure TS business logic — FSRS scheduler, mastery state machine, ToM engine, conversation planner, curriculum recommender, pragmatic analyzer, onboarding), @linguist/shared (TypeScript types/enums), @linguist/db (Prisma client singleton)
+- Shared packages: @lingle/core (pure TS business logic — FSRS scheduler, mastery state machine, ToM engine, conversation planner, curriculum recommender, pragmatic analyzer, onboarding), @lingle/shared (TypeScript types/enums), @lingle/db (Prisma client singleton)
 - Database: Supabase Postgres via Prisma ORM, multi-tenant (all queries scoped by userId)
 - AI layer: Claude API for conversation partner, session planning, post-session analysis, ToM daily briefs, pragmatic analysis
 - SRS engine: FSRS (ts-fsrs) running fully locally
@@ -146,7 +146,7 @@ The progress note must follow this template (omit sections that don't apply):
 
 ## What Changed
 
-## Why It Matters for Linguist
+## Why It Matters for Lingle
 
 ## Current State of the System
 

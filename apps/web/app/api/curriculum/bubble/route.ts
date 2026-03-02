@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { computeKnowledgeBubble, type BubbleItemInput } from '@linguist/core/curriculum/bubble'
+import { prisma } from '@lingle/db'
+import { computeKnowledgeBubble, type BubbleItemInput } from '@lingle/core/curriculum/bubble'
 
 export const GET = withAuth(async (_request, { userId }) => {
   const allLexical = await prisma.lexicalItem.findMany({ where: { userId } })

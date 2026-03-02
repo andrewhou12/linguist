@@ -15,7 +15,7 @@ import type {
   ReadingChallengeResult,
   ComprehensionResult,
   SelfReportedLevel,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import type { ReviewSubmission, FsrsState, LearningModality } from '@linguist/shared/types'
-import { MasteryState } from '@linguist/shared/types'
-import { scheduleReview } from '@linguist/core/fsrs/scheduler'
-import { computeNextMasteryState } from '@linguist/core/mastery/state-machine'
-import { recalculateProfile } from '@linguist/core/profile/calculator'
+import { prisma } from '@lingle/db'
+import type { ReviewSubmission, FsrsState, LearningModality } from '@lingle/shared/types'
+import { MasteryState } from '@lingle/shared/types'
+import { scheduleReview } from '@lingle/core/fsrs/scheduler'
+import { computeNextMasteryState } from '@lingle/core/mastery/state-machine'
+import { recalculateProfile } from '@lingle/core/profile/calculator'
 import type { Prisma } from '@prisma/client'
 
 export const POST = withAuth(async (request, { userId }) => {

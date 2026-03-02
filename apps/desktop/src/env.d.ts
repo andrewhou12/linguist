@@ -26,7 +26,7 @@ import type {
   SelfReportedLevel,
 } from '@shared/types'
 
-interface LinguistApi {
+interface LingleApi {
   // Reviews
   reviewGetQueue: () => Promise<ReviewQueueItem[]>
   reviewSubmit: (submission: ReviewSubmission) => Promise<{ newMasteryState: string }>
@@ -136,7 +136,7 @@ interface LinguistApi {
 
 declare global {
   interface Window {
-    linguist: LinguistApi
+    lingle: LingleApi
     platform: 'darwin' | 'win32' | 'linux'
   }
 }

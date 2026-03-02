@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
+import { prisma } from '@lingle/db'
 import Anthropic from '@anthropic-ai/sdk'
-import { MasteryState } from '@linguist/shared/types'
-import type { FsrsState, PragmaticState, WordBankEntry } from '@linguist/shared/types'
+import { MasteryState } from '@lingle/shared/types'
+import type { FsrsState, PragmaticState, WordBankEntry } from '@lingle/shared/types'
 import type { Prisma } from '@prisma/client'
 import {
   buildPlanningPrompt,
   buildConversationSystemPrompt,
   parseSessionPlan,
   type LearnerSummary,
-} from '@linguist/core/conversation/planner'
-import { generateExpandedDailyBrief, type ExpandedBriefInput } from '@linguist/core/tom/analyzer'
-import { computeKnowledgeBubble, type BubbleItemInput } from '@linguist/core/curriculum/bubble'
-import { generateRecommendations } from '@linguist/core/curriculum/recommender'
+} from '@lingle/core/conversation/planner'
+import { generateExpandedDailyBrief, type ExpandedBriefInput } from '@lingle/core/tom/analyzer'
+import { computeKnowledgeBubble, type BubbleItemInput } from '@lingle/core/curriculum/bubble'
+import { generateRecommendations } from '@lingle/core/curriculum/recommender'
 
 const anthropic = new Anthropic()
 

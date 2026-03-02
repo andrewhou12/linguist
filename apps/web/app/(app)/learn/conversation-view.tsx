@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { ArrowUp, Square } from 'lucide-react'
-import type { ConversationMessage, ExpandedSessionPlan } from '@linguist/shared/types'
+import type { ConversationMessage, ExpandedSessionPlan } from '@lingle/shared/types'
 import { Spinner } from '@/components/spinner'
 import { MessageBubble } from '@/components/message-bubble'
 import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'

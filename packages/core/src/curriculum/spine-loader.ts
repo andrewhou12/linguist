@@ -5,7 +5,7 @@ import type {
   MasteryState,
   UnitProgress,
   ChunkTriggerResult,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 import type { BubbleItemInput } from './bubble'
 import spineData from './data/curriculum-spine.json'
 import { createLogger } from '../logger'

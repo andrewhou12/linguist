@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { ConversationMessage, ExpandedSessionPlan, PostSessionAnalysis } from '@linguist/shared/types'
+import type { ConversationMessage, ExpandedSessionPlan, PostSessionAnalysis } from '@lingle/shared/types'
 import { api } from '@/lib/api'
 
 export function useConversation() {

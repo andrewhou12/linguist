@@ -1,4 +1,4 @@
-import type { NarrativeDraft } from '@linguist/shared/types'
+import type { NarrativeDraft } from '@lingle/shared/types'
 
 export function buildPolishPrompt(draft: NarrativeDraft): string {
   return [

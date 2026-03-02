@@ -2,7 +2,7 @@
 
 ## Overview
 
-Migrating Linguist from Electron to a Next.js web app is straightforward because the architecture was designed with a clean separation: `core/` has zero Electron dependencies, all data access goes through IPC handlers, and the renderer never touches Prisma directly. The migration is mostly plumbing — swapping IPC wiring for HTTP wiring.
+Migrating Lingle from Electron to a Next.js web app is straightforward because the architecture was designed with a clean separation: `core/` has zero Electron dependencies, all data access goes through IPC handlers, and the renderer never touches Prisma directly. The migration is mostly plumbing — swapping IPC wiring for HTTP wiring.
 
 ---
 
@@ -103,11 +103,11 @@ The core logic is identical — just different wiring.
 
 ### 2. Renderer Hooks (~6 files)
 
-All data access goes through `window.linguist.*` calls defined in `preload.ts`. Replace with `fetch()` calls or TanStack Query:
+All data access goes through `window.lingle.*` calls defined in `preload.ts`. Replace with `fetch()` calls or TanStack Query:
 
 **Before:**
 ```typescript
-const queue = await window.linguist.reviewGetQueue()
+const queue = await window.lingle.reviewGetQueue()
 ```
 
 **After:**
@@ -162,7 +162,7 @@ Next.js: File-based routing. Move each `src/pages/*/index.tsx` to `app/*/page.ts
 |---|---|
 | `electron/main.ts` | App lifecycle, window creation — irrelevant for web |
 | `electron/preload.ts` | IPC bridge — replaced by HTTP |
-| `src/env.d.ts` | `window.linguist` type declarations — no longer needed |
+| `src/env.d.ts` | `window.lingle` type declarations — no longer needed |
 | `electron.vite.config.ts` | Replaced by `next.config.js` |
 
 **Dependencies to drop:** `electron`, `electron-vite`, `@electron-toolkit/preload`, `@electron-toolkit/utils`
@@ -304,7 +304,7 @@ The `ANTHROPIC_API_KEY` currently lives in the Electron main process (trusted). 
 | Drop Electron infrastructure | Delete main.ts, preload.ts, build config | 2-4 hours |
 | IPC → API routes (33 handlers) | Mechanical conversion, same logic | 6-10 hours |
 | Add userId scoping to all queries | Add userId filter to ~80-100 Prisma calls | 4-6 hours |
-| Update React hooks | Replace `window.linguist.*` with fetch | 2-3 hours |
+| Update React hooks | Replace `window.lingle.*` with fetch | 2-3 hours |
 | Next.js setup | next.config, API route structure, routing | 1-2 hours |
 | Auth integration | Supabase Auth or NextAuth setup | 3-5 hours |
 | Chat streaming conversion | IPC events → ReadableStream/SSE | 2-3 hours |

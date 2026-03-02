@@ -4,7 +4,7 @@ import { useReview } from '@/hooks/use-review'
 import { ReviewCard } from './review-card'
 import { SessionSummary } from './session-summary'
 import { Spinner } from '@/components/spinner'
-import type { ReviewGrade } from '@linguist/shared/types'
+import type { ReviewGrade } from '@lingle/shared/types'
 
 export default function ReviewPage() {
   const {

@@ -1,4 +1,4 @@
-import type { LevelBreakdown } from '@linguist/shared/types'
+import type { LevelBreakdown } from '@lingle/shared/types'
 import { cn } from '@/lib/utils'
 
 interface LevelProgressBarProps {

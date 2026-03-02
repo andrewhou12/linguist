@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import type { PragmaticState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import type { PragmaticState } from '@lingle/shared/types'
 
 function toPragmaticState(p: any): PragmaticState {
   return {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import type { FsrsState, WordBankChunkEntry } from '@linguist/shared/types'
-import { MasteryState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import type { FsrsState, WordBankChunkEntry } from '@lingle/shared/types'
+import { MasteryState } from '@lingle/shared/types'
 
 function toChunkEntry(item: any): WordBankChunkEntry {
   return {

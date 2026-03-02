@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <div style={{ padding: 16, paddingTop: isMac ? 0 : 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Text size="5" weight="bold" mb="4" asChild>
-            <h1 style={{ margin: 0 }}>Linguist</h1>
+            <h1 style={{ margin: 0 }}>Lingle</h1>
           </Text>
           <Flex direction="column" gap="1" mt="4" style={{ flex: 1 }}>
             {NAV_ITEMS.map((item) => (

@@ -23,9 +23,9 @@ import type {
   OnboardingResult,
   SelfReportedLevel,
   ExpandedTomBrief,
-} from '@linguist/shared/types'
+} from '@lingle/shared/types'
 
-class LinguistApiClient {
+class LingleApiClient {
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`/api${path}`, {
       headers: { 'Content-Type': 'application/json' },
@@ -104,6 +104,13 @@ class LinguistApiClient {
       timestamp: new Date().toISOString(),
     }
   }
+  conversationXray = (sentence: string) =>
+    this.request<{
+      tokens: Array<{ surface: string; reading: string; romaji: string; pos: string; meaning: string }>
+    }>('/conversation/xray', {
+      method: 'POST',
+      body: JSON.stringify({ sentence }),
+    })
   conversationEnd = (sessionId: string) =>
     this.request<PostSessionAnalysis | null>('/conversation/end', {
       method: 'POST',
@@ -137,8 +144,8 @@ class LinguistApiClient {
     return this.request<Array<{
       id: number; patternId: string; name: string; description: string | null
       cefrLevel: string | null; masteryState: string; contextCount: number
-      recognitionFsrs: import('@linguist/shared/types').FsrsState
-      productionFsrs: import('@linguist/shared/types').FsrsState
+      recognitionFsrs: import('@lingle/shared/types').FsrsState
+      productionFsrs: import('@lingle/shared/types').FsrsState
       firstSeen: string; lastReviewed: string | null; productionWeight: number
     }>>(`/grammar${qs ? `?${qs}` : ''}`)
   }
@@ -150,7 +157,7 @@ class LinguistApiClient {
     if (filters?.itemKind) params.set('itemKind', filters.itemKind)
     if (filters?.search) params.set('search', filters.search)
     const qs = params.toString()
-    return this.request<import('@linguist/shared/types').WordBankChunkEntry[]>(`/chunks${qs ? `?${qs}` : ''}`)
+    return this.request<import('@lingle/shared/types').WordBankChunkEntry[]>(`/chunks${qs ? `?${qs}` : ''}`)
   }
 
   // Promote items
@@ -252,4 +259,4 @@ class LinguistApiClient {
     })
 }
 
-export const api = new LinguistApiClient()
+export const api = new LingleApiClient()

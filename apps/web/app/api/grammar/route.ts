@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import type { FsrsState } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import type { FsrsState } from '@lingle/shared/types'
 
 export const GET = withAuth(async (request, { userId }) => {
   const { searchParams } = new URL(request.url)

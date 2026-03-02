@@ -2,7 +2,7 @@
 
 import { Check, X, AlertTriangle, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { PostSessionAnalysis } from '@linguist/shared/types'
+import type { PostSessionAnalysis } from '@lingle/shared/types'
 
 interface SessionSummaryCardProps {
   analysis: PostSessionAnalysis

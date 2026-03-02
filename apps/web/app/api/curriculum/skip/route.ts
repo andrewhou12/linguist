@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
+import { prisma } from '@lingle/db'
 
 export const POST = withAuth(async (request) => {
   const { curriculumItemId } = await request.json()

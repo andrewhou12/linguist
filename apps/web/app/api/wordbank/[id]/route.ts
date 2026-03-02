@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@linguist/db'
-import { MasteryState } from '@linguist/shared/types'
-import type { FsrsState, WordBankEntry } from '@linguist/shared/types'
+import { prisma } from '@lingle/db'
+import { MasteryState } from '@lingle/shared/types'
+import type { FsrsState, WordBankEntry } from '@lingle/shared/types'
 
 function toWordBankEntry(item: any): WordBankEntry {
   return {

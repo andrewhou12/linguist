@@ -9,7 +9,7 @@
  * - Greedy left-to-right auto-segmentation for multi-word phrases
  */
 
-import type { DictEntry, DictionaryIndex } from '@linguist/core/ime/types'
+import type { DictEntry, DictionaryIndex } from '@lingle/core/ime/types'
 
 export type { DictEntry }
 
@@ -21,7 +21,7 @@ async function loadIndex(): Promise<DictionaryIndex> {
   if (cachedIndex) return cachedIndex
   if (loadPromise) return loadPromise
 
-  loadPromise = import('@linguist/core/ime/dictionary-index.json').then((mod) => {
+  loadPromise = import('@lingle/core/ime/dictionary-index.json').then((mod) => {
     cachedIndex = mod.default as DictionaryIndex
     return cachedIndex
   })

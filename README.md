@@ -1,4 +1,4 @@
-# Linguist
+# Lingle
 
 A language learning agent that builds a living, probabilistic knowledge model of the learner. Every interaction — reviews, conversations, lookups — updates a multi-dimensional map of what the learner knows, and the app uses that map to decide what they should encounter next.
 
@@ -6,11 +6,11 @@ Available as both a **desktop app** (Electron) and a **web app** (Next.js), shar
 
 V1 target: Japanese. Text-only (voice in V2).
 
-## Why Linguist Exists
+## Why Lingle Exists
 
 Most language learning apps treat learners as interchangeable. Duolingo follows a fixed curriculum. Anki tracks card-level recall but has no concept of the learner as a whole. Conversation apps like Langua offer freeform practice but don't know what you're weak on.
 
-Linguist's core thesis: **the learner profile is the product**. The app maintains a rich, multi-layered model of what you know, what you're shaky on, what you avoid, and where you're ready to grow — and every feature reads from and writes to that model.
+Lingle's core thesis: **the learner profile is the product**. The app maintains a rich, multi-layered model of what you know, what you're shaky on, what you avoid, and where you're ready to grow — and every feature reads from and writes to that model.
 
 ### What Makes It Different
 
@@ -62,10 +62,10 @@ pnpm prisma generate
 pnpm prisma migrate dev
 
 # Start the web app
-pnpm --filter @linguist/web dev
+pnpm --filter @lingle/web dev
 
 # Or start the desktop app
-pnpm --filter @linguist/desktop dev
+pnpm --filter @lingle/desktop dev
 ```
 
 ### Authentication
@@ -121,9 +121,9 @@ pnpm prisma migrate reset
 
 | Command | Description |
 |---|---|
-| `pnpm --filter @linguist/web dev` | Start Next.js web app (localhost:3000) |
-| `pnpm --filter @linguist/desktop dev` | Launch Electron desktop app with hot reload |
-| `pnpm --filter @linguist/web build` | Production build (web) |
+| `pnpm --filter @lingle/web dev` | Start Next.js web app (localhost:3000) |
+| `pnpm --filter @lingle/desktop dev` | Launch Electron desktop app with hot reload |
+| `pnpm --filter @lingle/web build` | Production build (web) |
 | `pnpm turbo typecheck` | TypeScript check (all packages) |
 | `pnpm prisma migrate dev` | Run Prisma migrations |
 | `pnpm prisma studio` | Open Prisma Studio (DB browser) |
@@ -135,7 +135,7 @@ pnpm prisma migrate reset
 ### Monorepo Structure
 
 ```
-linguist/
+lingle/
 ├── turbo.json                      # Turborepo task config
 ├── pnpm-workspace.yaml             # pnpm workspace definition
 ├── package.json                    # Root (devDeps: turbo, typescript, prisma)
@@ -144,10 +144,10 @@ linguist/
 │   ├── seed.ts                     # Database seed script
 │   └── migrations/
 ├── apps/
-│   ├── desktop/                    # Electron app (@linguist/desktop)
+│   ├── desktop/                    # Electron app (@lingle/desktop)
 │   │   ├── electron/               # Main process (IPC handlers, auth, DB)
 │   │   └── src/                    # React renderer (pages, hooks, components)
-│   └── web/                        # Next.js app (@linguist/web)
+│   └── web/                        # Next.js app (@lingle/web)
 │       ├── app/                    # App Router pages + API routes
 │       │   ├── (auth)/             # Sign-in, OAuth callback
 │       │   ├── (app)/              # Authenticated pages (shared sidebar layout)
@@ -164,7 +164,7 @@ linguist/
 │       ├── hooks/                  # Fetch-based data hooks
 │       └── components/             # Shared UI components
 ├── packages/
-│   ├── core/                       # Pure business logic (@linguist/core)
+│   ├── core/                       # Pure business logic (@lingle/core)
 │   │   └── src/
 │   │       ├── fsrs/               # FSRS scheduler (ts-fsrs)
 │   │       ├── mastery/            # Evidence-gated state machine
@@ -175,18 +175,18 @@ linguist/
 │   │       ├── pragmatics/         # Register accuracy, strategies
 │   │       ├── narrative/          # AI daily brief templates
 │   │       └── onboarding/         # Assessment items + placement
-│   ├── shared/                     # TypeScript types (@linguist/shared)
+│   ├── shared/                     # TypeScript types (@lingle/shared)
 │   │   └── src/types.ts
-│   └── db/                         # Prisma client singleton (@linguist/db)
+│   └── db/                         # Prisma client singleton (@lingle/db)
 │       └── src/client.ts
 └── supabase/                       # Supabase project config
 ```
 
 **Boundary rules:**
 - `packages/core/` is pure TypeScript — trivially testable, no framework deps
-- Desktop: `electron/ipc/` calls `@linguist/core` + `@linguist/db`, exposes via IPC
-- Web: `app/api/` routes call `@linguist/core` + `@linguist/db`, return JSON
-- Desktop renderer accesses data through `window.linguist` IPC hooks
+- Desktop: `electron/ipc/` calls `@lingle/core` + `@lingle/db`, exposes via IPC
+- Web: `app/api/` routes call `@lingle/core` + `@lingle/db`, return JSON
+- Desktop renderer accesses data through `window.lingle` IPC hooks
 - Web pages access data through `lib/api.ts` fetch client
 - `packages/shared/types.ts` is importable everywhere
 

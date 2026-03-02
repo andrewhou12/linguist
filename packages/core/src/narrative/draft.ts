@@ -1,4 +1,4 @@
-import type { FrontierData, TomBrief, NarrativeDraft, MasteryState } from '@linguist/shared/types'
+import type { FrontierData, TomBrief, NarrativeDraft, MasteryState } from '@lingle/shared/types'
 
 interface ModalityEntry {
   name: string
