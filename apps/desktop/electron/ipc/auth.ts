@@ -10,8 +10,8 @@ import { createLogger } from '../logger'
 
 const log = createLogger('auth')
 
-const getSupabaseUrl = () => process.env.SUPABASE_URL || 'http://127.0.0.1:54321'
-const getAnonKey = () => process.env.SUPABASE_ANON_KEY || ''
+const getSupabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
+const getAnonKey = () => process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const SITE_URL = process.env.SUPABASE_SITE_URL || 'http://127.0.0.1:3000'
 
 // ── Session storage (persisted to disk in app userData) ──

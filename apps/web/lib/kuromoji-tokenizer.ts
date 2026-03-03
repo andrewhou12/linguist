@@ -13,7 +13,7 @@ export async function getTokenizer(): Promise<Tokenizer<IpadicFeatures>> {
   if (!tokenizerPromise) {
     tokenizerPromise = new Promise<Tokenizer<IpadicFeatures>>((resolve, reject) => {
       kuromoji
-        .builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+        .builder({ dicPath: '/dict/' })
         .build((err, built) => {
           if (err) {
             tokenizerPromise = null
