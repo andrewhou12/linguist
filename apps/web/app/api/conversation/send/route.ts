@@ -28,7 +28,7 @@ export const POST = withAuth(async (request, { userId }) => {
 
   const result = streamText({
     model: anthropic('claude-sonnet-4-20250514'),
-    system: session.systemPrompt,
+    system: session.systemPrompt + '\n\nIMPORTANT: Always include your conversational text response alongside any tool calls. Never respond with only tool calls and no text.',
     messages: modelMessages,
     tools,
     maxOutputTokens: 1024,

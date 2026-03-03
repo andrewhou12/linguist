@@ -152,7 +152,7 @@ export function ConversationView() {
     sendMessage,
     status,
     setMessages,
-  } = useChat({ transport, maxSteps: 3 })
+  } = useChat({ transport })
 
   const isSending = status === 'streaming' || status === 'submitted'
 
