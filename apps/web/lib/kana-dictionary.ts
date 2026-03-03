@@ -560,6 +560,94 @@ export function conjugatedLookup(kana: string): DictEntry[] {
   return results
 }
 
+// ─── COMPOUND CONJUGATION LOOKUP ────────────────────────────────────
+// Handles te-form + auxiliary patterns like ~ている, ~ていない, ~ていた.
+// The simple deconjugation can't see through these two-level conjugations
+// (e.g., 言う → 言って → 言っていない), so we extract the te-form,
+// deconjugate it separately, and reconstruct the full kanji compound.
+
+const COMPOUND_TE_PATTERNS: Array<{ ending: string; teChar: string }> = [
+  // Sorted longest-first so more specific patterns match first
+  { ending: 'てしまった', teChar: 'て' },
+  { ending: 'でしまった', teChar: 'で' },
+  { ending: 'てしまう', teChar: 'て' },
+  { ending: 'でしまう', teChar: 'で' },
+  { ending: 'ていない', teChar: 'て' },
+  { ending: 'でいない', teChar: 'で' },
+  { ending: 'てもらう', teChar: 'て' },
+  { ending: 'でもらう', teChar: 'で' },
+  { ending: 'てくれる', teChar: 'て' },
+  { ending: 'でくれる', teChar: 'で' },
+  { ending: 'てあげる', teChar: 'て' },
+  { ending: 'であげる', teChar: 'で' },
+  { ending: 'ている', teChar: 'て' },
+  { ending: 'でいる', teChar: 'で' },
+  { ending: 'ていた', teChar: 'て' },
+  { ending: 'でいた', teChar: 'で' },
+  { ending: 'ていく', teChar: 'て' },
+  { ending: 'でいく', teChar: 'で' },
+  { ending: 'てくる', teChar: 'て' },
+  { ending: 'でくる', teChar: 'で' },
+  { ending: 'てない', teChar: 'て' },  // colloquial contraction
+  { ending: 'てた', teChar: 'て' },     // colloquial contraction
+  { ending: 'でた', teChar: 'で' },     // colloquial contraction
+]
+
+/**
+ * Look up compound conjugation patterns (te-form + auxiliary verb).
+ * Deconjugates the te-form to find the base verb, reconstructs the kanji compound.
+ * By default skips hiragana-preferred bases (e.g., いく for いって);
+ * set skipHP=false for candidate panel where all options should appear.
+ */
+function compoundConjugatedLookup(kana: string, skipHP = true): DictEntry[] {
+  if (!cachedIndex || kana.length < 4) return []
+  // Quick check: compound patterns always contain て or で
+  if (!kana.includes('て') && !kana.includes('で')) return []
+
+  for (const { ending, teChar } of COMPOUND_TE_PATTERNS) {
+    if (!kana.endsWith(ending)) continue
+    const stem = kana.slice(0, kana.length - ending.length)
+    if (stem.length < 1) continue
+
+    const teForm = stem + teChar
+    const teDeconjs = deconjugate(teForm)
+
+    const seen = new Set<string>()
+    const results: DictEntry[] = []
+
+    for (const deconj of teDeconjs) {
+      if (skipHP && HIRAGANA_PREFERRED.has(deconj.baseReading)) continue
+
+      const entries = cachedIndex.entries[deconj.baseReading]
+      if (!entries) continue
+
+      for (const entry of entries) {
+        if (entry.surface === entry.reading) continue // kana-only
+        if (!entry.surface.endsWith(deconj.baseSuffix) && entry.surface !== entry.reading) continue
+
+        const reconstructed = reconstructKanji(entry, deconj, kana)
+        if (seen.has(reconstructed)) continue
+        seen.add(reconstructed)
+
+        results.push({
+          surface: reconstructed,
+          reading: kana,
+          meaning: entry.meaning,
+          pos: entry.pos,
+          freq: entry.freq,
+        })
+      }
+    }
+
+    if (results.length > 0) {
+      results.sort((a, b) => a.freq - b.freq)
+      return results
+    }
+  }
+
+  return []
+}
+
 // ─── AUTO-SEGMENTATION ──────────────────────────────────────────────
 // Greedy left-to-right segmentation: at each position, find the longest
 // kana substring that matches a dictionary entry, convert it, then move on.
@@ -632,6 +720,12 @@ function checkWord(candidate: string): { match: boolean; surface: string | null 
   const conj = conjugatedLookup(candidate)
   if (conj.length > 0 && conj[0].surface !== candidate) {
     return { match: true, surface: conj[0].surface }
+  }
+
+  // Try compound conjugation (te-form + auxiliary like ~ている, ~ていない)
+  const compound = compoundConjugatedLookup(candidate)
+  if (compound.length > 0) {
+    return { match: true, surface: compound[0].surface }
   }
 
   // Known word that stays as kana (e.g. kana-only words in dict)
@@ -840,6 +934,7 @@ export function composingLookup(kana: string, limit = 9): DictEntry[] {
 
   const exact = cachedIndex.entries[kana] ?? []
   const conjugated = conjugatedLookup(kana)
+  const compound = compoundConjugatedLookup(kana, false) // include HP bases for candidate panel
 
   const prefix: DictEntry[] = []
   for (const [reading, entries] of Object.entries(cachedIndex.entries)) {
@@ -849,11 +944,11 @@ export function composingLookup(kana: string, limit = 9): DictEntry[] {
   }
   prefix.sort((a, b) => a.freq - b.freq)
 
-  // Merge: exact first, then conjugated, then prefix
-  if (exact.length > 0 || conjugated.length > 0 || prefix.length > 0) {
+  // Merge: exact first, then conjugated, then compound, then prefix
+  if (exact.length > 0 || conjugated.length > 0 || compound.length > 0 || prefix.length > 0) {
     const seen = new Set<string>()
     const results: DictEntry[] = []
-    for (const entry of [...exact, ...conjugated, ...prefix]) {
+    for (const entry of [...exact, ...conjugated, ...compound, ...prefix]) {
       if (!seen.has(entry.surface)) {
         seen.add(entry.surface)
         results.push(entry)

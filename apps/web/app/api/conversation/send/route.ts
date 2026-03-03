@@ -31,6 +31,7 @@ export const POST = withAuth(async (request, { userId }) => {
     system: session.systemPrompt,
     messages: modelMessages,
     tools,
+    maxSteps: 3,
     maxOutputTokens: 1024,
     onFinish: async ({ text }) => {
       try {
