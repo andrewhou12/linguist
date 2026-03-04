@@ -52,10 +52,10 @@ export interface UseJapaneseIMEReturn {
 const IME_STORAGE_KEY = 'lingle-ime-active'
 
 function getStoredIMEState(): boolean {
+  // Always start false for SSR hydration consistency.
+  // useEffect in the hook syncs the real state from localStorage after mount.
   if (typeof window === 'undefined') return false
-  const stored = localStorage.getItem(IME_STORAGE_KEY)
-  // Default to active — this is a Japanese learning app
-  return stored === null ? true : stored === 'true'
+  return false
 }
 
 /** Auto-convert kana using segmentation — handles multi-word, conjugation, hiragana-preferred */
@@ -87,6 +87,16 @@ export function useJapaneseIME(
 
   const preRef = useRef('')
   const postRef = useRef('')
+
+  // Sync stored IME state after hydration
+  useEffect(() => {
+    const stored = localStorage.getItem(IME_STORAGE_KEY)
+    const shouldBeActive = stored === null ? true : stored === 'true'
+    if (shouldBeActive !== imeActive) {
+      setImeActive(shouldBeActive)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Load dictionary when IME activates
   useEffect(() => {

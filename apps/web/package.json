@@ -13,7 +13,6 @@
     "@ai-sdk/provider-utils": "^4.0.16",
     "@ai-sdk/react": "^3.0.99",
     "@anthropic-ai/sdk": "^0.39.0",
-    "@lingle/core": "workspace:*",
     "@lingle/db": "workspace:*",
     "@lingle/shared": "workspace:*",
     "@supabase/ssr": "^0.6.0",

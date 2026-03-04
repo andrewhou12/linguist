@@ -6,6 +6,3 @@ onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"
   - prisma
-  - electron
-  - esbuild
-  - sharp

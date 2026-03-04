@@ -8,8 +8,7 @@
         "ANTHROPIC_API_KEY",
         "DATABASE_URL",
         "GOOGLE_CLIENT_ID",
-        "GOOGLE_CLIENT_SECRET",
-        "OPENAI_API_KEY"
+        "GOOGLE_CLIENT_SECRET"
       ]
     },
     "dev": {

@@ -12,31 +12,12 @@ export const GET = withAuth(async (request, { userId }) => {
   })
   if (!session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const contextLogs = await prisma.itemContextLog.findMany({
-    where: { sessionId: id, userId },
-    orderBy: { timestamp: 'asc' },
-  })
-
   return NextResponse.json({
     id: session.id,
     timestamp: session.timestamp.toISOString(),
     durationSeconds: session.durationSeconds,
     transcript: session.transcript,
     sessionPlan: session.sessionPlan,
-    targetsPlanned: session.targetsPlanned,
-    targetsHit: session.targetsHit,
-    errorsLogged: session.errorsLogged,
-    avoidanceEvents: session.avoidanceEvents,
     systemPrompt: session.systemPrompt,
-    contextLogs: contextLogs.map((cl) => ({
-      id: cl.id,
-      contextType: cl.contextType,
-      modality: cl.modality,
-      wasProduction: cl.wasProduction,
-      wasSuccessful: cl.wasSuccessful,
-      contextQuote: cl.contextQuote,
-      lexicalItemId: cl.lexicalItemId,
-      grammarItemId: cl.grammarItemId,
-    })),
   })
 })

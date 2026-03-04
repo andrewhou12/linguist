@@ -1,20 +1,16 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { MASTERY_HEX, MASTERY_LABELS } from '@/constants/mastery'
-import type { EnrichedCandidate } from '@/hooks/use-ime-mastery'
+import type { DictEntry } from '@/lib/kana-dictionary'
 
 interface IMECandidateRowProps {
-  candidate: EnrichedCandidate
+  candidate: DictEntry
   index: number
   isSelected: boolean
   onClick: () => void
 }
 
 export function IMECandidateRow({ candidate, index, isSelected, onClick }: IMECandidateRowProps) {
-  const inWordBank = candidate.mastery !== null
-  const masteryColor = inWordBank ? MASTERY_HEX[candidate.mastery!.masteryState] : undefined
-  const masteryLabel = inWordBank ? MASTERY_LABELS[candidate.mastery!.masteryState] : undefined
   const isKanaOnly = candidate.meaning === '(kana)'
 
   return (
@@ -22,7 +18,6 @@ export function IMECandidateRow({ candidate, index, isSelected, onClick }: IMECa
       className={cn(
         'flex items-center gap-2.5 w-full px-3 py-1.5 text-left border-none cursor-pointer transition-colors',
         isSelected ? 'bg-accent-brand/8' : 'bg-transparent hover:bg-bg-hover',
-        !inWordBank && !isKanaOnly && 'opacity-60'
       )}
       onClick={onClick}
       data-index={index}
@@ -32,42 +27,22 @@ export function IMECandidateRow({ candidate, index, isSelected, onClick }: IMECa
         {index + 1}
       </span>
 
-      {/* Mastery dot */}
-      <span className="w-2 h-2 rounded-full shrink-0" style={{
-        backgroundColor: inWordBank ? masteryColor : 'transparent',
-      }} />
-
       {/* Surface form */}
-      <span className={cn(
-        'text-[14px] font-jp shrink-0',
-        inWordBank ? 'text-text-primary' : 'text-text-muted'
-      )}>
+      <span className="text-[14px] font-jp shrink-0 text-text-primary">
         {candidate.surface}
       </span>
 
       {/* Meaning */}
-      <span className={cn(
-        'text-[12px] truncate flex-1 min-w-0',
-        inWordBank ? 'text-text-secondary' : 'text-text-muted'
-      )}>
+      <span className="text-[12px] truncate flex-1 min-w-0 text-text-secondary">
         {isKanaOnly ? '' : candidate.meaning}
       </span>
 
-      {/* Mastery badge or "new to you" label */}
-      <span className={cn(
-        'text-[10px] font-medium shrink-0 rounded-full px-1.5 py-0.5',
-        inWordBank
-          ? 'border'
-          : isKanaOnly
-            ? 'text-text-muted'
-            : 'text-text-muted'
-      )} style={inWordBank ? {
-        color: masteryColor,
-        borderColor: masteryColor ? `${masteryColor}40` : undefined,
-        backgroundColor: masteryColor ? `${masteryColor}10` : undefined,
-      } : undefined}>
-        {isKanaOnly ? 'kana' : inWordBank ? masteryLabel : 'new to you'}
-      </span>
+      {/* Kana label */}
+      {isKanaOnly && (
+        <span className="text-[10px] font-medium shrink-0 text-text-muted">
+          kana
+        </span>
+      )}
     </button>
   )
 }

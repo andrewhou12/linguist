@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Globe, BookOpen, Target, Flame } from 'lucide-react'
-import type { ExpandedLearnerProfile } from '@lingle/shared/types'
+import { ArrowLeft, Globe } from 'lucide-react'
+import type { LearnerProfile } from '@lingle/shared/types'
 import { Spinner } from '@/components/spinner'
 import { api } from '@/lib/api'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [profile, setProfile] = useState<ExpandedLearnerProfile | null>(() => api.peekCache<ExpandedLearnerProfile>('/profile') ?? null)
+  const [profile, setProfile] = useState<LearnerProfile | null>(() => api.peekCache<LearnerProfile>('/profile') ?? null)
   const [isLoading, setIsLoading] = useState(() => !api.peekCache('/profile'))
 
   useEffect(() => {
@@ -19,13 +18,6 @@ export default function SettingsPage() {
       setIsLoading(false)
     })
   }, [])
-
-  const handleUpdate = async (
-    updates: Partial<{ dailyNewItemLimit: number; targetRetention: number }>
-  ) => {
-    const updated = await api.profileUpdate(updates)
-    setProfile(updated)
-  }
 
   if (isLoading || !profile) {
     return (
@@ -51,110 +43,30 @@ export default function SettingsPage() {
       </div>
 
       <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
-        General
-      </span>
-
-      <div className="rounded-xl border border-border bg-bg mb-5">
-        <div className="flex flex-col">
-          <SettingsRow icon={<Globe size={16} />} label="Target Language" description={profile.targetLanguage} />
-          <hr className="border-t border-border m-0" />
-          <SettingsRow icon={<Globe size={16} />} label="Native Language" description={profile.nativeLanguage} />
-        </div>
-      </div>
-
-      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
-        Learning
-      </span>
-
-      <div className="rounded-xl border border-border bg-bg mb-5">
-        <div className="flex flex-col">
-          <SettingsRow
-            icon={<BookOpen size={16} />}
-            label="Daily New Items"
-            description={`${profile.dailyNewItemLimit} new items per day`}
-          >
-            <Select
-              value={String(profile.dailyNewItemLimit)}
-              onValueChange={(v) => handleUpdate({ dailyNewItemLimit: parseInt(v) })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="15">15</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="30">30</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingsRow>
-
-          <hr className="border-t border-border m-0" />
-
-          <SettingsRow
-            icon={<Target size={16} />}
-            label="Target Retention"
-            description={`${Math.round(profile.targetRetention * 100)}% target`}
-          >
-            <Select
-              value={String(profile.targetRetention)}
-              onValueChange={(v) => handleUpdate({ targetRetention: parseFloat(v) })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.80">80%</SelectItem>
-                <SelectItem value="0.85">85%</SelectItem>
-                <SelectItem value="0.90">90%</SelectItem>
-                <SelectItem value="0.95">95%</SelectItem>
-                <SelectItem value="0.97">97%</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingsRow>
-        </div>
-      </div>
-
-      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
-        Progress
+        Language
       </span>
 
       <div className="rounded-xl border border-border bg-bg">
         <div className="flex flex-col">
-          <SettingsRow icon={<Flame size={16} />} label="Current Level" description={profile.computedLevel} />
+          <SettingsRow icon={<Globe size={16} />} label="Target Language" value={profile.targetLanguage} />
           <hr className="border-t border-border m-0" />
-          <SettingsRow icon={<Flame size={16} />} label="Streak" description={`${profile.currentStreak} day${profile.currentStreak !== 1 ? 's' : ''} (longest: ${profile.longestStreak})`} />
-          <hr className="border-t border-border m-0" />
-          <SettingsRow icon={<BookOpen size={16} />} label="Total Reviews" description={String(profile.totalReviewEvents)} />
-          <hr className="border-t border-border m-0" />
-          <SettingsRow icon={<Target size={16} />} label="Comprehension Ceiling" description={profile.comprehensionCeiling} />
-          <hr className="border-t border-border m-0" />
-          <SettingsRow icon={<Target size={16} />} label="Production Ceiling" description={profile.productionCeiling} />
+          <SettingsRow icon={<Globe size={16} />} label="Native Language" value={profile.nativeLanguage} />
         </div>
       </div>
     </div>
   )
 }
 
-function SettingsRow({
-  icon, label, description, children,
-}: {
-  icon: React.ReactNode; label: string; description: string; children?: React.ReactNode
-}) {
+function SettingsRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-3 px-4 gap-3 transition-colors duration-100 hover:bg-bg-hover rounded-lg">
+    <div className="flex items-center justify-between py-3 px-4 gap-3">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className="w-7 h-7 rounded-md bg-bg-secondary shrink-0 text-text-secondary flex items-center justify-center">
           {icon}
         </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-[13px] font-medium">{label}</span>
-          <span className="text-[11px] text-text-muted overflow-hidden text-ellipsis whitespace-nowrap">{description}</span>
-        </div>
+        <span className="text-[13px] font-medium">{label}</span>
       </div>
-      {children && <div className="shrink-0">{children}</div>}
+      <span className="text-[13px] text-text-secondary">{value}</span>
     </div>
   )
 }

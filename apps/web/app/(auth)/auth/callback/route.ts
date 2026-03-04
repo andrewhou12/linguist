@@ -5,14 +5,14 @@ import { prisma } from '@lingle/db'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = searchParams.get('next') ?? '/conversation'
 
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      const dbUser = await prisma.user.upsert({
+      await prisma.user.upsert({
         where: { id: data.user.id },
         create: {
           id: data.user.id,
@@ -28,8 +28,7 @@ export async function GET(request: Request) {
         },
       })
 
-      const destination = dbUser.onboardingCompleted ? next : '/onboarding'
-      return NextResponse.redirect(`${origin}${destination}`)
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 

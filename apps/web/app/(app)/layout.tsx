@@ -8,14 +8,7 @@ import {
   MoreHorizontal,
   LogOut,
   MessageCircle,
-  Zap,
-  BookOpen,
-  PenLine,
-  BookMarked,
-  Clock,
-  Flame,
   Settings,
-  BarChart3,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -24,7 +17,6 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { ConversationView } from '@/components/conversation-view'
 
 /* ── Types ── */
 
@@ -37,30 +29,16 @@ interface NavItem {
 
 /* ── Nav Config ── */
 
-const LEARN_ITEMS: NavItem[] = [
+const NAV_ITEMS: NavItem[] = [
   { href: '/conversation', label: 'Practice', icon: MessageCircle },
-  { href: '/review', label: 'Flashcards', icon: Zap },
-  { href: '/knowledge?tab=reading', label: 'Reading', icon: BookOpen },
-  { href: '/knowledge?tab=grammar', label: 'Grammar', icon: PenLine },
-]
-
-const MY_STUFF_ITEMS: NavItem[] = [
-  { href: '/knowledge', label: 'Vocabulary', icon: BookMarked },
-  { href: '/history', label: 'History', icon: Clock },
-  { href: '/insights', label: 'Study Streak', icon: Flame },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 /* ── Breadcrumb label map ── */
 
-const BREADCRUMB_MAP: Record<string, [string, string]> = {
-  '/conversation': ['Learn', 'Practice'],
-  '/review': ['Learn', 'Flashcards'],
-  '/knowledge': ['My Stuff', 'Vocabulary'],
-  '/insights': ['My Stuff', 'Study Streak'],
-  '/settings': ['My Stuff', 'Settings'],
-  '/history': ['My Stuff', 'History'],
-  '/dashboard': ['Home', 'Dashboard'],
+const BREADCRUMB_MAP: Record<string, string> = {
+  '/conversation': 'Practice',
+  '/settings': 'Settings',
 }
 
 /* ── Subcomponents ── */
@@ -99,32 +77,6 @@ function NavLink({ href, label, icon: Icon, badge, isActive }: NavItem & { isAct
   )
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <div className="text-[11px] uppercase tracking-[.07em] text-text-muted px-2.5 pt-5 pb-2 font-medium">
-      {children}
-    </div>
-  )
-}
-
-function ProgressWidget() {
-  return (
-    <div className="mx-2.5 mt-auto mb-2.5 p-4 rounded-xl bg-bg-hover/60">
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[13px] font-medium text-text-secondary">Today&apos;s Goal</span>
-        <span className="text-[13px] font-bold text-text-primary">0/100 XP</span>
-      </div>
-      <div className="h-2 rounded-full bg-bg-active overflow-hidden">
-        <div className="h-full rounded-full bg-accent-brand transition-[width] duration-300" style={{ width: '0%' }} />
-      </div>
-      <div className="flex items-center gap-2.5 mt-3">
-        <span className="flex items-center gap-1 text-[12px] text-text-muted"><BarChart3 size={12} /> Level 1</span>
-        <span className="flex items-center gap-1 text-[12px] text-text-muted"><Flame size={12} /> 0 day streak</span>
-      </div>
-    </div>
-  )
-}
-
 function UserFooter() {
   const router = useRouter()
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null)
@@ -154,7 +106,6 @@ function UserFooter() {
             </div>
             <div className="flex flex-col min-w-0 flex-1 text-left">
               <span className="text-[14px] font-medium text-text-primary truncate">{displayName}</span>
-              <span className="text-[12px] text-text-muted truncate">Level 1</span>
             </div>
             <MoreHorizontal size={16} className="text-text-muted shrink-0" />
           </button>
@@ -178,7 +129,7 @@ function UserFooter() {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
-  // Prefetch all page data on first mount so every page is instant
+  // Prefetch common data on first mount
   useEffect(() => { api.prefetch() }, [])
 
   const isActive = (href: string) => {
@@ -186,7 +137,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return pathname === basePath
   }
 
-  const breadcrumb = BREADCRUMB_MAP[pathname] ?? ['', '']
+  const breadcrumb = BREADCRUMB_MAP[pathname] ?? ''
 
   return (
     <div className="flex h-screen bg-bg">
@@ -200,24 +151,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </span>
         </div>
 
-        {/* Learn section */}
-        <SectionLabel>Learn</SectionLabel>
-        <div className="flex flex-col gap-1 px-2.5">
-          {LEARN_ITEMS.map((item) => (
+        {/* Nav items */}
+        <div className="flex flex-col gap-1 px-2.5 pt-3">
+          {NAV_ITEMS.map((item) => (
             <NavLink key={item.href} {...item} isActive={isActive(item.href)} />
           ))}
         </div>
 
-        {/* My Stuff section */}
-        <SectionLabel>My Stuff</SectionLabel>
-        <div className="flex flex-col gap-1 px-2.5">
-          {MY_STUFF_ITEMS.map((item) => (
-            <NavLink key={item.href} {...item} isActive={isActive(item.href)} />
-          ))}
-        </div>
-
-        {/* Progress widget */}
-        <ProgressWidget />
+        {/* Spacer */}
+        <div className="flex-1" />
 
         {/* User footer */}
         <Separator />
@@ -229,27 +171,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* Top bar */}
         <div className="flex items-center px-6 h-[48px] border-b border-border shrink-0 relative z-10 bg-bg">
           <div className="flex items-center gap-1.5 text-[14px]">
-            {breadcrumb[0] && (
-              <>
-                <span className="text-text-muted">{breadcrumb[0]}</span>
-                <span className="text-text-muted">/</span>
-              </>
-            )}
-            <span className="text-text-primary font-medium">{breadcrumb[1] || 'Home'}</span>
+            <span className="text-text-primary font-medium">{breadcrumb || 'Home'}</span>
           </div>
         </div>
 
-        {/* Content — regular pages */}
-        <div className={cn('p-6 flex-1 overflow-auto calligraphy-grid', pathname === '/conversation' && 'hidden')}>
-          <div className="relative z-[1]">
-            {children}
-          </div>
-        </div>
-
-        {/* Persistent conversation view — stays mounted across navigations */}
-        <div className={cn('p-6 flex-1 overflow-auto', pathname !== '/conversation' && 'hidden')}>
+        {/* Content */}
+        <div className={cn('p-6 flex-1 overflow-auto', pathname === '/conversation' && 'calligraphy-grid')}>
           <div className="relative z-[1] h-full">
-            <ConversationView />
+            {children}
           </div>
         </div>
       </div>

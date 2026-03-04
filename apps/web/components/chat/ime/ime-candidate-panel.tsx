@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import { IMECandidateRow } from './ime-candidate-row'
-import type { EnrichedCandidate } from '@/hooks/use-ime-mastery'
+import type { DictEntry } from '@/lib/kana-dictionary'
 
 interface IMECandidatePanelProps {
-  candidates: EnrichedCandidate[]
+  candidates: DictEntry[]
   selectedIndex: number
   onSelect: (index: number) => void
   onDismiss: () => void
