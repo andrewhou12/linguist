@@ -57,10 +57,10 @@ class LingleApiClient {
   userGetMe = () => this.request<{ id: string; email: string | null; name: string | null; avatarUrl: string | null }>('/user/me')
 
   // Conversation
-  conversationPlan = (topicHint?: string) =>
+  conversationPlan = (prompt?: string) =>
     this.request<{ _sessionId: string; sessionFocus: string }>('/conversation/plan', {
       method: 'POST',
-      ...(topicHint ? { body: JSON.stringify({ topicHint }) } : {}),
+      ...(prompt ? { body: JSON.stringify({ prompt }) } : {}),
     })
   conversationEnd = (sessionId: string) =>
     this.request<null>('/conversation/end', {
@@ -70,6 +70,11 @@ class LingleApiClient {
 
   // Profile
   profileGet = () => this.request<LearnerProfile>('/profile')
+  profilePatch = (updates: Partial<LearnerProfile>) =>
+    this.request<LearnerProfile>('/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    })
 
   // Prefetch
   prefetch = () => {

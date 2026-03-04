@@ -3,7 +3,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { withAuth } from '@/lib/api-helpers'
 import { prisma } from '@lingle/db'
 import { createConversationTools } from '@/lib/conversation-tools'
-import type { ConversationMessage } from '@lingle/shared/types'
+import type { ConversationMessage, ConversationToolCall } from '@lingle/shared/types'
 import type { Prisma } from '@prisma/client'
 
 export const POST = withAuth(async (request, { userId }) => {
@@ -26,13 +26,29 @@ export const POST = withAuth(async (request, { userId }) => {
   const tools = createConversationTools(userId, sessionId)
   const modelMessages = await convertToModelMessages(messages, { tools })
 
+  console.log('[send] modelMessages count:', modelMessages.length)
+  console.log('[send] tools:', Object.keys(tools))
+  console.log('[send] system prompt length:', session.systemPrompt.length)
+
   const result = streamText({
     model: anthropic('claude-sonnet-4-20250514'),
-    system: session.systemPrompt + '\n\nIMPORTANT: Always include your conversational text response alongside any tool calls. Never respond with only tool calls and no text.',
+    system: session.systemPrompt,
     messages: modelMessages,
     tools,
-    maxOutputTokens: 1024,
-    onFinish: async ({ text }) => {
+    maxOutputTokens: 2048,
+    onError: (event) => {
+      console.error('[send] streamText error:', event.error)
+    },
+    onStepFinish: ({ text, toolCalls, finishReason }) => {
+      console.log('[send] step finished:', {
+        finishReason,
+        textLen: text.length,
+        textPreview: text.slice(0, 80),
+        toolCalls: toolCalls.map((tc) => tc.toolName),
+      })
+    },
+    onFinish: async ({ text, steps }) => {
+      console.log('[send] onFinish text length:', text.length, 'steps:', steps.length, 'preview:', text.slice(0, 100))
       try {
         // Re-fetch transcript to avoid stale reads on concurrent messages
         const current = await prisma.conversationSession.findUniqueOrThrow({
@@ -55,12 +71,21 @@ export const POST = withAuth(async (request, { userId }) => {
           }
         }
 
-        // Add assistant response (text only, no tool invocation data)
-        if (text) {
+        // Collect tool calls from all steps
+        const toolCalls: ConversationToolCall[] = []
+        for (const step of steps) {
+          for (const tc of step.toolCalls) {
+            toolCalls.push({ toolName: tc.toolName, args: tc.input as Record<string, unknown> })
+          }
+        }
+
+        // Add assistant response with tool call data
+        if (text || toolCalls.length > 0) {
           transcript.push({
             role: 'assistant',
             content: text,
             timestamp: new Date().toISOString(),
+            ...(toolCalls.length > 0 ? { toolCalls } : {}),
           })
         }
 

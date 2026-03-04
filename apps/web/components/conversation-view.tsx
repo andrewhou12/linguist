@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Square } from 'lucide-react'
 import Markdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
 import { api } from '@/lib/api'
-import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { rubyToHtml, stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'
 import { useTTS } from '@/hooks/use-tts'
 import { RomajiText } from '@/components/romaji-text'
@@ -15,47 +16,20 @@ import { MessageBlock } from '@/components/chat/message-block'
 import { ChatInput } from '@/components/chat/chat-input'
 import { EscapeHatch } from '@/components/chat/escape-hatch'
 import { SuggestionChips } from '@/components/chat/suggestion-chips'
+import { ChoiceButtons, ChoiceButtonsSkeleton } from '@/components/chat/choice-buttons'
+import type { Choice } from '@/components/chat/choice-buttons'
+import { CorrectionCard, CorrectionCardSkeleton } from '@/components/chat/correction-card'
+import { VocabularyCard, VocabularyCardSkeleton } from '@/components/chat/vocabulary-card'
+import { GrammarNote, GrammarNoteSkeleton } from '@/components/chat/grammar-note'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
-
-interface TopicStarter {
-  emoji: string
-  label: string
-  description: string
-  firstMessage: string
-  hint: string
-}
-
-const TOPIC_STARTERS: TopicStarter[] = [
-  {
-    emoji: '\u2615',
-    label: 'Cafe',
-    description: 'Ordering drinks & food',
-    firstMessage: '\u30B3\u30FC\u30D2\u30FC\u3092\u4E00\u3064\u304F\u3060\u3055\u3044\u3002',
-    hint: 'Ordering at a cafe — food vocabulary, polite request forms, counters',
-  },
-  {
-    emoji: '\uD83D\uDDD3\uFE0F',
-    label: 'Plans',
-    description: 'Weekend & future plans',
-    firstMessage: '\u9031\u672B\u306F\u4F55\u3092\u3057\u307E\u3059\u304B\uFF1F',
-    hint: 'Discussing weekend plans — volitional form, time expressions, activities',
-  },
-  {
-    emoji: '\uD83C\uDFD9\uFE0F',
-    label: 'City',
-    description: 'Exploring & directions',
-    firstMessage: '\u3053\u306E\u8FBA\u306B\u304A\u3059\u3059\u3081\u306E\u5834\u6240\u306F\u3042\u308A\u307E\u3059\u304B\uFF1F',
-    hint: 'Exploring a city — location words, directions, recommendations',
-  },
-  {
-    emoji: '\uD83C\uDF8C',
-    label: 'Free',
-    description: 'Open conversation',
-    firstMessage: '\u4ECA\u65E5\u306F\u4F55\u3092\u8A71\u3057\u307E\u3057\u3087\u3046\u304B\uFF1F',
-    hint: '',
-  },
-]
+import {
+  type ExperienceScenario,
+  type ScenarioCategory,
+  CATEGORY_LABELS,
+  getScenariosByCategory,
+  getAllCategories,
+} from '@/lib/experience-scenarios'
 
 function getGreeting(): { japanese: string; english: string } {
   const hour = new Date().getHours()
@@ -67,13 +41,13 @@ function getGreeting(): { japanese: string; english: string } {
   } else {
     japanese = '\u3053\u3093\u3070\u3093\u306F\uFF01'
   }
-  return { japanese, english: 'What would you like to practice today?' }
+  return { japanese, english: 'What would you like to do today?' }
 }
 
 const DEFAULT_SUGGESTIONS = [
-  'こんにちは！',
+  '\u3053\u3093\u306B\u3061\u306F\uFF01',
   'What should we talk about?',
-  'もう一度お願いします',
+  '\u3082\u3046\u4E00\u5EA6\u304A\u9858\u3044\u3057\u307E\u3059',
 ]
 
 type Phase = 'idle' | 'conversation'
@@ -81,9 +55,12 @@ type Phase = 'idle' | 'conversation'
 export function ConversationView() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionTitle, setSessionTitle] = useState<string>('Conversation')
   const [isLoading, setIsLoading] = useState(false)
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<ScenarioCategory>('featured')
+  const [chosenChoiceIds, setChosenChoiceIds] = useState<Set<string>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sessionIdRef = useRef<string | null>(null)
   sessionIdRef.current = sessionId
@@ -104,7 +81,13 @@ export function ConversationView() {
     sendMessage,
     status,
     setMessages,
-  } = useChat({ transport })
+    error: chatError,
+  } = useChat({
+    transport,
+    onError: (err) => {
+      console.error('[useChat] error:', err)
+    },
+  })
 
   const isSending = status === 'streaming' || status === 'submitted'
 
@@ -128,7 +111,7 @@ export function ConversationView() {
       if (msg.role !== 'assistant') continue
       for (const part of msg.parts) {
         const partType = (part as { type: string }).type
-        if (partType === 'tool-suggestResponses') {
+        if (partType === 'tool-suggestActions') {
           const toolPart = part as { type: string; state: string; output?: unknown }
           if (toolPart.state === 'output-available' && toolPart.output) {
             const output = toolPart.output as { suggestions: string[] }
@@ -145,19 +128,20 @@ export function ConversationView() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleStartSessionWithMessage = useCallback(async (initialMessage?: string, topicHint?: string) => {
+  const handleStartSession = useCallback(async (prompt: string, title?: string) => {
     setIsLoading(true)
     setError(null)
     try {
-      const plan = await api.conversationPlan(topicHint || undefined)
+      const plan = await api.conversationPlan(prompt)
       setSessionId(plan._sessionId ?? null)
+      setSessionTitle(title || plan.sessionFocus || 'Conversation')
+      setChosenChoiceIds(new Set())
       setMessages([])
       setPhase('conversation')
-      if (initialMessage) {
-        requestAnimationFrame(() => {
-          sendMessage({ text: initialMessage })
-        })
-      }
+      // Send the prompt as the first user message
+      requestAnimationFrame(() => {
+        sendMessage({ text: prompt })
+      })
     } catch (err) {
       console.error('Failed to start session:', err)
       setError(err instanceof Error ? err.message : 'Failed to start session. Please try again.')
@@ -165,16 +149,16 @@ export function ConversationView() {
     setIsLoading(false)
   }, [setMessages, sendMessage])
 
-  const handlePlanningSubmit = useCallback(async () => {
+  const handleFreePromptSubmit = useCallback(async () => {
     if (!input.trim()) return
     const text = input.trim()
     setInput('')
-    await handleStartSessionWithMessage(text, text)
-  }, [input, handleStartSessionWithMessage])
+    await handleStartSession(text)
+  }, [input, handleStartSession])
 
-  const handleTopicSelect = useCallback(async (topic: TopicStarter) => {
-    await handleStartSessionWithMessage(topic.firstMessage, topic.hint || undefined)
-  }, [handleStartSessionWithMessage])
+  const handleScenarioSelect = useCallback(async (scenario: ExperienceScenario) => {
+    await handleStartSession(scenario.prompt, scenario.title)
+  }, [handleStartSession])
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !sessionId || isSending) return
@@ -186,6 +170,11 @@ export function ConversationView() {
   const handleSuggestionSelect = useCallback((text: string) => {
     setInput(text)
   }, [])
+
+  const handleChoiceSelect = useCallback((text: string, blockId: string) => {
+    setChosenChoiceIds((prev) => new Set(prev).add(blockId))
+    sendMessage({ text })
+  }, [sendMessage])
 
   const handleEscapeHatch = useCallback(() => {
     setInput("I'd like to switch to English for a moment: ")
@@ -202,16 +191,19 @@ export function ConversationView() {
     setIsLoading(false)
     setPhase('idle')
     setSessionId(null)
+    setSessionTitle('Conversation')
     setMessages([])
   }, [sessionId, setMessages])
 
-  // Idle Phase — topic selection
+  // Idle Phase — experience launcher
   if (phase === 'idle') {
     const greeting = getGreeting()
+    const scenarios = getScenariosByCategory(selectedCategory)
+    const categories = getAllCategories()
 
     return (
-      <div className="h-full flex flex-col items-center justify-center px-6">
-        <div className="max-w-[640px] w-full flex flex-col items-center text-center">
+      <div className="h-full flex flex-col items-center px-6 pt-12 pb-6 overflow-auto">
+        <div className="max-w-[720px] w-full flex flex-col items-center">
           {/* Logo */}
           <h1 className="logo-shimmer text-[42px] italic font-serif font-semibold mb-6 select-none">
             Lingle
@@ -223,7 +215,7 @@ export function ConversationView() {
           </p>
 
           {/* English line */}
-          <p className="text-[15px] text-text-secondary mb-6">
+          <p className="text-[15px] text-text-secondary mb-8">
             {greeting.english}
           </p>
 
@@ -241,37 +233,51 @@ export function ConversationView() {
             </div>
           ) : (
             <>
-              {/* Chat input */}
+              {/* Free prompt input */}
               <div className="w-full mb-8">
                 <ChatInput
                   value={input}
                   onChange={setInput}
-                  onSend={handlePlanningSubmit}
+                  onSend={handleFreePromptSubmit}
                   disabled={isLoading}
-                  placeholder="Type a topic or message to start..."
+                  placeholder="Describe any situation, and I'll take you there..."
                   showRomaji={showRomaji}
                   onToggleRomaji={toggleRomaji}
-                  minRows={3}
+                  minRows={2}
                 />
               </div>
 
-              {/* Topic starters */}
-              <p className="text-[11px] uppercase tracking-wider text-text-muted mb-3 font-medium">
-                Or start with a topic
-              </p>
+              {/* Category pills */}
+              <div className="w-full mb-4 overflow-x-auto scrollbar-none">
+                <div className="flex gap-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap border cursor-pointer transition-all',
+                        selectedCategory === cat
+                          ? 'bg-accent-brand text-white border-accent-brand'
+                          : 'bg-bg-pure text-text-secondary border-border-subtle hover:border-border-strong hover:bg-bg-hover'
+                      )}
+                      onClick={() => setSelectedCategory(cat)}
+                    >
+                      {CATEGORY_LABELS[cat]}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {TOPIC_STARTERS.map((topic) => (
+              {/* Scenario cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
+                {scenarios.map((scenario) => (
                   <button
-                    key={topic.label}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-bg-pure border border-border-subtle text-left cursor-pointer transition-all hover:border-border-strong hover:shadow-[var(--shadow-sm)] active:scale-[0.98]"
-                    onClick={() => handleTopicSelect(topic)}
+                    key={scenario.id}
+                    className="flex flex-col items-start gap-1 p-4 rounded-xl bg-bg-pure border border-border-subtle text-left cursor-pointer transition-all hover:border-border-strong hover:shadow-[var(--shadow-sm)] active:scale-[0.98]"
+                    onClick={() => handleScenarioSelect(scenario)}
                   >
-                    <span className="text-[20px] mt-0.5 shrink-0">{topic.emoji}</span>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[14px] font-medium text-text-primary">{topic.label}</span>
-                      <span className="text-[12px] text-text-muted leading-snug">{topic.description}</span>
-                    </div>
+                    <span className="text-[22px] mb-1">{scenario.emoji}</span>
+                    <span className="text-[14px] font-medium text-text-primary">{scenario.title}</span>
+                    <span className="text-[12px] text-text-muted leading-snug">{scenario.subtitle}</span>
                   </button>
                 ))}
               </div>
@@ -287,10 +293,10 @@ export function ConversationView() {
     <div className="h-full flex flex-col -m-6">
       {/* Session info sticky bar */}
       <div className="flex items-center justify-between px-6 py-2.5 border-b border-border shrink-0 bg-bg">
-        <span className="text-[13px] font-medium text-text-primary">Conversation</span>
+        <span className="text-[13px] font-medium text-text-primary truncate">{sessionTitle}</span>
         <button
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg bg-warm-soft px-3 py-1.5 text-[13px] font-medium text-accent-warm border-none cursor-pointer transition-colors hover:bg-warm-med',
+            'inline-flex items-center gap-1.5 rounded-lg bg-warm-soft px-3 py-1.5 text-[13px] font-medium text-accent-warm border-none cursor-pointer transition-colors hover:bg-warm-med shrink-0',
             isLoading && 'opacity-50'
           )}
           onClick={handleEndSession}
@@ -310,6 +316,8 @@ export function ConversationView() {
               message={msg}
               showRomaji={showRomaji}
               getAnnotated={getAnnotated}
+              chosenChoiceIds={chosenChoiceIds}
+              onChoiceSelect={handleChoiceSelect}
               onPlay={
                 msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim())
                   ? () => {
@@ -326,6 +334,13 @@ export function ConversationView() {
               isStreaming={isSending && msg === messages[messages.length - 1] && msg.role === 'assistant'}
             />
           ))}
+
+          {/* Chat error */}
+          {chatError && (
+            <div className="mx-10 my-2 p-3 bg-red-soft rounded-lg">
+              <span className="text-[13px] text-red">{chatError.message}</span>
+            </div>
+          )}
 
           {/* Loading indicator */}
           {isSending && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
@@ -377,6 +392,8 @@ function UIMessageRenderer({
   message,
   showRomaji,
   getAnnotated,
+  chosenChoiceIds,
+  onChoiceSelect,
   onPlay,
   onStop,
   isPlayingAudio,
@@ -385,6 +402,8 @@ function UIMessageRenderer({
   message: UIMessage
   showRomaji: boolean
   getAnnotated: (text: string) => string
+  chosenChoiceIds: Set<string>
+  onChoiceSelect: (text: string, blockId: string) => void
   onPlay?: () => void
   onStop?: () => void
   isPlayingAudio?: boolean
@@ -424,6 +443,9 @@ function UIMessageRenderer({
             showRomaji={showRomaji}
             getAnnotated={getAnnotated}
             isStreaming={isLastTextPart || false}
+            messageId={message.id}
+            chosenChoiceIds={chosenChoiceIds}
+            onChoiceSelect={onChoiceSelect}
           />
         )
       })}
@@ -436,11 +458,17 @@ function PartRenderer({
   showRomaji,
   getAnnotated,
   isStreaming,
+  messageId,
+  chosenChoiceIds,
+  onChoiceSelect,
 }: {
   part: UIMessage['parts'][number]
   showRomaji: boolean
   getAnnotated: (text: string) => string
   isStreaming?: boolean
+  messageId: string
+  chosenChoiceIds: Set<string>
+  onChoiceSelect: (text: string, blockId: string) => void
 }) {
   if (part.type === 'text') {
     const text = (part as { type: 'text'; text: string }).text
@@ -455,21 +483,84 @@ function PartRenderer({
         />
       )
     }
+
+    const htmlText = rubyToHtml(displayText)
+
     return (
       <div className={cn(
         "chat-markdown text-text-primary leading-[1.7] text-[14.5px]",
         isStreaming && "[&>p:last-of-type]:inline"
       )}>
-        <Markdown remarkPlugins={[remarkGfm]}>
-          {stripRubyAnnotations(displayText)}
+        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+          {htmlText}
         </Markdown>
         {isStreaming && <span className="blink-cursor" />}
       </div>
     )
   }
 
-  // Tool invocations — hidden
-  if ((part.type as string).startsWith('tool-')) {
+  // Tool invocations — route by tool name
+  const partType = (part as { type: string }).type
+  if (partType.startsWith('tool-')) {
+    const toolPart = part as { type: string; state: string; output?: unknown; args?: unknown }
+
+    // suggestActions — still extracted for bottom chips, hidden inline
+    if (partType === 'tool-suggestActions') return null
+
+    // displayChoices
+    if (partType === 'tool-displayChoices') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { choices: { text: string; hint?: string }[] }
+        const choices: Choice[] = output.choices.map((c, i) => ({
+          number: i + 1,
+          text: c.text,
+          hint: c.hint,
+        }))
+        const blockId = `${messageId}-choices`
+        return (
+          <ChoiceButtons
+            choices={choices}
+            blockId={blockId}
+            isChosen={chosenChoiceIds.has(blockId)}
+            onSelect={onChoiceSelect}
+          />
+        )
+      }
+      if (toolPart.state === 'input-available') return <ChoiceButtonsSkeleton />
+      return null
+    }
+
+    // showCorrection
+    if (partType === 'tool-showCorrection') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { original: string; corrected: string; explanation: string; grammarPoint?: string }
+        return <CorrectionCard {...output} />
+      }
+      if (toolPart.state === 'input-available') return <CorrectionCardSkeleton />
+      return null
+    }
+
+    // showVocabularyCard
+    if (partType === 'tool-showVocabularyCard') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { word: string; reading?: string; meaning: string; partOfSpeech?: string; exampleSentence?: string; notes?: string }
+        return <VocabularyCard {...output} />
+      }
+      if (toolPart.state === 'input-available') return <VocabularyCardSkeleton />
+      return null
+    }
+
+    // showGrammarNote
+    if (partType === 'tool-showGrammarNote') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { pattern: string; meaning: string; formation: string; examples: { japanese: string; english: string }[]; level?: string }
+        return <GrammarNote {...output} />
+      }
+      if (toolPart.state === 'input-available') return <GrammarNoteSkeleton />
+      return null
+    }
+
+    // Unknown tools — hidden
     return null
   }
 

@@ -55,3 +55,4 @@ export function parseMessage(content: string): MessageSegment[] {
 
   return segments
 }
+

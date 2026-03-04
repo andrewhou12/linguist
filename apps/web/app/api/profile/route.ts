@@ -5,12 +5,13 @@ import type { LearnerProfile } from '@lingle/shared/types'
 
 function serialize(profile: {
   id: number; targetLanguage: string; nativeLanguage: string;
-  totalSessions: number; lastActiveDate: Date | null;
+  difficultyLevel: number; totalSessions: number; lastActiveDate: Date | null;
 }): LearnerProfile {
   return {
     id: profile.id,
     targetLanguage: profile.targetLanguage,
     nativeLanguage: profile.nativeLanguage,
+    difficultyLevel: profile.difficultyLevel,
     totalSessions: profile.totalSessions,
     lastActiveDate: profile.lastActiveDate?.toISOString() ?? null,
   }

@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
 import { prisma } from '@lingle/db'
+import { buildSystemPrompt } from '@/lib/experience-prompt'
 import type { Prisma } from '@prisma/client'
 
-// Note: targetsPlanned, targetsHit, errorsLogged, avoidanceEvents are legacy schema
-// fields with defaults. We pass empty values since the schema hasn't been migrated.
-
 export const POST = withAuth(async (request, { userId }) => {
-  let topicHint: string | undefined
+  let prompt: string | undefined
   try {
     const body = await request.json()
-    if (body.topicHint && typeof body.topicHint === 'string') {
-      topicHint = body.topicHint
+    if (body.prompt && typeof body.prompt === 'string') {
+      prompt = body.prompt
     }
   } catch {
     // No body or invalid JSON
@@ -19,20 +17,14 @@ export const POST = withAuth(async (request, { userId }) => {
 
   const profile = await prisma.learnerProfile.findUniqueOrThrow({ where: { userId } })
 
-  const sessionFocus = topicHint || 'Free conversation'
+  const sessionFocus = prompt || 'Free conversation'
 
-  const systemPrompt = `You are a language conversation partner for a ${profile.targetLanguage} learner.
-
-LEARNER PROFILE:
-- Native language: ${profile.nativeLanguage}
-${topicHint ? `- Topic: ${topicHint}` : ''}
-
-BEHAVIORAL RULES:
-1. Speak primarily in ${profile.targetLanguage} at an appropriate difficulty level.
-2. Create natural conversational moments for practice.
-3. When the learner makes an error, correct via recasting: use the correct form naturally in your next utterance.
-4. If the learner uses their native language, note it and gently redirect.
-5. Keep responses concise and conversational.`
+  const systemPrompt = buildSystemPrompt({
+    userPrompt: sessionFocus,
+    difficultyLevel: profile.difficultyLevel,
+    nativeLanguage: profile.nativeLanguage,
+    targetLanguage: profile.targetLanguage,
+  })
 
   const session = await prisma.conversationSession.create({
     data: {
