@@ -7,67 +7,75 @@ import type { ReactNode } from 'react'
 import {
   MoreHorizontal,
   LogOut,
-  MessageCircle,
-  Zap,
-  BookOpen,
-  PenLine,
-  BookMarked,
-  Clock,
-  Flame,
-  Settings,
-  BarChart3,
+  ChevronRight,
 } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { ConversationView } from '@/components/conversation-view'
+import { SUPPORTED_LANGUAGES } from '@/lib/languages'
+import { LanguageProvider, useLanguage } from '@/hooks/use-language'
 
-/* ── Types ── */
+/* ── Nav Sections ── */
 
-interface NavItem {
+interface NavSectionItem {
+  id: string
   href: string
+  emoji: string
   label: string
-  icon: LucideIcon
-  badge?: string
+  badge?: number
 }
 
-/* ── Nav Config ── */
+interface NavSection {
+  label: string
+  items: NavSectionItem[]
+}
 
-const LEARN_ITEMS: NavItem[] = [
-  { href: '/conversation', label: 'Practice', icon: MessageCircle },
-  { href: '/review', label: 'Flashcards', icon: Zap },
-  { href: '/knowledge?tab=reading', label: 'Reading', icon: BookOpen },
-  { href: '/knowledge?tab=grammar', label: 'Grammar', icon: PenLine },
-]
-
-const MY_STUFF_ITEMS: NavItem[] = [
-  { href: '/knowledge', label: 'Vocabulary', icon: BookMarked },
-  { href: '/history', label: 'History', icon: Clock },
-  { href: '/insights', label: 'Study Streak', icon: Flame },
-  { href: '/settings', label: 'Settings', icon: Settings },
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Practice',
+    items: [
+      { id: 'practice', href: '/conversation', emoji: '\uD83D\uDCAC', label: 'Practice' },
+      { id: 'review', href: '/conversation?tab=review', emoji: '\uD83D\uDD01', label: 'Review', badge: 12 },
+    ],
+  },
+  {
+    label: 'Learn',
+    items: [
+      { id: 'lessons', href: '/conversation?tab=lessons', emoji: '\uD83D\uDCDA', label: 'Lessons' },
+      { id: 'vocabulary', href: '/conversation?tab=vocabulary', emoji: '\uD83D\uDDC3\uFE0F', label: 'Vocabulary' },
+      { id: 'kanji', href: '/conversation?tab=kanji', emoji: '\uD83C\uDE33', label: 'Kanji' },
+    ],
+  },
+  {
+    label: 'Track',
+    items: [
+      { id: 'progress', href: '/conversation?tab=progress', emoji: '\uD83D\uDCC8', label: 'Progress' },
+      { id: 'settings', href: '/settings', emoji: '\u2699\uFE0F', label: 'Settings' },
+    ],
+  },
 ]
 
 /* ── Breadcrumb label map ── */
 
-const BREADCRUMB_MAP: Record<string, [string, string]> = {
-  '/conversation': ['Learn', 'Practice'],
-  '/review': ['Learn', 'Flashcards'],
-  '/knowledge': ['My Stuff', 'Vocabulary'],
-  '/insights': ['My Stuff', 'Study Streak'],
-  '/settings': ['My Stuff', 'Settings'],
-  '/history': ['My Stuff', 'History'],
-  '/dashboard': ['Home', 'Dashboard'],
+const BREADCRUMB_MAP: Record<string, string> = {
+  '/conversation': 'Practice',
+  '/settings': 'Settings',
 }
 
 /* ── Subcomponents ── */
 
 function LogoIcon() {
   return (
-    <div className="w-8 h-8 bg-accent-brand rounded-[7px] flex items-center justify-center shrink-0">
+    <div className="w-8 h-8 bg-accent-brand rounded-[7px] flex items-center justify-center shrink-0 shadow-[0_1px_3px_rgba(0,0,0,.2),inset_0_1px_0_rgba(255,255,255,.08)]">
       <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
         <path d="M24 3 C24 3, 18 5, 14 10 C10 15, 8 21, 8 26 C9 24, 11 19, 14 14 C17 9, 21 5, 24 3 Z" stroke="white" strokeWidth="2" strokeLinejoin="round" fill="none"/>
         <path d="M24 3 C24 3, 26 7, 24 13 C22 19, 17 24, 12 27 C14 23, 17 18, 20 13 C23 8, 25 5, 24 3 Z" stroke="white" strokeWidth="2" strokeLinejoin="round" fill="none"/>
@@ -77,49 +85,27 @@ function LogoIcon() {
   )
 }
 
-function NavLink({ href, label, icon: Icon, badge, isActive }: NavItem & { isActive: boolean }) {
+function DailyGoalWidget() {
   return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 px-3 py-1.5 rounded-md text-[14px] font-medium no-underline transition-[background,color] duration-100',
-        isActive
-          ? 'text-text-primary bg-bg-active'
-          : 'text-text-secondary bg-transparent hover:bg-bg-hover hover:text-text-primary'
-      )}
-    >
-      <Icon size={16} className="shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
-      {badge !== undefined && badge !== '' && (
-        <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-accent-warm text-white text-[10.5px] font-bold leading-none">
-          {badge}
-        </span>
-      )}
-    </Link>
-  )
-}
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <div className="text-[11px] uppercase tracking-[.07em] text-text-muted px-2.5 pt-5 pb-2 font-medium">
-      {children}
-    </div>
-  )
-}
-
-function ProgressWidget() {
-  return (
-    <div className="mx-2.5 mt-auto mb-2.5 p-4 rounded-xl bg-bg-hover/60">
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[13px] font-medium text-text-secondary">Today&apos;s Goal</span>
-        <span className="text-[13px] font-bold text-text-primary">0/100 XP</span>
-      </div>
-      <div className="h-2 rounded-full bg-bg-active overflow-hidden">
-        <div className="h-full rounded-full bg-accent-brand transition-[width] duration-300" style={{ width: '0%' }} />
-      </div>
-      <div className="flex items-center gap-2.5 mt-3">
-        <span className="flex items-center gap-1 text-[12px] text-text-muted"><BarChart3 size={12} /> Level 1</span>
-        <span className="flex items-center gap-1 text-[12px] text-text-muted"><Flame size={12} /> 0 day streak</span>
+    <div className="mx-2.5 mt-2.5 mb-1">
+      <div className="p-3.5 bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[13px] font-medium text-text-primary">Daily goal</span>
+          <span className="text-[12px] text-text-muted">18 / 30 min</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-bg-active overflow-hidden">
+          <div className="h-full w-[60%] rounded-full bg-accent-brand transition-[width] duration-300" />
+        </div>
+        <div className="flex justify-between mt-2.5">
+          <div>
+            <div className="text-[13px] font-semibold text-text-primary">7</div>
+            <div className="text-[12px] text-text-muted">day streak</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[13px] font-semibold text-text-primary">N3</div>
+            <div className="text-[12px] text-text-muted">current level</div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -145,18 +131,18 @@ function UserFooter() {
   }
 
   return (
-    <div className="px-2.5 pb-3">
+    <div className="px-3.5 py-3 border-t border-border">
       <Popover>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-3 w-full px-2.5 py-2.5 rounded-lg bg-transparent border-none cursor-pointer transition-colors duration-100 hover:bg-bg-hover">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-accent-brand">
-              <span className="text-[13px] font-bold text-white leading-none">{initials}</span>
+          <button className="flex items-center gap-3 w-full px-0 py-0 bg-transparent border-none cursor-pointer transition-colors duration-100 hover:opacity-80">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-bg-active border border-border">
+              <span className="text-[14px] font-semibold text-text-primary leading-none">{initials}</span>
             </div>
             <div className="flex flex-col min-w-0 flex-1 text-left">
-              <span className="text-[14px] font-medium text-text-primary truncate">{displayName}</span>
-              <span className="text-[12px] text-text-muted truncate">Level 1</span>
+              <span className="text-[14px] font-medium text-text-primary truncate leading-tight">{displayName}</span>
+              <span className="text-[12px] text-text-muted">Intermediate</span>
             </div>
-            <MoreHorizontal size={16} className="text-text-muted shrink-0" />
+            <MoreHorizontal size={14} className="text-text-muted shrink-0" />
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-[200px] p-1.5">
@@ -176,80 +162,130 @@ function UserFooter() {
 /* ── Layout ── */
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
+  return (
+    <LanguageProvider>
+      <AppLayoutInner>{children}</AppLayoutInner>
+    </LanguageProvider>
+  )
+}
 
-  // Prefetch all page data on first mount so every page is instant
+function AppLayoutInner({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const { targetLanguage, setTargetLanguage } = useLanguage()
+
+  // Prefetch common data on first mount
   useEffect(() => { api.prefetch() }, [])
 
   const isActive = (href: string) => {
     const basePath = href.split('?')[0]
-    return pathname === basePath
+    return pathname === basePath || pathname.startsWith(basePath + '/')
   }
 
-  const breadcrumb = BREADCRUMB_MAP[pathname] ?? ['', '']
+  const breadcrumb = BREADCRUMB_MAP[pathname] ?? ''
+  const isVoiceRoute = pathname.startsWith('/conversation/voice')
+
+  // Voice mode is full-screen — render children with no shell
+  if (isVoiceRoute) {
+    return <div style={{ fontFamily: "'Geist Sans', var(--font-sans)" }}>{children}</div>
+  }
 
   return (
-    <div className="flex h-screen bg-bg">
+    <div className="flex h-screen bg-bg overflow-hidden" style={{ fontFamily: "'Geist Sans', var(--font-sans)" }}>
       {/* Sidebar */}
-      <nav className="w-[240px] border-r border-border bg-bg-secondary shrink-0 flex flex-col">
+      <nav className="w-[240px] border-r border-border bg-bg-secondary shrink-0 flex flex-col overflow-hidden">
         {/* Logo header */}
-        <div className="flex items-center gap-2.5 px-3.5 pt-4 pb-3">
+        <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border">
           <LogoIcon />
           <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-tight">
             Lingle
           </span>
         </div>
 
-        {/* Learn section */}
-        <SectionLabel>Learn</SectionLabel>
-        <div className="flex flex-col gap-1 px-2.5">
-          {LEARN_ITEMS.map((item) => (
-            <NavLink key={item.href} {...item} isActive={isActive(item.href)} />
-          ))}
-        </div>
+        {/* Daily goal widget */}
+        <DailyGoalWidget />
 
-        {/* My Stuff section */}
-        <SectionLabel>My Stuff</SectionLabel>
-        <div className="flex flex-col gap-1 px-2.5">
-          {MY_STUFF_ITEMS.map((item) => (
-            <NavLink key={item.href} {...item} isActive={isActive(item.href)} />
-          ))}
-        </div>
+        {/* Nav sections */}
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2.5">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted px-3 pt-5 pb-1.5">
+                {section.label}
+              </div>
+              {section.items.map((item) => {
+                const active = item.id === 'practice'
+                  ? pathname === '/conversation'
+                  : item.id === 'settings'
+                  ? pathname === '/settings'
+                  : false
 
-        {/* Progress widget */}
-        <ProgressWidget />
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-1.5 rounded-md text-[14px] font-medium no-underline transition-[background,color] duration-100 w-full',
+                      active
+                        ? 'text-text-primary bg-bg-active'
+                        : 'text-text-secondary bg-transparent hover:bg-bg-hover hover:text-text-primary'
+                    )}
+                  >
+                    <span className="w-5 text-[15px] flex items-center justify-center">{item.emoji}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge !== undefined && (
+                      <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-accent-warm text-white text-[10.5px] font-bold leading-none">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
 
         {/* User footer */}
-        <Separator />
         <UserFooter />
       </nav>
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center px-6 h-[48px] border-b border-border shrink-0 relative z-10 bg-bg">
-          <div className="flex items-center gap-1.5 text-[14px]">
-            {breadcrumb[0] && (
-              <>
-                <span className="text-text-muted">{breadcrumb[0]}</span>
-                <span className="text-text-muted">/</span>
-              </>
-            )}
-            <span className="text-text-primary font-medium">{breadcrumb[1] || 'Home'}</span>
+        <header className="flex items-center justify-between px-6 h-[48px] border-b border-border shrink-0 relative z-10 bg-bg">
+          <div className="flex items-center gap-1.5 text-[14px] text-text-muted">
+            <span>Lingle</span>
+            <ChevronRight size={12} />
+            <span className="text-text-primary font-medium">{breadcrumb || 'Home'}</span>
           </div>
-        </div>
-
-        {/* Content — regular pages */}
-        <div className={cn('p-6 flex-1 overflow-auto calligraphy-grid', pathname === '/conversation' && 'hidden')}>
-          <div className="relative z-[1]">
-            {children}
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
+              <div className="w-1.5 h-1.5 rounded-full bg-green" />
+              AI ready
+            </div>
+            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+              <SelectTrigger className="h-auto px-2.5 py-1 rounded-md border border-border bg-bg-pure text-[13px] font-medium text-text-secondary shadow-[0_1px_2px_rgba(0,0,0,.04)] hover:bg-bg-hover transition-colors gap-1.5 w-auto">
+                <SelectValue>
+                  {SUPPORTED_LANGUAGES.find(l => l.id === targetLanguage)?.nativeLabel ?? targetLanguage}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper" align="end" className="bg-bg-pure border border-border">
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.id} value={lang.id} className="text-[13px] text-text-primary cursor-pointer hover:bg-bg-hover">
+                    <span className="flex items-center gap-2">
+                      <span>{lang.flag}</span>
+                      <span>{lang.nativeLabel}</span>
+                      <span className="text-text-muted text-[12px]">{lang.label}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        </header>
 
-        {/* Persistent conversation view — stays mounted across navigations */}
-        <div className={cn('p-6 flex-1 overflow-auto', pathname !== '/conversation' && 'hidden')}>
+        {/* Content */}
+        <div className={cn('p-6 flex-1 overflow-auto', pathname === '/conversation' && 'calligraphy-grid')}>
           <div className="relative z-[1] h-full">
-            <ConversationView />
+            {children}
           </div>
         </div>
       </div>

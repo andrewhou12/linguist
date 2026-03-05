@@ -1,6 +1,5 @@
-// Conversation UI is rendered persistently in the app layout to preserve
-// state across navigations. This page intentionally renders nothing —
-// the layout shows ConversationView when the route is /conversation.
+import { ConversationView } from '@/components/conversation-view'
+
 export default function ConversationPage() {
-  return null
+  return <ConversationView />
 }

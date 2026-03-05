@@ -1,316 +1,237 @@
-import { tool, jsonSchema } from 'ai'
+import { tool } from 'ai'
+import { z } from 'zod'
 import { prisma } from '@lingle/db'
-import { createInitialFsrsState } from '@lingle/core/fsrs/scheduler'
 import type { Prisma } from '@prisma/client'
+import {
+  normalizePlan,
+  isConversationPlan,
+  isTutorPlan,
+  type SessionPlan,
+  type ConversationPlan,
+  type TutorPlan,
+} from '@/lib/session-plan'
+import type { ScenarioMode } from '@/lib/experience-scenarios'
 
-// Schema definitions as JSON Schema objects for AI SDK tool()
-const vocabCardSchema = jsonSchema<{
-  surface: string
-  reading?: string
-  meaning: string
-  example?: string
-  example_translation?: string
-}>({
-  type: 'object',
-  properties: {
-    surface: { type: 'string', description: 'The word in its written form (kanji/kana)' },
-    reading: { type: 'string', description: 'Hiragana reading of the word' },
-    meaning: { type: 'string', description: 'English meaning' },
-    example: { type: 'string', description: 'Example sentence using the word' },
-    example_translation: { type: 'string', description: 'English translation of the example sentence' },
-  },
-  required: ['surface', 'meaning'],
-})
+// --- Tool availability matrix per mode ---
 
-const grammarCardSchema = jsonSchema<{
-  pattern: string
-  meaning: string
-  formation?: string
-  example?: string
-  example_translation?: string
-}>({
-  type: 'object',
-  properties: {
-    pattern: { type: 'string', description: 'The grammar pattern name' },
-    meaning: { type: 'string', description: 'English explanation of the pattern' },
-    formation: { type: 'string', description: 'How to form/conjugate this pattern' },
-    example: { type: 'string', description: 'Example sentence using the pattern' },
-    example_translation: { type: 'string', description: 'English translation of the example sentence' },
-  },
-  required: ['pattern', 'meaning'],
-})
+export const MODE_TOOLS: Record<ScenarioMode, string[]> = {
+  conversation: ['updateSessionPlan', 'suggestActions', 'displayChoices', 'showCorrection', 'showVocabularyCard', 'showGrammarNote'],
+  tutor: ['updateSessionPlan', 'suggestActions', 'displayChoices', 'showCorrection', 'showVocabularyCard', 'showGrammarNote'],
+  immersion: ['updateSessionPlan', 'suggestActions', 'displayChoices', 'showVocabularyCard', 'showGrammarNote'],
+  reference: ['suggestActions', 'displayChoices', 'showVocabularyCard', 'showGrammarNote'],
+}
 
-const correctionSchema = jsonSchema<{
-  incorrect: string
-  correct: string
-  error_type?: string
-  explanation?: string
-}>({
-  type: 'object',
-  properties: {
-    incorrect: { type: 'string', description: 'What the learner said (incorrect form)' },
-    correct: { type: 'string', description: 'The correct form' },
-    error_type: { type: 'string', description: 'Type of error: Grammar, Vocabulary, Spelling, or Style tip' },
-    explanation: { type: 'string', description: 'Brief explanation of the correction' },
-  },
-  required: ['incorrect', 'correct'],
-})
-
-const reviewPromptSchema = jsonSchema<{
-  prompt: string
-  answer: string
-  item_type?: string
-  item_id?: string
-}>({
-  type: 'object',
-  properties: {
-    prompt: { type: 'string', description: 'The question or prompt to display' },
-    answer: { type: 'string', description: 'The correct answer to reveal when the learner is ready' },
-    item_type: { type: 'string', description: 'Type of item being reviewed: lexical or grammar' },
-    item_id: { type: 'string', description: 'ID of the item being reviewed' },
-  },
-  required: ['prompt', 'answer'],
-})
-
-const rateNaturalnessSchema = jsonSchema<{
-  rating: 'great' | 'good' | 'needs_work'
-  note?: string
-}>({
-  type: 'object',
-  properties: {
-    rating: {
-      type: 'string',
-      enum: ['great', 'good', 'needs_work'],
-      description: 'How natural the learner\'s Japanese sounded: great (native-like), good (understandable, minor issues), needs_work (unnatural phrasing or structure)',
-    },
-    note: {
-      type: 'string',
-      description: 'Optional brief note about what made it natural or what could improve',
-    },
-  },
-  required: ['rating'],
-})
-
-const suggestResponsesSchema = jsonSchema<{
-  suggestions: string[]
-}>({
-  type: 'object',
-  properties: {
-    suggestions: {
-      type: 'array',
-      items: { type: 'string' },
-      description: '2-3 contextual response suggestions in the target language that the learner could say next',
-    },
-  },
-  required: ['suggestions'],
-})
-
-const markTargetsHitSchema = jsonSchema<{
-  vocab_ids?: string[]
-  grammar_ids?: string[]
-}>({
-  type: 'object',
-  properties: {
-    vocab_ids: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'IDs of vocabulary items the learner successfully produced',
-    },
-    grammar_ids: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'IDs of grammar items the learner successfully produced',
-    },
-  },
-})
-
-export function createConversationTools(userId: string, sessionId: string) {
-  return {
-    displayVocabCard: tool({
+export function createConversationTools(_userId: string, _sessionId: string, mode: ScenarioMode = 'conversation') {
+  const allTools = {
+    updateSessionPlan: tool({
       description:
-        'Display a vocabulary card to the learner when introducing new vocabulary. Creates or updates the item in the word bank.',
-      inputSchema: vocabCardSchema,
-      execute: async ({ surface, reading, meaning, example, example_translation }) => {
-        try {
-          const existing = await prisma.lexicalItem.findFirst({
-            where: { userId, surfaceForm: surface },
-          })
+        mode === 'conversation'
+          ? 'Update the scene: shift the topic, change register or tone, introduce tension or a new dynamic. Call this when the conversation naturally evolves.'
+          : mode === 'tutor'
+          ? 'Advance the lesson: mark steps active/completed/skipped, update the objective, add concepts, annotate steps with notes. Call this as you progress through the lesson.'
+          : 'Update the session plan: mark milestones complete, adjust goals, shift focus. Call this when you complete a teaching objective or when the session direction shifts.',
+      inputSchema: z.object({
+        // --- Conversation fields ---
+        newTopic: z.string().optional().describe('[conversation] New conversation topic'),
+        newRegister: z.string().optional().describe('[conversation] New register (casual/polite/keigo/mixed)'),
+        newTone: z.string().optional().describe('[conversation] New tone (lighthearted/serious/etc)'),
+        newSetting: z.string().optional().describe('[conversation] New setting'),
+        newTension: z.string().optional().describe('[conversation] New conversational tension'),
+        newDynamic: z.string().optional().describe('[conversation] New conversation dynamic'),
+        // --- Tutor fields ---
+        markStepActive: z.number().optional().describe('[tutor] Index (0-based) of the step to mark as active'),
+        markStepCompleted: z.array(z.number()).optional().describe('[tutor] Indices (0-based) of steps to mark completed'),
+        markStepSkipped: z.array(z.number()).optional().describe('[tutor] Indices (0-based) of steps to mark skipped'),
+        newObjective: z.string().optional().describe('[tutor] Updated lesson objective'),
+        addConcepts: z.array(z.object({
+          label: z.string(),
+          type: z.enum(['grammar', 'vocabulary', 'usage']),
+        })).optional().describe('[tutor] New concepts to add'),
+        stepNotes: z.array(z.object({
+          index: z.number(),
+          notes: z.string(),
+        })).optional().describe('[tutor] Annotate steps with notes'),
+        // --- Immersion/reference fields (legacy) ---
+        completedMilestones: z.array(z.number()).optional().describe('[immersion/reference] Indices (0-based) of milestones just completed'),
+        newGoals: z.array(z.string()).optional().describe('[immersion/reference] Replace goals if focus has shifted'),
+        newFocus: z.string().optional().describe('[immersion/reference] Updated one-line focus'),
+      }),
+      execute: async (input) => {
+        const session = await prisma.conversationSession.findUniqueOrThrow({
+          where: { id: _sessionId },
+          select: { sessionPlan: true, mode: true },
+        })
+        const plan = normalizePlan(session.sessionPlan, session.mode)
 
-          if (!existing) {
-            const initialFsrs = createInitialFsrsState()
-            await prisma.lexicalItem.create({
-              data: {
-                userId,
-                surfaceForm: surface,
-                reading: reading ?? null,
-                meaning,
-                masteryState: 'introduced',
-                recognitionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
-                productionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
-                source: 'conversation',
-                tags: ['conversation'],
-                contextTypes: ['conversation'],
-                contextCount: 1,
-                exposureCount: 1,
-              },
-            })
-          } else if (existing.masteryState === 'unseen') {
-            const updatedContextTypes = existing.contextTypes.includes('conversation')
-              ? existing.contextTypes
-              : [...existing.contextTypes, 'conversation']
-            await prisma.lexicalItem.update({
-              where: { id: existing.id },
-              data: {
-                masteryState: 'introduced',
-                exposureCount: { increment: 1 },
-                contextTypes: updatedContextTypes,
-                contextCount: updatedContextTypes.length,
-                ...(reading && !existing.reading ? { reading } : {}),
-                ...(meaning && !existing.meaning ? { meaning } : {}),
-              },
-            })
-          } else if (existing.meaning === '' && meaning) {
-            await prisma.lexicalItem.update({
-              where: { id: existing.id },
-              data: {
-                meaning,
-                ...(reading && !existing.reading ? { reading } : {}),
-              },
-            })
+        let updated: SessionPlan
+
+        if (isConversationPlan(plan)) {
+          const p: ConversationPlan = { ...plan }
+          if (input.newTopic) p.topic = input.newTopic
+          if (input.newRegister) p.register = input.newRegister
+          if (input.newTone) p.tone = input.newTone
+          if (input.newSetting) p.setting = input.newSetting
+          if (input.newTension) p.tension = input.newTension
+          if (input.newDynamic) p.dynamic = input.newDynamic
+          updated = p
+        } else if (isTutorPlan(plan)) {
+          const p: TutorPlan = { ...plan, steps: plan.steps.map((s) => ({ ...s })), concepts: [...plan.concepts] }
+          if (input.markStepActive != null && p.steps[input.markStepActive]) {
+            // Deactivate any currently active step
+            for (const s of p.steps) {
+              if (s.status === 'active') s.status = 'upcoming'
+            }
+            p.steps[input.markStepActive].status = 'active'
           }
-        } catch (err) {
-          console.error('[displayVocabCard] DB error:', err)
+          if (input.markStepCompleted?.length) {
+            for (const idx of input.markStepCompleted) {
+              if (p.steps[idx]) p.steps[idx].status = 'completed'
+            }
+          }
+          if (input.markStepSkipped?.length) {
+            for (const idx of input.markStepSkipped) {
+              if (p.steps[idx]) p.steps[idx].status = 'skipped'
+            }
+          }
+          if (input.newObjective) p.objective = input.newObjective
+          if (input.addConcepts?.length) {
+            p.concepts = [...p.concepts, ...input.addConcepts]
+          }
+          if (input.stepNotes?.length) {
+            for (const { index, notes } of input.stepNotes) {
+              if (p.steps[index]) p.steps[index].notes = notes
+            }
+          }
+          updated = p
+        } else {
+          // Immersion/reference — legacy behavior
+          const p = { ...plan } as SessionPlan & Record<string, unknown>
+          if (input.completedMilestones?.length && 'milestones' in p && Array.isArray(p.milestones)) {
+            p.milestones = p.milestones.map((m: { description: string; completed: boolean }, i: number) =>
+              input.completedMilestones!.includes(i) ? { ...m, completed: true } : m
+            )
+          }
+          if (input.newGoals && 'goals' in p) {
+            (p as { goals: string[] }).goals = input.newGoals
+          }
+          if (input.newFocus && 'focus' in p) {
+            (p as { focus: string }).focus = input.newFocus
+          }
+          updated = p as SessionPlan
         }
 
-        return { surface, reading, meaning, example, example_translation }
+        await prisma.conversationSession.update({
+          where: { id: _sessionId },
+          data: { sessionPlan: updated as unknown as Prisma.InputJsonValue },
+        })
+
+        return { updated: true, plan: updated }
       },
     }),
 
-    displayGrammarCard: tool({
+    suggestActions: tool({
       description:
-        'Display a grammar card to the learner when explaining a grammar pattern. Creates or updates the item in the grammar bank.',
-      inputSchema: grammarCardSchema,
-      execute: async ({ pattern, meaning, formation, example, example_translation }) => {
-        try {
-          const patternId = pattern.toLowerCase().replace(/\s+/g, '_')
-          const existing = await prisma.grammarItem.findFirst({
-            where: { userId, OR: [{ name: pattern }, { patternId }] },
-          })
-
-          if (!existing) {
-            const initialFsrs = createInitialFsrsState()
-            await prisma.grammarItem.create({
-              data: {
-                userId,
-                patternId,
-                name: pattern,
-                description: meaning,
-                masteryState: 'introduced',
-                recognitionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
-                productionFsrs: initialFsrs as unknown as Prisma.InputJsonValue,
-                contextTypes: ['conversation'],
-                contextCount: 1,
-              },
-            })
-          } else if (existing.masteryState === 'unseen') {
-            const updatedContextTypes = existing.contextTypes.includes('conversation')
-              ? existing.contextTypes
-              : [...existing.contextTypes, 'conversation']
-            await prisma.grammarItem.update({
-              where: { id: existing.id },
-              data: {
-                masteryState: 'introduced',
-                contextTypes: updatedContextTypes,
-                contextCount: updatedContextTypes.length,
-                ...(meaning && !existing.description ? { description: meaning } : {}),
-              },
-            })
-          }
-        } catch (err) {
-          console.error('[displayGrammarCard] DB error:', err)
-        }
-
-        return { pattern, meaning, formation, example, example_translation }
-      },
-    }),
-
-    displayCorrection: tool({
-      description:
-        'Display a correction card when the learner makes an error. Shows the incorrect form, the correct form, and an explanation.',
-      inputSchema: correctionSchema,
-      execute: async ({ incorrect, correct, error_type, explanation }) => {
-        // No-op — errors are captured by post-session analysis
-        return { incorrect, correct, error_type, explanation }
-      },
-    }),
-
-    displayReviewPrompt: tool({
-      description:
-        'Display an interactive review prompt to test the learner on a specific item.',
-      inputSchema: reviewPromptSchema,
-      execute: async ({ prompt, answer, item_type, item_id }) => {
-        // No-op — display only
-        return { prompt, answer, item_type, item_id }
-      },
-    }),
-
-    rateNaturalness: tool({
-      description:
-        'Rate how natural the learner\'s Japanese was in their most recent message. Call this for every user message that contains Japanese text.',
-      inputSchema: rateNaturalnessSchema,
-      execute: async ({ rating, note }) => {
-        // No-op — display only, rendered as NaturalnessBadge on user messages
-        return { rating, note }
-      },
-    }),
-
-    suggestResponses: tool({
-      description:
-        'Suggest 2-3 contextual responses the learner could say next. Call this at the end of every response.',
-      inputSchema: suggestResponsesSchema,
+        'Suggest 2-3 contextual next actions the learner could take. These can be responses, actions, or questions — whatever fits the moment. Call this at the end of every response, AFTER your text.',
+      inputSchema: z.object({
+        suggestions: z
+          .array(z.string())
+          .describe(
+            '2-3 contextual next actions the learner could take, in the target language. These can be dialogue responses, actions ("Sit at the counter"), or questions. Keep them natural and varied.'
+          ),
+      }),
       execute: async ({ suggestions }) => {
-        // No-op — display only, rendered as suggestion chips
         return { suggestions }
       },
     }),
 
-    markTargetsHit: tool({
+    displayChoices: tool({
       description:
-        'Mark target vocabulary or grammar items that the learner successfully produced in their most recent message. Call this after each learner message where targets were hit.',
-      inputSchema: markTargetsHitSchema,
-      execute: async ({ vocab_ids, grammar_ids }) => {
-        try {
-          // Update production counts on matched lexical items
-          for (const idStr of vocab_ids ?? []) {
-            const id = parseInt(idStr, 10)
-            if (isNaN(id)) continue
-            const item = await prisma.lexicalItem.findUnique({ where: { id } })
-            if (item && item.userId === userId) {
-              await prisma.lexicalItem.update({
-                where: { id },
-                data: { productionCount: { increment: 1 } },
-              })
-            }
-          }
-          // Update production counts on matched grammar items
-          for (const idStr of grammar_ids ?? []) {
-            const id = parseInt(idStr, 10)
-            if (isNaN(id)) continue
-            const item = await prisma.grammarItem.findUnique({ where: { id } })
-            if (item && item.userId === userId) {
-              await prisma.grammarItem.update({
-                where: { id },
-                data: { writingProductions: { increment: 1 } },
-              })
-            }
-          }
-        } catch (err) {
-          console.error('[markTargetsHit] DB error:', err)
-        }
-        return { vocab_ids: vocab_ids ?? [], grammar_ids: grammar_ids ?? [] }
+        'Display numbered choice buttons for the learner to pick from. Use this in immersive scenes when offering branching options, or anytime the learner should choose between 2-4 options.',
+      inputSchema: z.object({
+        choices: z
+          .array(
+            z.object({
+              text: z.string().describe('The choice text, in the target language'),
+              hint: z.string().optional().describe('Optional English hint or translation'),
+            })
+          )
+          .min(2)
+          .max(4)
+          .describe('2-4 choices for the learner'),
+      }),
+      execute: async ({ choices }) => {
+        return { choices }
+      },
+    }),
+
+    showCorrection: tool({
+      description:
+        'Show a gentle correction card when the learner makes a grammatical or vocabulary error. Use this instead of inline [CORRECTION] tags.',
+      inputSchema: z.object({
+        original: z.string().describe("What the learner wrote (the incorrect form)"),
+        corrected: z.string().describe('The corrected form'),
+        explanation: z.string().describe('Brief explanation of why the correction was made'),
+        grammarPoint: z
+          .string()
+          .optional()
+          .describe('The grammar point involved, if applicable (e.g. "te-form")'),
+      }),
+      execute: async (input) => {
+        return input
+      },
+    }),
+
+    showVocabularyCard: tool({
+      description:
+        'Show a vocabulary card to teach or highlight a word. Use when introducing new vocabulary, when the learner asks about a word, or when a word comes up naturally that deserves attention.',
+      inputSchema: z.object({
+        word: z.string().describe('The word in the target language'),
+        reading: z.string().optional().describe('Reading/pronunciation (e.g. hiragana for kanji)'),
+        meaning: z.string().describe('English meaning'),
+        partOfSpeech: z.string().optional().describe('Part of speech (noun, verb, adjective, etc.)'),
+        exampleSentence: z.string().optional().describe('Example sentence using the word'),
+        notes: z.string().optional().describe('Usage notes, nuance, or cultural context'),
+      }),
+      execute: async (input) => {
+        return input
+      },
+    }),
+
+    showGrammarNote: tool({
+      description:
+        'Show a grammar explanation card. Use when teaching a grammar point, when the learner asks about grammar, or when a grammar pattern comes up that deserves explanation.',
+      inputSchema: z.object({
+        pattern: z.string().describe('The grammar pattern (e.g. "~temoidesuka")'),
+        meaning: z.string().describe('What the pattern means in English'),
+        formation: z.string().describe('How to form it (e.g. "Verb te-form + moidesuka")'),
+        examples: z
+          .array(
+            z.object({
+              japanese: z.string(),
+              english: z.string(),
+            })
+          )
+          .min(1)
+          .max(3)
+          .describe('1-3 example sentences'),
+        level: z.string().optional().describe('JLPT level if applicable (N5, N4, etc.)'),
+      }),
+      execute: async (input) => {
+        return input
       },
     }),
   }
+
+  // Filter tools to only those available for this mode
+  const allowedTools = MODE_TOOLS[mode] ?? MODE_TOOLS.conversation
+  const filtered: Record<string, typeof allTools[keyof typeof allTools]> = {}
+  for (const toolName of allowedTools) {
+    if (toolName in allTools) {
+      filtered[toolName] = allTools[toolName as keyof typeof allTools]
+    }
+  }
+
+  return filtered
 }
 
 export type ConversationTools = ReturnType<typeof createConversationTools>

@@ -5,14 +5,12 @@
   "packageManager": "pnpm@10.28.2",
   "description": "Lingle language learning platform",
   "scripts": {
-    "dev:desktop": "pnpm --filter @lingle/desktop dev",
     "dev:web": "pnpm --filter @lingle/web dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate",
-    "build:dict": "tsx packages/core/src/ime/build-dictionary-index.ts"
+    "db:generate": "prisma generate"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

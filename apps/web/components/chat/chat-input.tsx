@@ -1,33 +1,42 @@
 'use client'
 
-import { useRef, useCallback, useState, useEffect } from 'react'
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import { ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useJapaneseIME } from '@/hooks/use-japanese-ime'
-import { useIMEMastery } from '@/hooks/use-ime-mastery'
 import { IMECandidatePanel } from './ime/ime-candidate-panel'
+import { VoiceControls } from './voice-controls'
 
 interface ChatInputProps {
   value: string
   onChange: (value: string) => void
   onSend: () => void
+  onVoiceTranscript?: (text: string) => void
   disabled?: boolean
   placeholder?: string
   showRomaji?: boolean
   onToggleRomaji?: () => void
   minRows?: number
+  allowEmpty?: boolean
 }
 
 const IME_TOOLTIP_KEY = 'lingle-ime-tooltip-dismissed'
-const IS_MAC = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent)
-const TOGGLE_KEY_LABEL = IS_MAC ? '⌘Space' : 'Ctrl+Space'
 
-export function ChatInput({ value, onChange, onSend, disabled, placeholder, showRomaji, onToggleRomaji, minRows = 1 }: ChatInputProps) {
+function useIsMac() {
+  const [isMac, setIsMac] = useState(false)
+  useEffect(() => {
+    setIsMac(/Mac/.test(navigator.userAgent))
+  }, [])
+  return isMac
+}
+
+export function ChatInput({ value, onChange, onSend, onVoiceTranscript, disabled, placeholder, showRomaji, onToggleRomaji, minRows = 1, allowEmpty }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [showTooltip, setShowTooltip] = useState(false)
+  const isMac = useIsMac()
+  const toggleKeyLabel = useMemo(() => isMac ? '⌘Space' : 'Ctrl+Space', [isMac])
 
   const ime = useJapaneseIME(value, onChange)
-  const enrichedCandidates = useIMEMastery(ime.candidates)
 
   // First-time tooltip
   useEffect(() => {
@@ -94,12 +103,12 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
     ime.reset()
   }, [ime])
 
-  const canSend = value.trim().length > 0 && !disabled
+  const canSend = (allowEmpty || value.trim().length > 0) && !disabled
 
   // Dynamic placeholder
   const dynamicPlaceholder = ime.imeActive
     ? "Type romaji to write Japanese... (e.g., 'taberu' → 食べる)"
-    : placeholder ?? `Type in English — press ${TOGGLE_KEY_LABEL} for Japanese input`
+    : placeholder ?? `Type in English — press ${toggleKeyLabel} for Japanese input`
 
   // Composition highlight: split value into pre / composed / post
   const isComposing = ime.mode !== 'direct' && ime.composedText && ime.compositionStart >= 0
@@ -187,9 +196,9 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
         </div>
 
         {/* Candidate panel */}
-        {ime.showCandidates && enrichedCandidates.length > 0 && (
+        {ime.showCandidates && ime.candidates.length > 0 && (
           <IMECandidatePanel
-            candidates={enrichedCandidates}
+            candidates={ime.candidates}
             selectedIndex={ime.selectedIndex}
             onSelect={handleCandidateSelect}
             onDismiss={handleCandidateDismiss}
@@ -210,7 +219,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
                   : 'border-border bg-bg-pure text-text-muted hover:bg-bg-hover'
               )}
               onClick={ime.toggleIME}
-              title={ime.imeActive ? `Japanese IME on (${TOGGLE_KEY_LABEL} to toggle)` : `Japanese IME off (${TOGGLE_KEY_LABEL} to toggle)`}
+              title={ime.imeActive ? `Japanese IME on (${toggleKeyLabel} to toggle)` : `Japanese IME off (${toggleKeyLabel} to toggle)`}
             >
               {ime.imeActive ? 'あ' : 'A'}
             </button>
@@ -222,7 +231,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
                 onClick={dismissTooltip}
               >
                 <span className="font-medium">Tip:</span> Type Japanese without switching keyboards — click{' '}
-                <span className="font-jp font-bold">あ</span> or press {TOGGLE_KEY_LABEL}
+                <span className="font-jp font-bold">あ</span> or press {toggleKeyLabel}
                 <div className="absolute top-full left-4 w-2 h-2 bg-text-primary rotate-45 -mt-1" />
               </div>
             )}
@@ -259,9 +268,16 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
               <span className="text-[13px] leading-none">👓</span>
             </button>
           )}
-          <button className="w-7 h-7 rounded-full border border-border bg-bg-pure flex items-center justify-center text-text-muted text-[13px] cursor-default hover:bg-bg-hover transition-colors" title="Voice input">
-            🎤
-          </button>
+          <VoiceControls
+            onTranscript={(text) => {
+              if (onVoiceTranscript) {
+                onVoiceTranscript(text)
+              } else {
+                onChange(value ? value + ' ' + text : text)
+              }
+            }}
+            disabled={disabled}
+          />
           <button className="w-7 h-7 rounded-full border border-border bg-bg-pure flex items-center justify-center text-text-muted text-[15px] leading-none cursor-default hover:bg-bg-hover transition-colors" title="Attach">
             +
           </button>
@@ -270,7 +286,7 @@ export function ChatInput({ value, onChange, onSend, disabled, placeholder, show
           {ime.imeActive
             ? ime.mode !== 'direct'
               ? 'Enter confirm · Space candidates · Esc revert'
-              : `⏎ send · ${TOGGLE_KEY_LABEL} toggle IME`
+              : `⏎ send · ${toggleKeyLabel} toggle IME`
             : '⏎ send · ⇧⏎ newline'
           }
         </span>

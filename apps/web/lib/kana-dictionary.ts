@@ -9,9 +9,17 @@
  * - Greedy left-to-right auto-segmentation for multi-word phrases
  */
 
-import type { DictEntry, DictionaryIndex } from '@lingle/core/ime/types'
+export interface DictEntry {
+  surface: string
+  reading: string
+  meaning: string
+  pos: string
+  freq: number
+}
 
-export type { DictEntry }
+interface DictionaryIndex {
+  entries: Record<string, DictEntry[]>
+}
 
 let cachedIndex: DictionaryIndex | null = null
 let loadPromise: Promise<DictionaryIndex> | null = null
@@ -21,10 +29,12 @@ async function loadIndex(): Promise<DictionaryIndex> {
   if (cachedIndex) return cachedIndex
   if (loadPromise) return loadPromise
 
-  loadPromise = import('@lingle/core/ime/dictionary-index.json').then((mod) => {
-    cachedIndex = mod.default as DictionaryIndex
-    return cachedIndex
-  })
+  loadPromise = fetch('/dictionary-index.json')
+    .then((res) => res.json())
+    .then((data) => {
+      cachedIndex = data as DictionaryIndex
+      return cachedIndex
+    })
 
   return loadPromise
 }

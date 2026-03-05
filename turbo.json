@@ -9,7 +9,8 @@
         "DATABASE_URL",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
-        "OPENAI_API_KEY"
+        "OPENAI_API_KEY",
+        "SONIOX_API_KEY"
       ]
     },
     "dev": {

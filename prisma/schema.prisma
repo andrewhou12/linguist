@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -37,6 +38,7 @@ model LearnerProfile {
   selfReportedLevel       String   @default("beginner")
   dailyNewItemLimit       Int      @default(10)
   targetRetention         Float    @default(0.90)
+  difficultyLevel         Int      @default(2)
   computedLevel           String   @default("A1")
   comprehensionCeiling    String   @default("A1")
   productionCeiling       String   @default("A1")
@@ -178,6 +180,7 @@ model ConversationSession {
   id              String   @id @default(uuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id])
+  mode            String   @default("conversation")
   timestamp       DateTime @default(now())
   durationSeconds Int?
   transcript      Json

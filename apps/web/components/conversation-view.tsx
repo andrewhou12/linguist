@@ -1,142 +1,269 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Square, BookText } from 'lucide-react'
+import { Square, PanelRight, Volume2, VolumeX, Mic, MessageSquare, ChevronRight, ArrowUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Markdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
-import type {
-  ExpandedSessionPlan,
-  ExpandedTomBrief,
-  ExpandedLearnerProfile,
-  ReviewSummary,
-  WeeklyStats,
-  PostSessionAnalysis,
-} from '@lingle/shared/types'
 import { api } from '@/lib/api'
-import { stripRubyAnnotations } from '@/lib/ruby-annotator'
+import { rubyToHtml } from '@/lib/ruby-annotator'
+import { getToolZone } from '@/lib/tool-zones'
+import { validateDifficulty, type DifficultyViolation } from '@/lib/difficulty-validator'
+import type { SessionPlan } from '@/lib/session-plan'
 import { useRomaji, useAnnotatedTexts } from '@/hooks/use-romaji'
 import { useTTS } from '@/hooks/use-tts'
+import { useStreamingTTS } from '@/hooks/use-streaming-tts'
+import { PanelProvider, usePanel } from '@/hooks/use-panel'
 import { RomajiText } from '@/components/romaji-text'
-import { VocabCard, GrammarCard, CorrectionCard, ReviewPromptCard } from '@/components/conversation-cards'
-import { NaturalnessBadge } from '@/components/chat/naturalness-badge'
-import { SentenceXRayButton } from '@/components/chat/sentence-xray'
-import { SelectionXRayPopover } from '@/components/chat/selection-xray-popover'
-import { useSelectionXRay } from '@/hooks/use-selection-xray'
-import { LivingText } from '@/components/chat/living-text'
-import { ComprehensionScore } from '@/components/chat/comprehension-score'
-import { useLivingText, type AnnotatedToken, type ComprehensionStats } from '@/hooks/use-living-text'
-import { ChallengeCard } from '@/components/challenge-card'
 import { MessageBlock } from '@/components/chat/message-block'
 import { ChatInput } from '@/components/chat/chat-input'
 import { EscapeHatch } from '@/components/chat/escape-hatch'
 import { SuggestionChips } from '@/components/chat/suggestion-chips'
-import { SessionSummaryModal } from '@/components/chat/session-summary-modal'
+import { ChoiceButtons, ChoiceButtonsSkeleton } from '@/components/chat/choice-buttons'
+import type { Choice } from '@/components/chat/choice-buttons'
+import { CorrectionCard, CorrectionCardSkeleton } from '@/components/chat/correction-card'
+import { VocabularyCard, VocabularyCardSkeleton } from '@/components/chat/vocabulary-card'
+import { GrammarNote, GrammarNoteSkeleton } from '@/components/chat/grammar-note'
+import { LearningPanel } from '@/components/panels/learning-panel'
 import { Spinner } from '@/components/spinner'
+import { VoiceSessionOverlay } from '@/components/voice/voice-session-overlay'
+import { useJapaneseIME } from '@/hooks/use-japanese-ime'
+import { IMECandidatePanel } from '@/components/chat/ime/ime-candidate-panel'
 import { cn } from '@/lib/utils'
+import {
+  type ScenarioMode,
+  MODE_LABELS,
+  MODE_DESCRIPTIONS,
+  MODE_PLACEHOLDERS,
+  getAllModes,
+} from '@/lib/experience-scenarios'
+import { getGreetingForLanguage } from '@/lib/languages'
+import { useLanguage } from '@/hooks/use-language'
 
-type Phase = 'planning' | 'conversation' | 'summary'
-
-interface TopicStarter {
-  emoji: string
-  label: string
-  description: string
-  firstMessage: string
-  hint: string
+function getModeDefaultPrompts(language: string): Record<string, string> {
+  return {
+    conversation: `Let's have a casual conversation in ${language}.`,
+    tutor: `I'd like to practice ${language} with a tutor.`,
+    immersion: `Create an immersive ${language} listening exercise.`,
+    reference: `I have some questions about ${language}.`,
+  }
 }
 
-const TOPIC_STARTERS: TopicStarter[] = [
-  {
-    emoji: '\u2615',
-    label: 'Cafe',
-    description: 'Ordering drinks & food',
-    firstMessage: '\u30B3\u30FC\u30D2\u30FC\u3092\u4E00\u3064\u304F\u3060\u3055\u3044\u3002',
-    hint: 'Ordering at a cafe — food vocabulary, polite request forms, counters',
+/* ── Suggestions per mode per language ── */
+const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, { icon: string; label: string }[]>> = {
+  Japanese: {
+    conversation: [
+      { icon: '\uD83C\uDF5C', label: 'Order ramen at a busy Tokyo shop' },
+      { icon: '\uD83D\uDE86', label: 'Ask for directions at Shinjuku station' },
+      { icon: '\uD83C\uDFEE', label: 'Haggle at an Osaka flea market' },
+      { icon: '\uD83C\uDF38', label: 'Small talk during hanami season' },
+      { icon: '\u2615', label: 'Chat with a barista in Kyoto' },
+      { icon: '\uD83C\uDFE8', label: 'Check into a ryokan in Hakone' },
+      { icon: '\uD83D\uDE95', label: 'Give directions to a taxi driver' },
+      { icon: '\uD83C\uDF89', label: 'Make plans for a weekend trip' },
+    ],
+    tutor: [
+      { icon: '\u270D\uFE0F', label: 'Master the \u3066-form conjugation' },
+      { icon: '\uD83D\uDD24', label: 'Learn 20 essential counters' },
+      { icon: '\uD83C\uDF8C', label: 'Keigo \u2014 polite speech patterns' },
+      { icon: '\uD83D\uDD0A', label: 'Pitch accent fundamentals' },
+      { icon: '\uD83D\uDCD6', label: 'Difference between \u306F and \u304C' },
+      { icon: '\uD83D\uDCAC', label: 'Casual vs. polite form practice' },
+      { icon: '\uD83D\uDD22', label: 'Japanese time expressions' },
+      { icon: '\uD83C\uDFAF', label: 'Common particle mistakes' },
+    ],
+    immersion: [
+      { icon: '\uD83D\uDCF0', label: 'Read today\u2019s NHK Easy News' },
+      { icon: '\uD83C\uDFAC', label: 'Analyze a scene from Your Name' },
+      { icon: '\uD83D\uDCD6', label: 'Manga panel \u2014 decode slang' },
+      { icon: '\uD83C\uDFB5', label: 'Break down Yoasobi lyrics' },
+      { icon: '\uD83C\uDFAE', label: 'Translate a game dialogue' },
+      { icon: '\uD83D\uDCFA', label: 'News clip listening practice' },
+      { icon: '\uD83D\uDCDD', label: 'Read a short story excerpt' },
+      { icon: '\uD83C\uDF99\uFE0F', label: 'Podcast transcript breakdown' },
+    ],
+    reference: [
+      { icon: '\uD83D\uDDC2\uFE0F', label: 'JLPT N3 vocabulary deck' },
+      { icon: '\uD83D\uDCD0', label: 'Particle cheat sheet' },
+      { icon: '\uD83C\uDE33', label: 'Kanji by radicals \u2014 RTK method' },
+      { icon: '\uD83D\uDCCB', label: 'Common set phrases \u2014 \u6163\u7528\u53E5' },
+      { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
+      { icon: '\uD83D\uDCDA', label: 'Onomatopoeia dictionary' },
+      { icon: '\uD83C\uDDEF\uD83C\uDDF5', label: 'Cultural etiquette notes' },
+      { icon: '\uD83D\uDCC8', label: 'JLPT grammar comparison chart' },
+    ],
   },
-  {
-    emoji: '\uD83D\uDDD3\uFE0F',
-    label: 'Plans',
-    description: 'Weekend & future plans',
-    firstMessage: '\u9031\u672B\u306F\u4F55\u3092\u3057\u307E\u3059\u304B\uFF1F',
-    hint: 'Discussing weekend plans — volitional form, time expressions, activities',
+  Korean: {
+    conversation: [
+      { icon: '\uD83C\uDF5C', label: 'Order bibimbap at a Seoul restaurant' },
+      { icon: '\uD83D\uDE87', label: 'Navigate the subway in Busan' },
+      { icon: '\uD83D\uDED2', label: 'Shop at Myeongdong market' },
+      { icon: '\uD83C\uDFB6', label: 'Chat about your favorite K-pop group' },
+      { icon: '\u2615', label: 'Order drinks at a Korean caf\u00E9' },
+      { icon: '\uD83C\uDFE8', label: 'Book a hanok guesthouse in Jeonju' },
+      { icon: '\uD83D\uDE95', label: 'Hail a taxi in Gangnam' },
+      { icon: '\uD83C\uDF89', label: 'Plan a trip to Jeju Island' },
+    ],
+    tutor: [
+      { icon: '\u270D\uFE0F', label: 'Korean honorific speech levels' },
+      { icon: '\uD83D\uDD24', label: 'Essential Korean counters (\uAC1C, \uBA85, \uBC88)' },
+      { icon: '\uD83D\uDCD6', label: 'Difference between \uC740/\uB294 and \uC774/\uAC00' },
+      { icon: '\uD83D\uDCAC', label: '\uBC18\uB9D0 vs. \uC874\uB313\uB9D0 practice' },
+      { icon: '\uD83D\uDD22', label: 'Sino-Korean vs. native numbers' },
+      { icon: '\uD83C\uDFAF', label: 'Common particle mistakes' },
+      { icon: '\uD83D\uDD0A', label: 'Korean pronunciation rules' },
+      { icon: '\uD83D\uDCDA', label: 'Verb conjugation patterns' },
+    ],
+    immersion: [
+      { icon: '\uD83D\uDCFA', label: 'Analyze a K-drama dialogue scene' },
+      { icon: '\uD83C\uDFB5', label: 'Break down BTS song lyrics' },
+      { icon: '\uD83D\uDCF0', label: 'Read Korean news for beginners' },
+      { icon: '\uD83C\uDFAC', label: 'Movie scene \u2014 decode slang' },
+      { icon: '\uD83C\uDFAE', label: 'Translate a webtoon panel' },
+      { icon: '\uD83D\uDCDD', label: 'Read a short Korean story' },
+      { icon: '\uD83C\uDF99\uFE0F', label: 'Korean podcast breakdown' },
+      { icon: '\uD83D\uDCD6', label: 'Webtoon dialogue practice' },
+    ],
+    reference: [
+      { icon: '\uD83D\uDDC2\uFE0F', label: 'TOPIK vocabulary by level' },
+      { icon: '\uD83D\uDCD0', label: 'Korean particle cheat sheet' },
+      { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
+      { icon: '\uD83D\uDCCB', label: 'Common Korean expressions' },
+      { icon: '\uD83D\uDCDA', label: 'Korean onomatopoeia guide' },
+      { icon: '\uD83C\uDDF0\uD83C\uDDF7', label: 'Cultural etiquette notes' },
+      { icon: '\uD83D\uDCC8', label: 'TOPIK grammar patterns' },
+      { icon: '\uD83D\uDD24', label: 'Hangul reading practice' },
+    ],
   },
-  {
-    emoji: '\uD83C\uDFD9\uFE0F',
-    label: 'City',
-    description: 'Exploring & directions',
-    firstMessage: '\u3053\u306E\u8FBA\u306B\u304A\u3059\u3059\u3081\u306E\u5834\u6240\u306F\u3042\u308A\u307E\u3059\u304B\uFF1F',
-    hint: 'Exploring a city — location words, directions, recommendations',
-  },
-  {
-    emoji: '\uD83C\uDF8C',
-    label: 'Free',
-    description: 'Open conversation',
-    firstMessage: '\u4ECA\u65E5\u306F\u4F55\u3092\u8A71\u3057\u307E\u3057\u3087\u3046\u304B\uFF1F',
-    hint: '',
-  },
-]
-
-function getGreeting(): { japanese: string; english: string } {
-  const hour = new Date().getHours()
-  let japanese: string
-  if (hour < 11) {
-    japanese = '\u304A\u306F\u3088\u3046\uFF01'
-  } else if (hour < 17) {
-    japanese = '\u3053\u3093\u306B\u3061\u306F\uFF01'
-  } else {
-    japanese = '\u3053\u3093\u3070\u3093\u306F\uFF01'
-  }
-  return { japanese, english: 'What would you like to practice today?' }
 }
 
-function getContextSubtext(context: {
-  profile?: ExpandedLearnerProfile | null
-  reviewSummary?: ReviewSummary | null
-  weeklyStats?: WeeklyStats | null
-  tomBrief?: ExpandedTomBrief | null
-}): string | null {
-  // Show most salient context: avoidance > streak > reviews today
-  const avoidance = context.tomBrief?.avoidancePatterns
-  if (avoidance && avoidance.length > 0) {
-    return `Let\u2019s work on patterns you\u2019ve been avoiding.`
-  }
-  const streak = context.weeklyStats?.currentStreak
-  if (streak && streak > 1) {
-    return `Day ${streak} of your streak. Keep it going!`
-  }
-  const reviewed = context.weeklyStats?.reviewsThisWeek
-  if (reviewed && reviewed > 0) {
-    return `${reviewed} review${reviewed === 1 ? '' : 's'} completed this week.`
-  }
-  return null
+const DEFAULT_SUGGESTIONS: Record<ScenarioMode, { icon: string; label: string }[]> = {
+  conversation: [
+    { icon: '\u2615', label: 'Order coffee at a local caf\u00E9' },
+    { icon: '\uD83D\uDE86', label: 'Ask for directions at a train station' },
+    { icon: '\uD83D\uDED2', label: 'Go grocery shopping at a market' },
+    { icon: '\uD83C\uDF89', label: 'Make plans for a weekend trip' },
+    { icon: '\uD83C\uDFE8', label: 'Check into a hotel' },
+    { icon: '\uD83D\uDE95', label: 'Give directions to a taxi driver' },
+    { icon: '\uD83C\uDF74', label: 'Order food at a restaurant' },
+    { icon: '\uD83D\uDCAC', label: 'Small talk with a new friend' },
+  ],
+  tutor: [
+    { icon: '\u270D\uFE0F', label: 'Key verb conjugation patterns' },
+    { icon: '\uD83D\uDCD6', label: 'Essential grammar structures' },
+    { icon: '\uD83D\uDCAC', label: 'Formal vs. informal speech' },
+    { icon: '\uD83D\uDD22', label: 'Numbers and counting' },
+    { icon: '\uD83D\uDD0A', label: 'Pronunciation fundamentals' },
+    { icon: '\uD83C\uDFAF', label: 'Common beginner mistakes' },
+    { icon: '\uD83D\uDD24', label: 'Everyday vocabulary' },
+    { icon: '\uD83D\uDCDA', label: 'Reading practice' },
+  ],
+  immersion: [
+    { icon: '\uD83D\uDCF0', label: 'Read a news article for beginners' },
+    { icon: '\uD83C\uDFAC', label: 'Analyze a movie dialogue scene' },
+    { icon: '\uD83C\uDFB5', label: 'Break down song lyrics' },
+    { icon: '\uD83C\uDFAE', label: 'Translate a game dialogue' },
+    { icon: '\uD83D\uDCFA', label: 'TV show listening practice' },
+    { icon: '\uD83D\uDCDD', label: 'Read a short story excerpt' },
+    { icon: '\uD83C\uDF99\uFE0F', label: 'Podcast transcript breakdown' },
+    { icon: '\uD83D\uDCD6', label: 'Cultural reading passage' },
+  ],
+  reference: [
+    { icon: '\uD83D\uDDC2\uFE0F', label: 'Core vocabulary list' },
+    { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
+    { icon: '\uD83D\uDCD0', label: 'Grammar cheat sheet' },
+    { icon: '\uD83D\uDCCB', label: 'Common expressions and idioms' },
+    { icon: '\uD83D\uDCDA', label: 'Cultural etiquette notes' },
+    { icon: '\uD83D\uDCC8', label: 'Grammar comparison chart' },
+    { icon: '\uD83D\uDD24', label: 'Writing system guide' },
+    { icon: '\uD83C\uDFAF', label: 'Pronunciation guide' },
+  ],
 }
 
-const DEFAULT_SUGGESTIONS = [
-  'こんにちは！',
+function getSuggestions(language: string): Record<ScenarioMode, { icon: string; label: string }[]> {
+  return LANGUAGE_SUGGESTIONS[language] ?? DEFAULT_SUGGESTIONS
+}
+
+const SUGGESTION_TITLES: Record<ScenarioMode, string> = {
+  conversation: 'Suggested Scenarios',
+  tutor: 'Suggested Lessons',
+  immersion: 'Suggested Content',
+  reference: 'Browse Topics',
+}
+
+const MODE_DOTS: Record<string, string> = {
+  conversation: '#22a355',
+  tutor: '#3b6ec2',
+  immersion: '#8b5cf6',
+  reference: '#c8572a',
+}
+
+function formatRelativeTime(timestamp: string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return ''
+  const mins = Math.round(seconds / 60)
+  return `${mins} min`
+}
+
+const CHAT_DEFAULT_SUGGESTIONS = [
+  'Hello!',
   'What should we talk about?',
-  'もう一度お願いします',
+  'Can you repeat that?',
 ]
+
+type Phase = 'idle' | 'conversation'
 
 export function ConversationView() {
-  const [phase, setPhase] = useState<Phase>('planning')
-  const [sessionPlan, setSessionPlan] = useState<ExpandedSessionPlan | null>(null)
+  return (
+    <PanelProvider>
+      <ConversationViewInner />
+    </PanelProvider>
+  )
+}
+
+function ConversationViewInner() {
+  const router = useRouter()
+  const { targetLanguage } = useLanguage()
+  const [phase, setPhase] = useState<Phase>('idle')
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [analysis, setAnalysis] = useState<PostSessionAnalysis | null>(null)
+  const [sessionTitle, setSessionTitle] = useState<string>('Conversation')
+  const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [targetsHit, setTargetsHit] = useState<Set<string>>(new Set())
-  const [showSummaryModal, setShowSummaryModal] = useState(false)
-  const sessionStartTime = useRef(0)
+  const [selectedMode, setSelectedMode] = useState<ScenarioMode>('conversation')
+  const [activeMode, setActiveMode] = useState<ScenarioMode>('conversation')
+  const [inputMode, setInputMode] = useState<'chat' | 'voice'>('chat')
+  const [voiceSessionConfig, setVoiceSessionConfig] = useState<{ prompt: string; mode: ScenarioMode } | null>(null)
+  const [chosenChoiceIds, setChosenChoiceIds] = useState<Set<string>>(new Set())
+  const [difficultyLevel, setDifficultyLevel] = useState(3) // default intermediate
+  const [difficultyViolations, setDifficultyViolations] = useState<Map<string, DifficultyViolation[]>>(new Map())
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false)
+  const [recentSessions, setRecentSessions] = useState<{ id: string; timestamp: string; durationSeconds: number | null; mode: string; sessionFocus: string }[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const idleTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const idleIme = useJapaneseIME(input, setInput)
   const sessionIdRef = useRef<string | null>(null)
   sessionIdRef.current = sessionId
   const { showRomaji, toggle: toggleRomaji } = useRomaji()
   const tts = useTTS()
-  const [livingTextEnabled, setLivingTextEnabled] = useState(false)
-  const livingText = useLivingText()
-  const selectionXRay = useSelectionXRay()
+  const panel = usePanel()
+  const panelAutoOpenedRef = useRef(false)
 
   const transport = useMemo(
     () =>
@@ -152,9 +279,31 @@ export function ConversationView() {
     sendMessage,
     status,
     setMessages,
-  } = useChat({ transport })
+    error: chatError,
+  } = useChat({
+    transport,
+    onError: (err) => {
+      console.error('[useChat] error:', err)
+    },
+  })
 
   const isSending = status === 'streaming' || status === 'submitted'
+
+  // Streaming TTS — get latest assistant text for sentence boundary detection
+  const latestAssistantText = useMemo(() => {
+    if (!isSending) return null
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role === 'assistant') {
+        return msg.parts
+          .filter((p) => p.type === 'text')
+          .map((p) => (p as { type: 'text'; text: string }).text)
+          .join('')
+      }
+    }
+    return null
+  }, [messages, isSending])
+  const streamingTts = useStreamingTTS(latestAssistantText, isSending)
 
   // Extract text from assistant messages for romaji annotation
   const assistantTexts = useMemo(
@@ -169,58 +318,6 @@ export function ConversationView() {
   )
   const { getAnnotated } = useAnnotatedTexts(assistantTexts, showRomaji)
 
-  // Extract targets hit from markTargetsHit tool calls
-  useEffect(() => {
-    const newHits = new Set<string>()
-    for (const msg of messages) {
-      if (msg.role !== 'assistant') continue
-      for (const part of msg.parts) {
-        if (
-          'type' in part &&
-          typeof part.type === 'string' &&
-          part.type === 'tool-markTargetsHit' &&
-          'state' in part &&
-          part.state === 'output-available' &&
-          'output' in part
-        ) {
-          const output = part.output as { vocab_ids?: string[]; grammar_ids?: string[] }
-          for (const id of output.vocab_ids ?? []) newHits.add(id)
-          for (const id of output.grammar_ids ?? []) newHits.add(id)
-        }
-      }
-    }
-    if (newHits.size > 0) {
-      setTargetsHit((prev) => {
-        const next = new Set(prev)
-        for (const h of newHits) next.add(h)
-        return next
-      })
-    }
-  }, [messages])
-
-  // Build naturalness map: user message ID → { rating, note }
-  const naturalnessMap = useMemo(() => {
-    const map = new Map<string, { rating: 'great' | 'good' | 'needs_work'; note?: string }>()
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i]
-      if (msg.role !== 'assistant') continue
-      // Find the preceding user message
-      const prevUser = i > 0 && messages[i - 1].role === 'user' ? messages[i - 1] : null
-      if (!prevUser) continue
-      for (const part of msg.parts) {
-        const partType = (part as { type: string }).type
-        if (partType === 'tool-rateNaturalness') {
-          const toolPart = part as { type: string; state: string; output?: unknown }
-          if (toolPart.state === 'output-available' && toolPart.output) {
-            const output = toolPart.output as { rating: 'great' | 'good' | 'needs_work'; note?: string }
-            map.set(prevUser.id, output)
-          }
-        }
-      }
-    }
-    return map
-  }, [messages])
-
   // Extract dynamic suggestions from the latest assistant message
   const dynamicSuggestions = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -228,7 +325,7 @@ export function ConversationView() {
       if (msg.role !== 'assistant') continue
       for (const part of msg.parts) {
         const partType = (part as { type: string }).type
-        if (partType === 'tool-suggestResponses') {
+        if (partType === 'tool-suggestActions') {
           const toolPart = part as { type: string; state: string; output?: unknown }
           if (toolPart.state === 'output-available' && toolPart.output) {
             const output = toolPart.output as { suggestions: string[] }
@@ -241,67 +338,128 @@ export function ConversationView() {
     return null
   }, [messages])
 
+  // Auto-open panel on first panel-zone tool dispatch
+  const hasPanelTools = useMemo(() => {
+    for (const msg of messages) {
+      if (msg.role !== 'assistant') continue
+      for (const part of msg.parts) {
+        const partType = (part as { type: string }).type
+        if (partType.startsWith('tool-')) {
+          const toolName = partType.replace('tool-', '')
+          if (getToolZone(toolName) === 'panel') return true
+        }
+      }
+    }
+    return false
+  }, [messages])
+
+  useEffect(() => {
+    if (hasPanelTools && !panelAutoOpenedRef.current) {
+      panelAutoOpenedRef.current = true
+      panel.open()
+    }
+  }, [hasPanelTools, panel])
+
+  // Update plan from updateSessionPlan tool responses
+  useEffect(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'assistant') continue
+      for (const part of msg.parts) {
+        const partType = (part as { type: string }).type
+        if (partType === 'tool-updateSessionPlan') {
+          const toolPart = part as { type: string; state: string; output?: unknown }
+          if (toolPart.state === 'output-available' && toolPart.output) {
+            const output = toolPart.output as { updated: boolean; plan: SessionPlan }
+            if (output.updated && output.plan) {
+              setSessionPlan(output.plan)
+            }
+          }
+        }
+      }
+      break
+    }
+  }, [messages])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Context data for the planning phase greeting/subtext
-  const [contextData, setContextData] = useState<{
-    profile?: ExpandedLearnerProfile | null
-    reviewSummary?: ReviewSummary | null
-    weeklyStats?: WeeklyStats | null
-    tomBrief?: ExpandedTomBrief | null
-  }>({})
-
+  // Run difficulty validation after assistant messages finish streaming
+  const prevIsSendingRef = useRef(false)
   useEffect(() => {
-    if (phase !== 'planning') return
-    Promise.all([
-      api.profileGet().catch(() => null),
-      api.reviewGetSummary().catch(() => null),
-      api.dashboardGetWeeklyStats().catch(() => null),
-      api.tomGetBrief().catch(() => null),
-    ]).then(([profile, reviewSummary, weeklyStats, tomBrief]) => {
-      setContextData({ profile, reviewSummary, weeklyStats, tomBrief })
-    })
+    if (prevIsSendingRef.current && !isSending) {
+      // Streaming just finished — validate the latest assistant message
+      const lastMsg = messages[messages.length - 1]
+      if (lastMsg?.role === 'assistant' && !difficultyViolations.has(lastMsg.id)) {
+        const text = lastMsg.parts
+          .filter((p) => p.type === 'text')
+          .map((p) => (p as { type: 'text'; text: string }).text)
+          .join('')
+        if (text.trim()) {
+          validateDifficulty(text, difficultyLevel).then((violations) => {
+            if (violations.length > 0) {
+              setDifficultyViolations((prev) => {
+                const next = new Map(prev)
+                next.set(lastMsg.id, violations)
+                return next
+              })
+            }
+          })
+        }
+      }
+    }
+    prevIsSendingRef.current = isSending
+  }, [isSending, messages, difficultyLevel, difficultyViolations])
+
+  // Fetch recent sessions for idle screen
+  useEffect(() => {
+    if (phase === 'idle') {
+      api.conversationList().then(setRecentSessions).catch(() => {})
+      api.profileGet().then((profile) => {
+        if (profile?.difficultyLevel) setDifficultyLevel(profile.difficultyLevel)
+      }).catch(() => {})
+    }
   }, [phase])
 
-  const handleStartSessionWithMessage = useCallback(async (initialMessage?: string, topicHint?: string) => {
+  const handleStartSession = useCallback(async (prompt: string, mode: ScenarioMode) => {
     setIsLoading(true)
     setError(null)
     try {
-      const plan = await api.conversationPlan(topicHint || undefined)
-      setSessionPlan(plan)
-      setSessionId(plan._sessionId ?? null)
+      // Fetch profile for difficulty level
+      const profile = api.peekCache<{ difficultyLevel?: number }>('/profile')
+      if (profile?.difficultyLevel) setDifficultyLevel(profile.difficultyLevel)
+
+      const result = await api.conversationPlan(prompt, mode)
+      setSessionId(result._sessionId ?? null)
+      setSessionTitle(result.sessionFocus || MODE_LABELS[mode])
+      setSessionPlan(result.plan ?? null)
+      setActiveMode(mode)
+      setChosenChoiceIds(new Set())
+      panelAutoOpenedRef.current = false
       setMessages([])
-      setTargetsHit(new Set())
-      sessionStartTime.current = Date.now()
       setPhase('conversation')
-      if (initialMessage) {
-        requestAnimationFrame(() => {
-          sendMessage({ text: initialMessage })
-        })
-      }
+      // Send the prompt as the first user message
+      requestAnimationFrame(() => {
+        sendMessage({ text: prompt })
+      })
     } catch (err) {
-      console.error('Failed to plan session:', err)
+      console.error('Failed to start session:', err)
       setError(err instanceof Error ? err.message : 'Failed to start session. Please try again.')
     }
     setIsLoading(false)
   }, [setMessages, sendMessage])
 
-  const handleStartSession = useCallback(async () => {
-    await handleStartSessionWithMessage()
-  }, [handleStartSessionWithMessage])
-
-  const handlePlanningSubmit = useCallback(async () => {
-    if (!input.trim()) return
-    const text = input.trim()
+  const handleFreePromptSubmit = useCallback(async () => {
+    const defaults = getModeDefaultPrompts(targetLanguage)
+    const text = input.trim() || defaults[selectedMode] || defaults.conversation
     setInput('')
-    await handleStartSessionWithMessage(text, text)
-  }, [input, handleStartSessionWithMessage])
-
-  const handleTopicSelect = useCallback(async (topic: TopicStarter) => {
-    await handleStartSessionWithMessage(topic.firstMessage, topic.hint || undefined)
-  }, [handleStartSessionWithMessage])
+    if (inputMode === 'voice') {
+      setVoiceSessionConfig({ prompt: text, mode: selectedMode })
+    } else {
+      await handleStartSession(text, selectedMode)
+    }
+  }, [input, selectedMode, inputMode, targetLanguage, handleStartSession])
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || !sessionId || isSending) return
@@ -314,6 +472,16 @@ export function ConversationView() {
     setInput(text)
   }, [])
 
+  const handleChoiceSelect = useCallback((text: string, blockId: string) => {
+    setChosenChoiceIds((prev) => new Set(prev).add(blockId))
+    sendMessage({ text })
+  }, [sendMessage])
+
+  const handleVoiceTranscript = useCallback((text: string) => {
+    if (!sessionId || isSending) return
+    sendMessage({ text })
+  }, [sessionId, isSending, sendMessage])
+
   const handleEscapeHatch = useCallback(() => {
     setInput("I'd like to switch to English for a moment: ")
   }, [])
@@ -322,143 +490,331 @@ export function ConversationView() {
     if (!sessionId) return
     setIsLoading(true)
     try {
-      const result = await api.conversationEnd(sessionId)
-      setAnalysis(result)
-      setPhase('summary')
-      setShowSummaryModal(true)
+      await api.conversationEnd(sessionId)
     } catch (err) {
       console.error('Failed to end session:', err)
     }
     setIsLoading(false)
+    setPhase('idle')
+    setSessionId(null)
+    setSessionTitle('Conversation')
+    setSessionPlan(null)
+    setActiveMode('conversation')
+    setMessages([])
+    panel.close()
+  }, [sessionId, setMessages, panel])
+
+  const handlePlanUpdate = useCallback(async (updates: Partial<SessionPlan>) => {
+    if (!sessionId) return
+    try {
+      const result = await api.conversationPlanUpdate(sessionId, updates)
+      setSessionPlan(result.plan)
+    } catch (err) {
+      console.error('Failed to update plan:', err)
+    }
   }, [sessionId])
 
-  const handleNewSession = useCallback(() => {
-    setPhase('planning')
-    setSessionPlan(null)
-    setSessionId(null)
-    setMessages([])
-    setAnalysis(null)
-    setTargetsHit(new Set())
-    setShowSummaryModal(false)
-  }, [setMessages])
+  // Voice overlay
+  if (voiceSessionConfig) {
+    return (
+      <VoiceSessionOverlay
+        prompt={voiceSessionConfig.prompt}
+        mode={voiceSessionConfig.mode}
+        onEnd={() => setVoiceSessionConfig(null)}
+      />
+    )
+  }
 
-  // Planning Phase
-  if (phase === 'planning') {
-    const greeting = getGreeting()
-    const subtext = getContextSubtext(contextData)
+  // Idle Phase — experience launcher
+  if (phase === 'idle') {
+    const greeting = getGreetingForLanguage(targetLanguage)
+    const modes = getAllModes()
+    const allSuggestions = getSuggestions(targetLanguage)
+    const suggestions = allSuggestions[selectedMode]
+    const textareaRef = idleTextareaRef
 
     return (
-      <div className="h-full flex flex-col items-center justify-center px-6">
-        <div className="max-w-[640px] w-full flex flex-col items-center text-center">
-          {/* Logo */}
-          <h1 className="logo-shimmer text-[42px] italic font-serif font-semibold mb-6 select-none">
-            Lingle
-          </h1>
+      <div className="h-full flex flex-col items-center overflow-auto">
+        <div className="w-full max-w-[620px] flex flex-col items-center pt-12 pb-12 px-6">
 
-          {/* Japanese greeting */}
-          <p className="text-[28px] font-jp font-medium text-text-primary mb-1.5">
-            {greeting.japanese}
-          </p>
-
-          {/* English line */}
-          <p className="text-[15px] text-text-secondary mb-1">
-            {greeting.english}
-          </p>
-
-          {/* Contextual subtext */}
-          {subtext && (
-            <p className="text-[13px] text-text-muted mb-6">
-              {subtext}
-            </p>
-          )}
-          {!subtext && <div className="mb-6" />}
+          {/* Greeting */}
+          <div className="text-center mb-8 idle-entrance">
+            <div className="font-jp text-[44px] font-light tracking-[0.04em] text-text-primary leading-[1.2] mb-2">
+              {greeting.native}
+            </div>
+            <p className="text-[15px] text-text-secondary">{greeting.english}</p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-warm-soft rounded-lg w-full">
+            <div className="mb-6 p-3 bg-warm-soft rounded-xl w-full">
               <span className="text-[13px] text-accent-warm">{error}</span>
             </div>
           )}
 
           {/* Loading overlay */}
           {isLoading ? (
-            <div className="flex items-center gap-2.5 py-3 mb-6">
+            <div className="flex items-center gap-2.5 py-3">
               <Spinner size={16} />
-              <span className="text-[14px] text-text-muted">Planning your session...</span>
+              <span className="text-[14px] text-text-muted">Starting session...</span>
             </div>
           ) : (
             <>
-              {/* Chat input */}
-              <div className="w-full mb-8">
-                <ChatInput
-                  value={input}
-                  onChange={setInput}
-                  onSend={handlePlanningSubmit}
-                  disabled={isLoading}
-                  placeholder="Type a topic or message to start..."
-                  showRomaji={showRomaji}
-                  onToggleRomaji={toggleRomaji}
-                  minRows={3}
-                />
-              </div>
-
-              {/* Topic starters */}
-              <p className="text-[11px] uppercase tracking-wider text-text-muted mb-3 font-medium">
-                Or start with a topic
-              </p>
-
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {TOPIC_STARTERS.map((topic) => (
+              {/* Tabs — pill style */}
+              <div className="idle-entrance flex gap-0.5 p-[3px] bg-bg-hover border border-border rounded-[10px] mb-6" style={{ animationDelay: '0.07s', opacity: 0 }}>
+                {modes.map((mode) => (
                   <button
-                    key={topic.label}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-bg-pure border border-border-subtle text-left cursor-pointer transition-all hover:border-border-strong hover:shadow-[var(--shadow-sm)] active:scale-[0.98]"
-                    onClick={() => handleTopicSelect(topic)}
+                    key={mode}
+                    className={cn(
+                      'px-3.5 py-[5px] rounded-md text-[14px] font-medium cursor-pointer transition-[background,color] duration-100 whitespace-nowrap border-none',
+                      selectedMode === mode
+                        ? 'bg-accent-brand text-white'
+                        : 'bg-transparent text-text-muted hover:bg-bg-hover hover:text-text-primary'
+                    )}
+                    onClick={() => { setSelectedMode(mode); setShowAllSuggestions(false) }}
                   >
-                    <span className="text-[20px] mt-0.5 shrink-0">{topic.emoji}</span>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[14px] font-medium text-text-primary">{topic.label}</span>
-                      <span className="text-[12px] text-text-muted leading-snug">{topic.description}</span>
-                    </div>
+                    {MODE_LABELS[mode]}
                   </button>
                 ))}
               </div>
+
+              {/* Input box */}
+              <div className="w-full idle-entrance" style={{ animationDelay: '0.13s', opacity: 0 }}>
+                <div className="relative">
+                  <div className="bg-bg-pure border border-border rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-border-strong focus-within:shadow-[0_2px_8px_rgba(0,0,0,.06),0_1px_4px_rgba(0,0,0,.04)]">
+                    <div className="relative">
+                      {/* IME composition highlight layer */}
+                      {idleIme.mode !== 'direct' && idleIme.composedText && idleIme.compositionStart >= 0 && (
+                        <div
+                          className="absolute inset-0 pointer-events-none whitespace-pre-wrap break-words px-4 pt-3.5 pb-2.5 overflow-hidden text-left"
+                          style={{ font: 'inherit', fontSize: '14.5px', lineHeight: '1.65' }}
+                          aria-hidden="true"
+                        >
+                          <span style={{ color: 'transparent' }}>{input.slice(0, idleIme.compositionStart)}</span>
+                          <span className="rounded-[3px]" style={{ color: 'transparent', backgroundColor: 'rgba(62, 99, 221, 0.12)' }}>
+                            {idleIme.composedText}
+                          </span>
+                          <span style={{ color: 'transparent' }}>{input.slice(idleIme.compositionStart + idleIme.composedText.length)}</span>
+                        </div>
+                      )}
+
+                      {/* IME suggestion overlay */}
+                      {idleIme.mode !== 'direct' && idleIme.composedText && idleIme.compositionStart >= 0 && idleIme.suggestion && (
+                        <div
+                          className="absolute inset-0 pointer-events-none whitespace-pre-wrap break-words px-4 pt-3.5 pb-2.5 text-left"
+                          style={{ font: 'inherit', fontSize: '14.5px', lineHeight: '1.65' }}
+                          aria-hidden="true"
+                        >
+                          <span style={{ visibility: 'hidden' }}>{input.slice(0, idleIme.compositionStart)}</span>
+                          <span className="relative inline-block">
+                            <span className="absolute bottom-full left-0 mb-1 whitespace-nowrap bg-bg-secondary border border-border rounded-md px-2 py-0.5 text-[14px] font-jp text-text-primary shadow-sm z-20">
+                              {idleIme.suggestion}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+
+                      <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => {
+                          if (idleIme.imeActive && idleIme.mode !== 'direct') return
+                          setInput(e.target.value)
+                          const ta = e.target
+                          ta.style.height = 'auto'
+                          ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
+                        }}
+                        placeholder={idleIme.imeActive ? "Type romaji to write Japanese... (e.g., 'taberu' \u2192 \u98DF\u3079\u308B)" : MODE_PLACEHOLDERS[selectedMode]}
+                        onKeyDown={(e) => {
+                          const consumed = idleIme.handleKeyDown(e)
+                          if (consumed) return
+                          if (e.key === ' ' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault()
+                            idleIme.toggleIME()
+                            return
+                          }
+                          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                            e.preventDefault()
+                            handleFreePromptSubmit()
+                          }
+                        }}
+                        onBlur={() => {
+                          if (idleIme.mode !== 'direct') idleIme.reset()
+                        }}
+                        className="block w-full border-none outline-none resize-none bg-transparent text-[14.5px] text-text-primary leading-[1.65] px-4 pt-3.5 pb-2.5 min-h-[56px] placeholder:text-text-placeholder relative z-10"
+                        style={{ fontFamily: 'inherit' }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between px-3 pb-2.5 pt-2 border-t border-bg-hover">
+                      <div className="flex gap-1.5">
+                        {/* IME toggle */}
+                        <button
+                          className={cn(
+                            'w-7 h-7 rounded-md flex items-center justify-center border cursor-pointer text-[13px] font-bold font-jp transition-[border-color,color,background] duration-100',
+                            idleIme.imeActive
+                              ? 'border-accent-brand/30 bg-accent-brand/10 text-accent-brand'
+                              : 'border-border bg-transparent text-text-muted hover:border-border-strong hover:text-text-primary hover:bg-bg-secondary'
+                          )}
+                          onClick={idleIme.toggleIME}
+                          title={idleIme.imeActive ? 'Japanese IME on' : 'Japanese IME off'}
+                        >
+                          {idleIme.imeActive ? '\u3042' : 'A'}
+                        </button>
+                        {/* Voice */}
+                        <button
+                          className="w-7 h-7 rounded-md flex items-center justify-center border border-border bg-transparent cursor-pointer text-text-muted transition-[border-color,color,background] duration-100 hover:border-border-strong hover:text-text-primary hover:bg-bg-secondary"
+                          title="Voice"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+                          </svg>
+                        </button>
+                        {/* Attach */}
+                        <button
+                          className="w-7 h-7 rounded-md flex items-center justify-center border border-border bg-transparent cursor-pointer text-text-muted transition-[border-color,color,background] duration-100 hover:border-border-strong hover:text-text-primary hover:bg-bg-secondary"
+                          title="Attach"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-text-placeholder select-none">
+                          {idleIme.imeActive
+                            ? idleIme.mode !== 'direct'
+                              ? 'Enter confirm \u00B7 Space candidates \u00B7 Esc revert'
+                              : '\u23CE send \u00B7 \u2318Space toggle IME'
+                            : '\u23CE send \u00B7 \u21E7\u23CE newline'
+                          }
+                        </span>
+                        <button
+                          className={cn(
+                            'w-8 h-8 rounded-lg bg-accent-brand border-none cursor-pointer flex items-center justify-center transition-opacity duration-150 shrink-0',
+                            !input.trim() && 'bg-bg-active cursor-default'
+                          )}
+                          onClick={handleFreePromptSubmit}
+                        >
+                          <ArrowUp size={14} className={input.trim() ? 'text-white' : 'text-text-muted'} />
+                        </button>
+                    </div>
+                  </div>
+                </div>
+
+                  {/* IME Candidate panel */}
+                  {idleIme.showCandidates && idleIme.candidates.length > 0 && (
+                    <IMECandidatePanel
+                      candidates={idleIme.candidates}
+                      selectedIndex={idleIme.selectedIndex}
+                      onSelect={(index) => {
+                        const ta = textareaRef.current
+                        if (!ta) return
+                        const candidate = idleIme.candidates[index]
+                        if (candidate) {
+                          idleIme.insertText(ta, candidate.surface)
+                          idleIme.reset()
+                        }
+                      }}
+                      onDismiss={() => idleIme.reset()}
+                    />
+                  )}
+                </div>
+
+                {/* Mode toggle — Chat / Voice */}
+                <div className="flex justify-center mt-2.5">
+                  <div className="flex gap-0.5 p-[3px] bg-bg-hover border border-border rounded-lg">
+                    <button
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-[5px] rounded-md text-[13px] font-medium cursor-pointer transition-all duration-100 border-none',
+                        inputMode === 'chat'
+                          ? 'bg-bg-pure text-text-primary shadow-[0_1px_2px_rgba(0,0,0,.06)]'
+                          : 'bg-transparent text-text-muted hover:text-text-primary'
+                      )}
+                      onClick={() => setInputMode('chat')}
+                    >
+                      <MessageSquare size={12} />
+                      Chat
+                    </button>
+                    <button
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-[5px] rounded-md text-[13px] font-medium cursor-pointer transition-all duration-100 border-none',
+                        inputMode === 'voice'
+                          ? 'bg-bg-pure text-text-primary shadow-[0_1px_2px_rgba(0,0,0,.06)]'
+                          : 'bg-transparent text-text-muted hover:text-text-primary'
+                      )}
+                      onClick={() => setInputMode('voice')}
+                    >
+                      <Mic size={12} />
+                      Voice
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div className="w-full mt-8 idle-entrance" style={{ animationDelay: '0.19s', opacity: 0 }}>
+                <div className="flex justify-between items-center mb-2.5">
+                  <span className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted">
+                    {SUGGESTION_TITLES[selectedMode]}
+                  </span>
+                  <button
+                    className="bg-transparent border-none cursor-pointer text-[13px] text-text-muted hover:text-text-primary transition-colors"
+                    onClick={() => setShowAllSuggestions((v) => !v)}
+                  >
+                    {showAllSuggestions ? 'Show less' : 'See all \u2192'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {suggestions.slice(0, showAllSuggestions ? suggestions.length : 4).map((s, i) => (
+                    <button
+                      key={i}
+                      className="flex items-start gap-2.5 p-3 rounded-lg bg-bg-pure border border-border-subtle cursor-pointer text-left w-full shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)] transition-[box-shadow,border-color,transform] duration-150 hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,.06),0_1px_4px_rgba(0,0,0,.04)] hover:-translate-y-px"
+                      onClick={() => {
+                        setInput(s.label)
+                        textareaRef.current?.focus()
+                      }}
+                      style={{ fontFamily: 'inherit' }}
+                    >
+                      <span className="text-[20px] leading-none mt-0.5 shrink-0">{s.icon}</span>
+                      <div className="text-[13px] font-medium text-text-primary leading-[1.4]">{s.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent sessions — hide sessions shorter than 60s */}
+              {recentSessions.filter(s => s.durationSeconds !== null && s.durationSeconds >= 60).length > 0 && (
+                <div className="w-full mt-7 idle-entrance" style={{ animationDelay: '0.25s', opacity: 0 }}>
+                  <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-1.5">
+                    Recent Sessions
+                  </div>
+                  <div className="bg-bg-pure border border-border-subtle rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+                    {recentSessions.filter(s => s.durationSeconds !== null && s.durationSeconds >= 60).slice(0, 5).map((session, i) => {
+                      const dot = MODE_DOTS[session.mode] || '#9b9b9b'
+                      const duration = formatDuration(session.durationSeconds)
+                      const time = formatRelativeTime(session.timestamp)
+                      const label = session.sessionFocus || MODE_LABELS[session.mode as ScenarioMode] || 'Session'
+                      return (
+                        <button
+                          key={session.id}
+                          className="flex items-center gap-3 px-2.5 py-2 bg-transparent border-none w-full cursor-pointer text-left transition-colors hover:bg-bg-hover"
+                          style={{ fontFamily: 'inherit', borderTop: i > 0 ? '1px solid var(--bg-hover)' : 'none' }}
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
+                          <span className="flex-1 text-[13px] font-medium text-text-primary truncate">{label}</span>
+                          <span className="text-[12px] text-text-muted shrink-0">
+                            {time}{duration ? ` \u00B7 ${duration}` : ''}
+                          </span>
+                          <ChevronRight size={12} className="text-text-muted" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
-    )
-  }
-
-  // Summary Phase (modal overlay on conversation)
-  if (phase === 'summary' && sessionPlan) {
-    const durationSeconds = Math.round((Date.now() - sessionStartTime.current) / 1000)
-
-    return (
-      <>
-        <div className="max-w-[640px] mx-auto">
-          <h1 className="text-[28px] font-bold mb-4">Session Complete</h1>
-          <p className="text-[15px] text-text-muted mb-4">
-            {analysis?.overallAssessment || 'Great work on your conversation practice!'}
-          </p>
-          <div className="flex gap-3">
-            <button
-              className="rounded-xl bg-accent-brand px-5 py-2.5 text-[15px] font-medium text-white border-none cursor-pointer transition-opacity hover:opacity-90"
-              onClick={handleNewSession}
-            >
-              Start New Session
-            </button>
-          </div>
-        </div>
-
-        {analysis && (
-          <SessionSummaryModal
-            isOpen={showSummaryModal}
-            onClose={() => setShowSummaryModal(false)}
-            analysis={analysis}
-            plan={sessionPlan}
-            durationSeconds={durationSeconds}
-          />
-        )}
-      </>
     )
   }
 
@@ -467,34 +823,44 @@ export function ConversationView() {
     <div className="h-full flex flex-col -m-6">
       {/* Session info sticky bar */}
       <div className="flex items-center justify-between px-6 py-2.5 border-b border-border shrink-0 bg-bg">
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] font-medium text-text-primary">
-            {sessionPlan?.sessionFocus ?? 'Conversation'}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 px-1.5 py-0.5 rounded bg-bg-secondary text-[11px] font-medium text-text-muted uppercase tracking-wide">
+            {MODE_LABELS[activeMode]}
           </span>
-          {sessionPlan && (
-            <>
-              <span className="inline-flex items-center rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-medium text-text-secondary">
-                {sessionPlan.difficultyLevel}
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] text-text-muted">
-                {sessionPlan.register}
-              </span>
-            </>
-          )}
+          <span className="text-[13px] font-medium text-text-primary truncate">{sessionTitle}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium border-none cursor-pointer transition-colors',
-              livingTextEnabled
+              'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+              streamingTts.voiceEnabled
                 ? 'bg-accent-brand/10 text-accent-brand'
-                : 'bg-bg-secondary text-text-muted hover:text-text-secondary'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
             )}
-            onClick={() => setLivingTextEnabled((v) => !v)}
-            title="Toggle Living Text"
+            onClick={streamingTts.toggleVoice}
+            title={streamingTts.voiceEnabled ? 'Disable voice mode' : 'Enable voice mode'}
           >
-            <BookText size={12} />
-            Living Text
+            {streamingTts.voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+          <button
+            className={cn(
+              'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+              panel.isOpen
+                ? 'bg-accent-brand/10 text-accent-brand'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
+            )}
+            onClick={panel.toggle}
+            title="Toggle session panel"
+          >
+            <PanelRight size={16} />
+          </button>
+          <button
+            className="inline-flex items-center gap-1.5 rounded-lg bg-bg-secondary px-3 py-1.5 text-[13px] font-medium text-text-secondary border border-border cursor-pointer transition-colors hover:border-accent-brand hover:text-accent-brand"
+            onClick={() => router.push(`/conversation/voice?sessionId=${sessionId}`)}
+            title="Switch to voice mode"
+          >
+            <Mic size={12} />
+            Voice
           </button>
           <button
             className={cn(
@@ -510,95 +876,103 @@ export function ConversationView() {
         </div>
       </div>
 
-      {/* Challenge card */}
-      {sessionPlan && (
-        <div className="px-6">
-          <div className="max-w-3xl mx-auto">
-            <ChallengeCard plan={sessionPlan} targetsHit={targetsHit} />
+      {/* Main content: chat + panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Chat column */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Messages */}
+          <div className="flex-1 overflow-auto">
+            <div className="max-w-3xl mx-auto px-6 py-4">
+              {messages.map((msg) => (
+                <UIMessageRenderer
+                  key={msg.id}
+                  message={msg}
+                  showRomaji={showRomaji}
+                  getAnnotated={getAnnotated}
+                  chosenChoiceIds={chosenChoiceIds}
+                  onChoiceSelect={handleChoiceSelect}
+                  onPlay={
+                    msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim())
+                      ? () => {
+                          const textContent = msg.parts
+                            .filter((p) => p.type === 'text')
+                            .map((p) => (p as { type: 'text'; text: string }).text)
+                            .join('')
+                          tts.play(msg.id, textContent)
+                        }
+                      : undefined
+                  }
+                  onStop={msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim()) ? tts.stop : undefined}
+                  isPlayingAudio={tts.playingId === msg.id}
+                  isStreaming={isSending && msg === messages[messages.length - 1] && msg.role === 'assistant'}
+                  panelOpen={panel.isOpen}
+                  violations={difficultyViolations.get(msg.id)}
+                />
+              ))}
+
+              {/* Chat error */}
+              {chatError && (
+                <div className="mx-10 my-2 p-3 bg-red-soft rounded-lg">
+                  <span className="text-[13px] text-red">{chatError.message}</span>
+                </div>
+              )}
+
+              {/* Loading indicator */}
+              {isSending && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
+                <div className="flex items-center gap-2.5 py-3 pl-10">
+                  <Spinner size={14} />
+                  <span className="text-[13px] text-text-muted">Thinking...</span>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Bottom area: escape hatch + chips + input */}
+          <div className="px-6 pt-2 pb-4 flex flex-col gap-3">
+            <div className="max-w-3xl mx-auto w-full flex flex-col gap-3">
+              {/* Escape hatch — hidden for reference/immersion modes */}
+              {messages.length > 0 && !isSending && activeMode !== 'reference' && activeMode !== 'immersion' && (
+                <EscapeHatch onUse={handleEscapeHatch} />
+              )}
+
+              {/* Suggestion chips */}
+              {(messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !isSending)) && (
+                <SuggestionChips
+                  suggestions={dynamicSuggestions ?? CHAT_DEFAULT_SUGGESTIONS}
+                  onSelect={handleSuggestionSelect}
+                />
+              )}
+
+              {/* Chat input */}
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSend={handleSend}
+                onVoiceTranscript={handleVoiceTranscript}
+                disabled={isSending}
+                placeholder="Type your message..."
+                showRomaji={showRomaji}
+                onToggleRomaji={toggleRomaji}
+              />
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-auto" ref={selectionXRay.containerRef}>
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          {messages.map((msg) => (
-            <UIMessageRenderer
-              key={msg.id}
-              message={msg}
-              showRomaji={showRomaji}
-              getAnnotated={getAnnotated}
-              naturalness={msg.role === 'user' ? naturalnessMap.get(msg.id) : undefined}
-              livingTextEnabled={livingTextEnabled}
-              livingText={livingText}
-              onPlay={
-                msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim())
-                  ? () => {
-                      const textContent = msg.parts
-                        .filter((p) => p.type === 'text')
-                        .map((p) => (p as { type: 'text'; text: string }).text)
-                        .join('')
-                      tts.play(msg.id, textContent)
-                    }
-                  : undefined
-              }
-              onStop={msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim()) ? tts.stop : undefined}
-              isPlayingAudio={tts.playingId === msg.id}
-              isStreaming={isSending && msg === messages[messages.length - 1] && msg.role === 'assistant'}
+        {/* Side panel */}
+        {panel.isOpen && (
+          <div className="w-[340px] border-l border-border shrink-0">
+            <LearningPanel
+              messages={messages}
+              plan={sessionPlan}
+              sessionId={sessionId}
+              mode={activeMode}
+              onPlanUpdate={handlePlanUpdate}
             />
-          ))}
-
-          {/* Loading indicator */}
-          {isSending && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-            <div className="flex items-center gap-2.5 py-3 pl-10">
-              <Spinner size={14} />
-              <span className="text-[13px] text-text-muted">Thinking...</span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        )}
       </div>
-
-      {/* Bottom area: escape hatch + chips + input */}
-      <div className="px-6 pt-2 pb-4 flex flex-col gap-3">
-        <div className="max-w-3xl mx-auto w-full flex flex-col gap-3">
-          {/* Escape hatch */}
-          {messages.length > 0 && !isSending && (
-            <EscapeHatch onUse={handleEscapeHatch} />
-          )}
-
-          {/* Suggestion chips — only show when no messages yet or after assistant reply */}
-          {(messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !isSending)) && (
-            <SuggestionChips
-              suggestions={dynamicSuggestions ?? DEFAULT_SUGGESTIONS}
-              onSelect={handleSuggestionSelect}
-            />
-          )}
-
-          {/* Chat input */}
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSend={handleSend}
-            disabled={isSending}
-            placeholder="Type your message..."
-            showRomaji={showRomaji}
-            onToggleRomaji={toggleRomaji}
-          />
-        </div>
-      </div>
-
-      <SelectionXRayPopover
-        selectedText={selectionXRay.selectedText}
-        selectionRect={selectionXRay.selectionRect}
-        isOpen={selectionXRay.isOpen}
-        isLoading={selectionXRay.isLoading}
-        tokens={selectionXRay.tokens}
-        error={selectionXRay.error}
-        onTrigger={selectionXRay.trigger}
-        onDismiss={selectionXRay.dismiss}
-      />
     </div>
   )
 }
@@ -609,24 +983,26 @@ function UIMessageRenderer({
   message,
   showRomaji,
   getAnnotated,
-  naturalness,
-  livingTextEnabled,
-  livingText,
+  chosenChoiceIds,
+  onChoiceSelect,
   onPlay,
   onStop,
   isPlayingAudio,
   isStreaming,
+  panelOpen,
+  violations,
 }: {
   message: UIMessage
   showRomaji: boolean
   getAnnotated: (text: string) => string
-  naturalness?: { rating: 'great' | 'good' | 'needs_work'; note?: string }
-  livingTextEnabled?: boolean
-  livingText?: { ready: boolean; annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
+  chosenChoiceIds: Set<string>
+  onChoiceSelect: (text: string, blockId: string) => void
   onPlay?: () => void
   onStop?: () => void
   isPlayingAudio?: boolean
   isStreaming?: boolean
+  panelOpen?: boolean
+  violations?: DifficultyViolation[]
 }) {
   if (message.role === 'user') {
     const textContent = message.parts
@@ -637,22 +1013,11 @@ function UIMessageRenderer({
       <MessageBlock
         role="user"
         content={textContent}
-      >
-        {naturalness && (
-          <NaturalnessBadge rating={naturalness.rating} note={naturalness.note} />
-        )}
-      </MessageBlock>
+      />
     )
   }
 
-  const useLiving = livingTextEnabled && livingText?.ready && !isStreaming
-
   // Assistant message — render parts
-  const assistantText = message.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => (p as { type: 'text'; text: string }).text)
-    .join('')
-
   return (
     <MessageBlock
       role="assistant"
@@ -664,7 +1029,6 @@ function UIMessageRenderer({
       isStreaming={isStreaming}
     >
       {message.parts.map((part, i) => {
-        // Find if this is the last text part for cursor placement
         const isLastTextPart = isStreaming && part.type === 'text' &&
           !message.parts.slice(i + 1).some((p) => p.type === 'text')
         return (
@@ -673,14 +1037,27 @@ function UIMessageRenderer({
             part={part}
             showRomaji={showRomaji}
             getAnnotated={getAnnotated}
-            livingTextEnabled={useLiving}
-            livingText={livingText}
             isStreaming={isLastTextPart || false}
+            messageId={message.id}
+            chosenChoiceIds={chosenChoiceIds}
+            onChoiceSelect={onChoiceSelect}
+            panelOpen={panelOpen}
           />
         )
       })}
-      {!isStreaming && assistantText.trim() && (
-        <SentenceXRayButton sentence={assistantText} />
+      {violations && violations.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {violations.map((v, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-warm-soft text-[11px] text-accent-warm font-medium"
+              title={`${v.baseForm} is N${v.jlptLevel} — above the target level`}
+            >
+              {v.surface}
+              <span className="text-[10px] opacity-70">N{v.jlptLevel}</span>
+            </span>
+          ))}
+        </div>
       )}
     </MessageBlock>
   )
@@ -690,26 +1067,24 @@ function PartRenderer({
   part,
   showRomaji,
   getAnnotated,
-  livingTextEnabled,
-  livingText,
   isStreaming,
+  messageId,
+  chosenChoiceIds,
+  onChoiceSelect,
+  panelOpen,
 }: {
   part: UIMessage['parts'][number]
   showRomaji: boolean
   getAnnotated: (text: string) => string
-  livingTextEnabled?: boolean
-  livingText?: { ready: boolean; annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
   isStreaming?: boolean
+  messageId: string
+  chosenChoiceIds: Set<string>
+  onChoiceSelect: (text: string, blockId: string) => void
+  panelOpen?: boolean
 }) {
-  // Type narrowing via the type field
   if (part.type === 'text') {
     const text = (part as { type: 'text'; text: string }).text
     if (!text.trim()) return null
-
-    // Living Text mode: tokenize + mastery-color
-    if (livingTextEnabled && livingText) {
-      return <LivingTextPart text={text} livingText={livingText} />
-    }
 
     const displayText = showRomaji ? getAnnotated(text) : text
     if (showRomaji) {
@@ -720,83 +1095,135 @@ function PartRenderer({
         />
       )
     }
+
+    const htmlText = rubyToHtml(displayText)
+
     return (
       <div className={cn(
         "chat-markdown text-text-primary leading-[1.7] text-[14.5px]",
         isStreaming && "[&>p:last-of-type]:inline"
       )}>
-        <Markdown remarkPlugins={[remarkGfm]}>
-          {stripRubyAnnotations(displayText)}
+        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+          {htmlText}
         </Markdown>
         {isStreaming && <span className="blink-cursor" />}
       </div>
     )
   }
 
-  // Tool invocations — match by type prefix 'tool-*'
-  const partType = part.type as string
-  const toolPart = part as { type: string; state: string; input?: unknown; output?: unknown }
-
-  if (partType === 'tool-displayVocabCard' && toolPart.state === 'output-available' && toolPart.output) {
-    return <VocabCard data={toolPart.output as { surface: string; reading?: string; meaning: string; example?: string; example_translation?: string }} />
-  }
-
-  if (partType === 'tool-displayGrammarCard' && toolPart.state === 'output-available' && toolPart.output) {
-    return <GrammarCard data={toolPart.output as { pattern: string; meaning: string; formation?: string; example?: string; example_translation?: string }} />
-  }
-
-  if (partType === 'tool-displayCorrection' && toolPart.state === 'output-available' && toolPart.output) {
-    return <CorrectionCard data={toolPart.output as { incorrect: string; correct: string; error_type?: string; explanation?: string }} />
-  }
-
-  if (partType === 'tool-displayReviewPrompt' && toolPart.state === 'output-available' && toolPart.output) {
-    return <ReviewPromptCard data={toolPart.output as { prompt: string; answer: string; item_type?: string; item_id?: string }} />
-  }
-
-  // markTargetsHit and other tool types — hidden
+  // Tool invocations — route by tool name
+  const partType = (part as { type: string }).type
   if (partType.startsWith('tool-')) {
+    const toolName = partType.replace('tool-', '')
+    const toolPart = part as { type: string; state: string; output?: unknown; args?: unknown }
+    const zone = getToolZone(toolName)
+
+    // Chips zone — extracted for bottom chips, hidden inline
+    if (zone === 'chips') return null
+
+    // Hidden zone — no visual output
+    if (zone === 'hidden') return null
+
+    // Panel zone — show reference pill inline when panel is open, full card when closed
+    if (zone === 'panel' && panelOpen) {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        return <ReferencePill toolName={toolName} output={toolPart.output} />
+      }
+      if (toolPart.state === 'input-available') {
+        return <ReferencePillSkeleton />
+      }
+      return null
+    }
+
+    // Inline zone (or panel zone with panel closed) — render full cards
+    if (toolName === 'displayChoices') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { choices: { text: string; hint?: string }[] }
+        const choices: Choice[] = output.choices.map((c, i) => ({
+          number: i + 1,
+          text: c.text,
+          hint: c.hint,
+        }))
+        const blockId = `${messageId}-choices`
+        return (
+          <ChoiceButtons
+            choices={choices}
+            blockId={blockId}
+            isChosen={chosenChoiceIds.has(blockId)}
+            onSelect={onChoiceSelect}
+          />
+        )
+      }
+      if (toolPart.state === 'input-available') return <ChoiceButtonsSkeleton />
+      return null
+    }
+
+    if (toolName === 'showCorrection') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { original: string; corrected: string; explanation: string; grammarPoint?: string }
+        return <CorrectionCard {...output} />
+      }
+      if (toolPart.state === 'input-available') return <CorrectionCardSkeleton />
+      return null
+    }
+
+    if (toolName === 'showVocabularyCard') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { word: string; reading?: string; meaning: string; partOfSpeech?: string; exampleSentence?: string; notes?: string }
+        return <VocabularyCard {...output} />
+      }
+      if (toolPart.state === 'input-available') return <VocabularyCardSkeleton />
+      return null
+    }
+
+    if (toolName === 'showGrammarNote') {
+      if (toolPart.state === 'output-available' && toolPart.output) {
+        const output = toolPart.output as { pattern: string; meaning: string; formation: string; examples: { japanese: string; english: string }[]; level?: string }
+        return <GrammarNote {...output} />
+      }
+      if (toolPart.state === 'input-available') return <GrammarNoteSkeleton />
+      return null
+    }
+
+    // Unknown tools — hidden
     return null
   }
 
-  // step-start, reasoning, etc. — ignore
   return null
 }
 
-function LivingTextPart({
-  text,
-  livingText,
-}: {
-  text: string
-  livingText: { annotateText: (text: string) => Promise<AnnotatedToken[]>; computeComprehension: (tokens: AnnotatedToken[]) => ComprehensionStats }
-}) {
-  const [tokens, setTokens] = useState<AnnotatedToken[] | null>(null)
-  const [stats, setStats] = useState<ComprehensionStats | null>(null)
+// Reference pill for panel-zone tools shown inline in chat
+function ReferencePill({ toolName, output }: { toolName: string; output: unknown }) {
+  const data = output as Record<string, unknown>
+  let icon: string
+  let label: string
 
-  useEffect(() => {
-    let cancelled = false
-    livingText.annotateText(text).then((result) => {
-      if (cancelled) return
-      setTokens(result)
-      setStats(livingText.computeComprehension(result))
-    })
-    return () => { cancelled = true }
-  }, [text, livingText])
-
-  if (!tokens) {
-    // Fallback to plain text while tokenizing
-    return (
-      <div className="chat-markdown text-text-primary leading-[1.7] text-[14.5px]">
-        <Markdown remarkPlugins={[remarkGfm]}>
-          {stripRubyAnnotations(text)}
-        </Markdown>
-      </div>
-    )
+  if (toolName === 'showVocabularyCard') {
+    icon = '\uD83D\uDCD8'
+    label = (data.word as string) || 'Vocabulary'
+  } else if (toolName === 'showGrammarNote') {
+    icon = '\uD83D\uDCD5'
+    label = (data.pattern as string) || 'Grammar'
+  } else if (toolName === 'showCorrection') {
+    icon = '\u270F\uFE0F'
+    label = 'Correction'
+  } else {
+    return null
   }
 
   return (
-    <>
-      <LivingText tokens={tokens} />
-      {stats && <ComprehensionScore stats={stats} />}
-    </>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[12px] text-text-secondary font-medium font-jp mr-1 my-0.5">
+      <span className="text-[11px]">{icon}</span>
+      {label}
+    </span>
+  )
+}
+
+function ReferencePillSkeleton() {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[12px] text-text-placeholder mr-1 my-0.5 animate-pulse">
+      <span className="w-3 h-3 bg-border rounded-full" />
+      <span className="w-12 h-3 bg-border rounded" />
+    </span>
   )
 }

@@ -1,37 +1,26 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
 import { prisma } from '@lingle/db'
-import type { ExpandedLearnerProfile } from '@lingle/shared/types'
+import type { LearnerProfile } from '@lingle/shared/types'
 
-export const GET = withAuth(async (_request, { userId }) => {
-  const profile = await prisma.learnerProfile.findUnique({ where: { userId } })
-  if (!profile) {
-    return NextResponse.json(null)
-  }
-
-  const result: ExpandedLearnerProfile = {
+function serialize(profile: {
+  id: number; targetLanguage: string; nativeLanguage: string;
+  difficultyLevel: number; totalSessions: number; lastActiveDate: Date | null;
+}): LearnerProfile {
+  return {
     id: profile.id,
     targetLanguage: profile.targetLanguage,
     nativeLanguage: profile.nativeLanguage,
-    dailyNewItemLimit: profile.dailyNewItemLimit,
-    targetRetention: profile.targetRetention,
-    computedLevel: profile.computedLevel,
-    comprehensionCeiling: profile.comprehensionCeiling,
-    productionCeiling: profile.productionCeiling,
-    readingLevel: profile.readingLevel,
-    listeningLevel: profile.listeningLevel,
-    speakingLevel: profile.speakingLevel,
-    writingLevel: profile.writingLevel,
+    difficultyLevel: profile.difficultyLevel,
     totalSessions: profile.totalSessions,
-    totalReviewEvents: profile.totalReviewEvents,
-    currentStreak: profile.currentStreak,
-    longestStreak: profile.longestStreak,
     lastActiveDate: profile.lastActiveDate?.toISOString() ?? null,
-    errorPatternSummary: profile.errorPatternSummary as Record<string, unknown>,
-    avoidancePatternSummary: profile.avoidancePatternSummary as Record<string, unknown>,
   }
+}
 
-  return NextResponse.json(result)
+export const GET = withAuth(async (_request, { userId }) => {
+  const profile = await prisma.learnerProfile.findUnique({ where: { userId } })
+  if (!profile) return NextResponse.json(null)
+  return NextResponse.json(serialize(profile))
 })
 
 export const PATCH = withAuth(async (request, { userId }) => {
@@ -40,28 +29,5 @@ export const PATCH = withAuth(async (request, { userId }) => {
     where: { userId },
     data: updates,
   })
-
-  const result: ExpandedLearnerProfile = {
-    id: profile.id,
-    targetLanguage: profile.targetLanguage,
-    nativeLanguage: profile.nativeLanguage,
-    dailyNewItemLimit: profile.dailyNewItemLimit,
-    targetRetention: profile.targetRetention,
-    computedLevel: profile.computedLevel,
-    comprehensionCeiling: profile.comprehensionCeiling,
-    productionCeiling: profile.productionCeiling,
-    readingLevel: profile.readingLevel,
-    listeningLevel: profile.listeningLevel,
-    speakingLevel: profile.speakingLevel,
-    writingLevel: profile.writingLevel,
-    totalSessions: profile.totalSessions,
-    totalReviewEvents: profile.totalReviewEvents,
-    currentStreak: profile.currentStreak,
-    longestStreak: profile.longestStreak,
-    lastActiveDate: profile.lastActiveDate?.toISOString() ?? null,
-    errorPatternSummary: profile.errorPatternSummary as Record<string, unknown>,
-    avoidancePatternSummary: profile.avoidancePatternSummary as Record<string, unknown>,
-  }
-
-  return NextResponse.json(result)
+  return NextResponse.json(serialize(profile))
 })
