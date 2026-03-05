@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 function LogoSVG({ size = 22 }: { size?: number }) {
   return (
@@ -73,62 +74,30 @@ export default function GetStartedPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #2a1f1a 30%, #1a1a1a 60%, #1a2020 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-[#1a1a1a]">
       {/* Ambient glow */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(200,87,42,.08) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,rgba(200,87,42,.08)_0%,transparent_70%)]" />
 
       {/* Nav */}
-      <nav style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 32px',
-        height: 54,
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <div style={{
-            width: 30, height: 30, background: '#2f2f2f', borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+      <nav className="flex items-center justify-between px-8 h-[54px] relative z-10">
+        <a href="/" className="flex items-center gap-2 no-underline">
+          <div className="w-[30px] h-[30px] bg-accent-brand rounded-lg flex items-center justify-center">
             <LogoSVG />
           </div>
-          <span style={{
-            fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400,
-            fontStyle: 'italic', color: '#f0ede8',
-          }}>Lingle</span>
+          <span className="font-serif text-[18px] font-normal italic text-[#f0ede8]">
+            Lingle
+          </span>
         </a>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <button
             onClick={() => setShowAuth(true)}
-            style={{
-              fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'rgba(240,237,232,.5)',
-              background: 'transparent', border: 'none', padding: '6px 12px',
-              borderRadius: 6, cursor: 'pointer',
-            }}
+            className="text-[13.5px] text-[rgba(240,237,232,.5)] bg-transparent border-none px-3 py-1.5 rounded-md cursor-pointer hover:text-[rgba(240,237,232,.7)] transition-colors duration-150"
           >
             Sign In
           </button>
           <button
             onClick={() => setShowAuth(true)}
-            style={{
-              fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500,
-              color: '#fff', background: '#2f2f2f', border: 'none',
-              borderRadius: 10, padding: '7px 16px', cursor: 'pointer',
-            }}
+            className="text-[13.5px] font-medium text-white bg-accent-brand border-none rounded-[10px] px-4 py-[7px] cursor-pointer hover:bg-[#444] transition-colors duration-150"
           >
             Sign Up
           </button>
@@ -136,95 +105,37 @@ export default function GetStartedPage() {
       </nav>
 
       {/* Main content */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        padding: '0 24px',
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        <h1 style={{
-          fontSize: 'clamp(36px, 5vw, 64px)',
-          fontWeight: 700,
-          color: '#f0ede8',
-          letterSpacing: '-.04em',
-          lineHeight: 1.12,
-          marginBottom: 24,
-          animation: 'fadeUp .5s ease both',
-        }}>
-          Your learning experience<br />is <span style={{
-            fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 300,
-          }}>almost ready</span>
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6 relative z-[1]">
+        <h1 className="text-[clamp(36px,5vw,64px)] font-bold text-[#f0ede8] tracking-[-0.04em] leading-[1.12] mb-6 idle-entrance">
+          Your learning experience<br />is{' '}
+          <span className="font-serif italic font-light">almost ready</span>
         </h1>
 
         {/* Preview cards */}
-        <div style={{
-          display: 'flex',
-          gap: 16,
-          marginBottom: 40,
-          animation: 'fadeUp .5s ease .1s both',
-        }}>
+        <div className="flex gap-4 mb-10 idle-entrance" style={{ animationDelay: '.1s' }}>
           {/* Blurred chat preview */}
-          <div style={{
-            width: 200, height: 140,
-            background: 'linear-gradient(135deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,.03) 100%)',
-            borderRadius: 16,
-            border: '1px solid rgba(255,255,255,.1)',
-            backdropFilter: 'blur(10px)',
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            overflow: 'hidden',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: 'rgba(255,255,255,.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, color: 'rgba(255,255,255,.5)', fontWeight: 600,
-              }}>AI</div>
+          <div className="w-[200px] h-[140px] rounded-2xl border border-[rgba(255,255,255,.1)] backdrop-blur-[10px] p-4 flex flex-col gap-2 overflow-hidden bg-[linear-gradient(135deg,rgba(255,255,255,.08)_0%,rgba(255,255,255,.03)_100%)]">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[rgba(255,255,255,.1)] flex items-center justify-center text-[11px] text-[rgba(255,255,255,.5)] font-semibold">
+                AI
+              </div>
               <div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontWeight: 600 }}>Lingle Agent</div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>Ready to chat</div>
+                <div className="text-[11px] text-[rgba(255,255,255,.6)] font-semibold">Lingle Agent</div>
+                <div className="text-[9px] text-[rgba(255,255,255,.3)]">Ready to chat</div>
               </div>
             </div>
-            <div style={{
-              flex: 1, borderRadius: 8,
-              background: 'rgba(255,255,255,.05)',
-              filter: 'blur(4px)',
-              display: 'flex', flexDirection: 'column', gap: 6, padding: 8,
-            }}>
-              <div style={{ height: 8, width: '80%', background: 'rgba(255,255,255,.1)', borderRadius: 4 }} />
-              <div style={{ height: 8, width: '60%', background: 'rgba(255,255,255,.1)', borderRadius: 4 }} />
-              <div style={{ height: 8, width: '70%', background: 'rgba(255,255,255,.1)', borderRadius: 4, alignSelf: 'flex-end' }} />
+            <div className="flex-1 rounded-lg bg-[rgba(255,255,255,.05)] blur-[4px] flex flex-col gap-1.5 p-2">
+              <div className="h-2 w-4/5 bg-[rgba(255,255,255,.1)] rounded" />
+              <div className="h-2 w-3/5 bg-[rgba(255,255,255,.1)] rounded" />
+              <div className="h-2 w-[70%] bg-[rgba(255,255,255,.1)] rounded self-end" />
             </div>
           </div>
 
-          <div style={{
-            width: 200, height: 140,
-            background: 'linear-gradient(135deg, rgba(200,87,42,.12) 0%, rgba(255,255,255,.03) 100%)',
-            borderRadius: 16,
-            border: '1px solid rgba(255,255,255,.1)',
-            backdropFilter: 'blur(10px)',
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            overflow: 'hidden',
-          }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' as const }}>
+          <div className="w-[200px] h-[140px] rounded-2xl border border-[rgba(255,255,255,.1)] backdrop-blur-[10px] p-4 flex flex-col gap-2 overflow-hidden bg-[linear-gradient(135deg,rgba(200,87,42,.12)_0%,rgba(255,255,255,.03)_100%)]">
+            <div className="text-[11px] text-[rgba(255,255,255,.5)] font-semibold tracking-[.06em] uppercase">
               Your prompt
             </div>
-            <div style={{
-              flex: 1, borderRadius: 8,
-              fontSize: 13, color: 'rgba(255,255,255,.7)', lineHeight: 1.6,
-              overflow: 'hidden',
-            }}>
+            <div className="flex-1 rounded-lg text-[13px] text-[rgba(255,255,255,.7)] leading-relaxed overflow-hidden">
               {prompt || 'Your conversation awaits...'}
             </div>
           </div>
@@ -233,35 +144,13 @@ export default function GetStartedPage() {
         {/* CTA */}
         <button
           onClick={() => setShowAuth(true)}
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: 16, fontWeight: 600,
-            color: '#fff',
-            background: 'linear-gradient(135deg, #c8572a 0%, #e06b3a 100%)',
-            border: 'none',
-            borderRadius: 14,
-            padding: '14px 36px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 12px rgba(200,87,42,.4), 0 8px 32px rgba(200,87,42,.2)',
-            transition: 'all .15s',
-            animation: 'fadeUp .5s ease .2s both',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)'
-            e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,87,42,.5), 0 12px 40px rgba(200,87,42,.25)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = '0 2px 12px rgba(200,87,42,.4), 0 8px 32px rgba(200,87,42,.2)'
-          }}
+          className="text-[16px] font-semibold text-white bg-accent-warm border-none rounded-[14px] px-9 py-3.5 cursor-pointer shadow-[0_2px_12px_rgba(200,87,42,.4),0_8px_32px_rgba(200,87,42,.2)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(200,87,42,.5),0_12px_40px_rgba(200,87,42,.25)] idle-entrance"
+          style={{ animationDelay: '.2s' }}
         >
           Sign up for free to start
         </button>
 
-        <p style={{
-          fontSize: 13, color: 'rgba(240,237,232,.35)', marginTop: 16,
-          animation: 'fadeUp .5s ease .3s both',
-        }}>
+        <p className="text-[13px] text-[rgba(240,237,232,.35)] mt-4 idle-entrance" style={{ animationDelay: '.3s' }}>
           Free forever. No credit card required.
         </p>
       </div>
@@ -269,62 +158,33 @@ export default function GetStartedPage() {
       {/* Auth Modal Overlay */}
       {showAuth && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(0,0,0,.6)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            animation: 'fadeIn .2s ease both',
-          }}
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAuth(false) }}
         >
-          <div style={{
-            width: '100%', maxWidth: 420,
-            background: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,.12)',
-            borderRadius: 20,
-            padding: '36px 32px',
-            position: 'relative',
-            animation: 'scaleIn .25s ease both',
-          }}>
+          <div className="w-full max-w-[420px] bg-[#1a1a1a] border border-[rgba(255,255,255,.12)] rounded-[20px] p-8 relative animate-in zoom-in-95 duration-200">
             {/* Close */}
             <button
               onClick={() => setShowAuth(false)}
-              style={{
-                position: 'absolute', top: 16, right: 16,
-                width: 28, height: 28, borderRadius: 8,
-                background: 'rgba(255,255,255,.06)',
-                border: '1px solid rgba(255,255,255,.1)',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,255,255,.4)', fontSize: 14,
-              }}
+              className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.1)] cursor-pointer flex items-center justify-center text-[rgba(255,255,255,.4)] text-[14px] hover:bg-[rgba(255,255,255,.1)] transition-colors duration-150"
             >
               ✕
             </button>
 
             {/* Logo */}
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <span style={{
-                fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 400,
-                fontStyle: 'italic', color: '#f0ede8',
-              }}>Lingle</span>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#f0ede8', marginTop: 8 }}>
+            <div className="text-center mb-6">
+              <span className="font-serif text-[28px] font-normal italic text-[#f0ede8]">
+                Lingle
+              </span>
+              <div className="text-[15px] font-semibold text-[#f0ede8] mt-2">
                 Create your account
               </div>
-              <div style={{ fontSize: 13, color: 'rgba(240,237,232,.5)', marginTop: 4 }}>
+              <div className="text-[13px] text-[rgba(240,237,232,.5)] mt-1">
                 Welcome! Sign in to get started.
               </div>
             </div>
 
             {error && (
-              <div style={{
-                padding: '10px 14px', borderRadius: 8,
-                background: 'rgba(200,87,42,.1)',
-                border: '1px solid rgba(200,87,42,.2)',
-                color: '#e06b3a', fontSize: 13,
-                marginBottom: 16,
-              }}>
+              <div className="p-3 rounded-lg bg-[rgba(200,87,42,.1)] border border-[rgba(200,87,42,.2)] text-accent-warm text-[13px] mb-4">
                 {error}
               </div>
             )}
@@ -333,62 +193,21 @@ export default function GetStartedPage() {
             <button
               onClick={handleGoogleSignIn}
               disabled={signingIn}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: 10, width: '100%', padding: '12px 16px',
-                background: '#fff', border: 'none', borderRadius: 10,
-                fontSize: 14, fontWeight: 500, color: '#1a1a1a',
-                cursor: signingIn ? 'wait' : 'pointer',
-                opacity: signingIn ? 0.6 : 1,
-                transition: 'all .15s',
-              }}
-              onMouseEnter={(e) => { if (!signingIn) e.currentTarget.style.background = '#f5f5f5' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff' }}
+              className={cn(
+                "flex items-center justify-center gap-2.5 w-full py-3 px-4 bg-white border-none rounded-[10px] text-[14px] font-medium text-text-primary transition-colors duration-150 hover:bg-bg-secondary",
+                signingIn ? "cursor-wait opacity-60" : "cursor-pointer"
+              )}
             >
               <GoogleLogo />
               {signingIn ? 'Signing in...' : 'Continue with Google'}
             </button>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              margin: '20px 0',
-            }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.1)' }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>or</span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.1)' }} />
-            </div>
-
-            <button
-              onClick={() => { setShowAuth(false); router.push('/sign-in') }}
-              style={{
-                width: '100%', padding: '11px 16px',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,.15)',
-                borderRadius: 10,
-                fontSize: 14, color: 'rgba(240,237,232,.7)',
-                cursor: 'pointer',
-                transition: 'all .15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.3)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.15)' }}
-            >
-              Sign in
-            </button>
-
-            <p style={{
-              fontSize: 11, color: 'rgba(240,237,232,.3)', textAlign: 'center', marginTop: 20, lineHeight: 1.5,
-            }}>
+            <p className="text-[11px] text-[rgba(240,237,232,.3)] text-center mt-5 leading-normal">
               By continuing, you accept our Privacy Policy and Terms of Use.
             </p>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
-      `}</style>
     </div>
   )
 }

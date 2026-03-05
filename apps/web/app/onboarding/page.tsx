@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { SUPPORTED_LANGUAGES } from '@/lib/languages'
+import { cn } from '@/lib/utils'
 
 /* ── Step data ── */
 
@@ -16,12 +17,12 @@ const LEARNING_GOALS = [
 ]
 
 const LEVELS = [
-  { id: 'complete_beginner', label: 'Complete Beginner', desc: 'I\'m just starting — no prior knowledge', detail: 'Starting from zero', cefr: 'Pre-A1', tag: 'New' },
-  { id: 'beginner', label: 'Beginner', desc: 'I know basic greetings and simple phrases', detail: 'Can introduce yourself, say hello/goodbye', cefr: 'A1', tag: 'N5' },
-  { id: 'elementary', label: 'Elementary', desc: 'I can handle simple daily conversations', detail: 'Basic grammar, ~300 vocabulary', cefr: 'A2', tag: 'N4' },
-  { id: 'intermediate', label: 'Intermediate', desc: 'I can express opinions on familiar topics', detail: 'Can read simple texts, hold conversations', cefr: 'B1', tag: 'N3' },
-  { id: 'upper_intermediate', label: 'Upper Intermediate', desc: 'I understand most native content with effort', detail: 'Complex grammar, ~3000 vocabulary', cefr: 'B2', tag: 'N2' },
-  { id: 'advanced', label: 'Advanced', desc: 'I\'m near-fluent and want to refine nuance', detail: 'Idiomatic expressions, nuance, register', cefr: 'C1', tag: 'N1' },
+  { id: 'complete_beginner', label: 'Complete Beginner', desc: 'I\'m just starting — no prior knowledge', cefr: 'Pre-A1', tag: 'New' },
+  { id: 'beginner', label: 'Beginner', desc: 'I know basic greetings and simple phrases', cefr: 'A1', tag: 'N5' },
+  { id: 'elementary', label: 'Elementary', desc: 'I can handle simple daily conversations', cefr: 'A2', tag: 'N4' },
+  { id: 'intermediate', label: 'Intermediate', desc: 'I can express opinions on familiar topics', cefr: 'B1', tag: 'N3' },
+  { id: 'upper_intermediate', label: 'Upper Intermediate', desc: 'I understand most native content with effort', cefr: 'B2', tag: 'N2' },
+  { id: 'advanced', label: 'Advanced', desc: 'I\'m near-fluent and want to refine nuance', cefr: 'C1', tag: 'N1' },
 ]
 
 const LEVEL_TO_DIFFICULTY: Record<string, number> = {
@@ -37,42 +38,34 @@ const LEVEL_TO_DIFFICULTY: Record<string, number> = {
 
 function StepLanguage({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   return (
-    <div style={{ width: '100%', maxWidth: 560 }}>
-      <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-.03em', marginBottom: 6 }}>
+    <div className="w-full max-w-[560px]">
+      <h2 className="text-[28px] font-bold text-text-primary tracking-[-0.03em] mb-1.5">
         What language do you want to learn?
       </h2>
-      <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
+      <p className="text-[15px] text-text-secondary mb-8 leading-relaxed">
         You can always change this later.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+      <div className="grid grid-cols-2 gap-2.5">
         {SUPPORTED_LANGUAGES.map((lang) => (
           <button
             key={lang.id}
             onClick={() => onSelect(lang.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '16px 18px',
-              background: selected === lang.id ? 'var(--bg-active)' : 'var(--bg-pure)',
-              border: `1.5px solid ${selected === lang.id ? 'var(--accent-brand)' : 'var(--border-subtle)'}`,
-              borderRadius: 14,
-              cursor: 'pointer',
-              transition: 'all .15s',
-              textAlign: 'left',
-            }}
+            className={cn(
+              "flex items-center gap-3.5 px-[18px] py-4 rounded-[14px] cursor-pointer transition-all duration-150 text-left border-[1.5px]",
+              selected === lang.id
+                ? "bg-bg-active border-accent-brand"
+                : "bg-bg-pure border-border-subtle hover:border-border-strong"
+            )}
           >
-            <span style={{ fontSize: 28 }}>{lang.flag}</span>
+            <span className="text-[28px]">{lang.flag}</span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{lang.label}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'var(--font-jp)' }}>{lang.nativeLabel}</div>
+              <div className="text-[15px] font-semibold text-text-primary">{lang.label}</div>
+              <div className="text-[13px] text-text-muted font-jp">{lang.nativeLabel}</div>
             </div>
             {selected === lang.id && (
-              <div style={{
-                marginLeft: 'auto',
-                width: 22, height: 22, borderRadius: '50%',
-                background: 'var(--accent-brand)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 12, fontWeight: 700,
-              }}>✓</div>
+              <div className="ml-auto w-[22px] h-[22px] rounded-full bg-accent-brand flex items-center justify-center text-white text-[12px] font-bold">
+                ✓
+              </div>
             )}
           </button>
         ))}
@@ -83,43 +76,36 @@ function StepLanguage({ selected, onSelect }: { selected: string; onSelect: (id:
 
 function StepGoals({ selected, onToggle }: { selected: string[]; onToggle: (id: string) => void }) {
   return (
-    <div style={{ width: '100%', maxWidth: 560 }}>
-      <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-.03em', marginBottom: 6 }}>
+    <div className="w-full max-w-[560px]">
+      <h2 className="text-[28px] font-bold text-text-primary tracking-[-0.03em] mb-1.5">
         What are your learning goals?
       </h2>
-      <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
+      <p className="text-[15px] text-text-secondary mb-8 leading-relaxed">
         Select all that apply — this helps us personalize your experience.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+      <div className="grid grid-cols-2 gap-2.5">
         {LEARNING_GOALS.map((goal) => {
           const active = selected.includes(goal.id)
           return (
             <button
               key={goal.id}
               onClick={() => onToggle(goal.id)}
-              style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-                padding: '16px 18px',
-                background: active ? 'var(--bg-active)' : 'var(--bg-pure)',
-                border: `1.5px solid ${active ? 'var(--accent-brand)' : 'var(--border-subtle)'}`,
-                borderRadius: 14,
-                cursor: 'pointer',
-                transition: 'all .15s',
-                textAlign: 'left',
-              }}
+              className={cn(
+                "flex items-start gap-3 px-[18px] py-4 rounded-[14px] cursor-pointer transition-all duration-150 text-left border-[1.5px]",
+                active
+                  ? "bg-bg-active border-accent-brand"
+                  : "bg-bg-pure border-border-subtle hover:border-border-strong"
+              )}
             >
-              <span style={{ fontSize: 22, lineHeight: 1, marginTop: 2 }}>{goal.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{goal.label}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>{goal.desc}</div>
+              <span className="text-[22px] leading-none mt-0.5">{goal.icon}</span>
+              <div className="flex-1">
+                <div className="text-[15px] font-semibold text-text-primary">{goal.label}</div>
+                <div className="text-[12.5px] text-text-muted mt-0.5 leading-snug">{goal.desc}</div>
               </div>
               {active && (
-                <div style={{
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: 'var(--accent-brand)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 2,
-                }}>✓</div>
+                <div className="w-5 h-5 rounded-full bg-accent-brand flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5">
+                  ✓
+                </div>
               )}
             </button>
           )
@@ -131,61 +117,48 @@ function StepGoals({ selected, onToggle }: { selected: string[]; onToggle: (id: 
 
 function StepLevel({ selected, onSelect }: { selected: string; onSelect: (id: string) => void }) {
   return (
-    <div style={{ width: '100%', maxWidth: 560 }}>
-      <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-.03em', marginBottom: 6 }}>
+    <div className="w-full max-w-[560px]">
+      <h2 className="text-[28px] font-bold text-text-primary tracking-[-0.03em] mb-1.5">
         What&apos;s your current level?
       </h2>
-      <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
+      <p className="text-[15px] text-text-secondary mb-8 leading-relaxed">
         Don&apos;t worry about being exact — Lingle adapts as you go.
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {LEVELS.map((level) => {
           const active = selected === level.id
           return (
             <button
               key={level.id}
               onClick={() => onSelect(level.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '16px 20px',
-                background: active ? 'var(--bg-active)' : 'var(--bg-pure)',
-                border: `1.5px solid ${active ? 'var(--accent-brand)' : 'var(--border-subtle)'}`,
-                borderRadius: 14,
-                cursor: 'pointer',
-                transition: 'all .15s',
-                textAlign: 'left',
-                width: '100%',
-              }}
+              className={cn(
+                "flex items-center gap-3.5 px-5 py-4 rounded-[14px] cursor-pointer transition-all duration-150 text-left w-full border-[1.5px]",
+                active
+                  ? "bg-bg-active border-accent-brand"
+                  : "bg-bg-pure border-border-subtle hover:border-border-strong"
+              )}
             >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: active ? 'var(--accent-brand)' : 'var(--bg-secondary)',
-                border: `1px solid ${active ? 'var(--accent-brand)' : 'var(--border-subtle)'}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700,
-                color: active ? '#fff' : 'var(--text-muted)',
-                letterSpacing: '.02em', flexShrink: 0,
-              }}>
+              <div className={cn(
+                "w-10 h-10 rounded-[10px] flex items-center justify-center text-[11px] font-bold tracking-[.02em] shrink-0 border",
+                active
+                  ? "bg-accent-brand border-accent-brand text-white"
+                  : "bg-bg-secondary border-border-subtle text-text-muted"
+              )}>
                 {level.tag}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{level.label}</span>
-                  <span style={{
-                    fontSize: 10.5, fontWeight: 600, color: 'var(--text-muted)',
-                    background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4,
-                    border: '1px solid var(--border-subtle)',
-                  }}>{level.cefr}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold text-text-primary">{level.label}</span>
+                  <span className="text-[10.5px] font-semibold text-text-muted bg-bg-secondary px-1.5 py-0.5 rounded border border-border-subtle">
+                    {level.cefr}
+                  </span>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>{level.desc}</div>
+                <div className="text-[13px] text-text-secondary mt-0.5">{level.desc}</div>
               </div>
               {active && (
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: 'var(--accent-brand)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0,
-                }}>✓</div>
+                <div className="w-[22px] h-[22px] rounded-full bg-accent-brand flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+                  ✓
+                </div>
               )}
             </button>
           )
@@ -213,67 +186,49 @@ function StepPreparing({ language }: { language: string }) {
 
   const lang = SUPPORTED_LANGUAGES.find(l => l.id === language)
 
+  const checklist = [
+    { label: 'Calibrating difficulty level', done: progress >= 30 },
+    { label: 'Building your curriculum', done: progress >= 60 },
+    { label: 'Preparing conversation partner', done: progress >= 85 },
+    { label: 'Ready to go!', done: progress >= 100 },
+  ]
+
   return (
-    <div style={{
-      width: '100%', maxWidth: 480,
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      textAlign: 'center',
-    }}>
-      <div style={{
-        width: 72, height: 72, borderRadius: 20,
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 36, marginBottom: 24,
-        boxShadow: '0 4px 16px rgba(0,0,0,.06)',
-      }}>
+    <div className="w-full max-w-[480px] flex flex-col items-center text-center">
+      <div className="w-[72px] h-[72px] rounded-[20px] bg-bg-secondary border border-border-subtle flex items-center justify-center text-[36px] mb-6 shadow-md">
         {lang?.flag || '🌍'}
       </div>
-      <h2 style={{
-        fontSize: 28, fontWeight: 700, color: 'var(--text-primary)',
-        letterSpacing: '-.03em', marginBottom: 8,
-      }}>
+      <h2 className="text-[28px] font-bold text-text-primary tracking-[-0.03em] mb-2">
         Your learning experience<br />is almost ready!
       </h2>
-      <p style={{ fontSize: 15, color: 'var(--text-secondary)', marginBottom: 40, lineHeight: 1.6 }}>
+      <p className="text-[15px] text-text-secondary mb-10 leading-relaxed">
         Setting up your personalized {language} experience...
       </p>
 
       {/* Progress bar */}
-      <div style={{
-        width: '100%', maxWidth: 320, height: 6,
-        background: 'var(--bg-active)', borderRadius: 6, overflow: 'hidden',
-        marginBottom: 20,
-      }}>
-        <div style={{
-          height: '100%', borderRadius: 6,
-          background: 'var(--accent-brand)',
-          width: `${progress}%`,
-          transition: 'width .6s cubic-bezier(.4,0,.2,1)',
-        }} />
+      <div className="w-full max-w-[320px] h-1.5 bg-bg-active rounded-full overflow-hidden mb-5">
+        <div
+          className="h-full rounded-full bg-accent-brand transition-[width] duration-[600ms] ease-[cubic-bezier(.4,0,.2,1)]"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
-        {[
-          { label: 'Calibrating difficulty level', done: progress >= 30 },
-          { label: 'Building your curriculum', done: progress >= 60 },
-          { label: 'Preparing conversation partner', done: progress >= 85 },
-          { label: 'Ready to go!', done: progress >= 100 },
-        ].map((item) => (
-          <div key={item.label} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            fontSize: 13.5, color: item.done ? 'var(--text-primary)' : 'var(--text-muted)',
-            transition: 'color .3s',
-          }}>
-            <div style={{
-              width: 18, height: 18, borderRadius: '50%',
-              background: item.done ? 'var(--accent-brand)' : 'var(--bg-active)',
-              border: `1px solid ${item.done ? 'var(--accent-brand)' : 'var(--border-subtle)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 10, fontWeight: 700,
-              transition: 'all .3s', flexShrink: 0,
-            }}>
-              {item.done ? '✓' : ''}
+      <div className="flex flex-col gap-3 w-full max-w-[320px]">
+        {checklist.map((item) => (
+          <div
+            key={item.label}
+            className={cn(
+              "flex items-center gap-2.5 text-[13.5px] transition-colors duration-300",
+              item.done ? "text-text-primary" : "text-text-muted"
+            )}
+          >
+            <div className={cn(
+              "w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 shrink-0 border",
+              item.done
+                ? "bg-accent-brand border-accent-brand text-white"
+                : "bg-bg-active border-border-subtle text-transparent"
+            )}>
+              ✓
             </div>
             {item.label}
           </div>
@@ -287,17 +242,14 @@ function StepPreparing({ language }: { language: string }) {
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <div className="flex gap-1.5 items-center">
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
-          style={{
-            width: i === current ? 24 : 8,
-            height: 8,
-            borderRadius: 4,
-            background: i === current ? 'var(--accent-brand)' : i < current ? 'var(--text-muted)' : 'var(--bg-active)',
-            transition: 'all .3s cubic-bezier(.4,0,.2,1)',
-          }}
+          className={cn(
+            "h-2 rounded transition-all duration-300 ease-[cubic-bezier(.4,0,.2,1)]",
+            i === current ? "w-6 bg-accent-brand" : i < current ? "w-2 bg-text-muted" : "w-2 bg-bg-active"
+          )}
         />
       ))}
     </div>
@@ -313,6 +265,13 @@ export default function OnboardingPage() {
   const [goals, setGoals] = useState<string[]>([])
   const [level, setLevel] = useState('')
   const [transitioning, setTransitioning] = useState(false)
+
+  // Redirect if user already has a profile
+  useEffect(() => {
+    fetch('/api/profile').then(r => r.json()).then(profile => {
+      if (profile) router.replace('/conversation')
+    }).catch(() => {})
+  }, [router])
 
   const totalSteps = 4
 
@@ -367,49 +326,31 @@ export default function OnboardingPage() {
   }, [step])
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
+    <div className="min-h-screen bg-bg flex flex-col">
       {/* Header */}
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 32px', height: 54,
-        borderBottom: '1px solid var(--border-subtle)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 30, height: 30, background: 'var(--accent-brand)', borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+      <header className="flex items-center justify-between px-8 h-[54px] border-b border-border-subtle">
+        <div className="flex items-center gap-2">
+          <div className="w-[30px] h-[30px] bg-accent-brand rounded-lg flex items-center justify-center shadow-[0_1px_3px_rgba(0,0,0,.2),inset_0_1px_0_rgba(255,255,255,.08)]">
             <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
               <path d="M24 4C24 4, 18 7, 14 12C10 17, 8 23, 8 28C9 26, 11 21, 14 16C17 11, 21 7, 24 4Z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
               <path d="M24 4C24 4, 27 9, 24 15C21 21, 16 26, 11 29C13 25, 17 20, 20 15C23 10, 26 7, 24 4Z" stroke="white" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
             </svg>
           </div>
-          <span style={{
-            fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400,
-            fontStyle: 'italic', color: 'var(--text-primary)',
-          }}>Lingle</span>
+          <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-[-0.03em]">
+            Lingle
+          </span>
         </div>
         <ProgressDots current={step} total={totalSteps} />
-        <div style={{ width: 80 }} /> {/* Spacer for centering */}
+        <div className="w-20" /> {/* Spacer for centering */}
       </header>
 
       {/* Content */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 24px',
-        opacity: transitioning ? 0 : 1,
-        transform: transitioning ? 'translateY(8px)' : 'translateY(0)',
-        transition: 'opacity .2s ease, transform .2s ease',
-      }}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col items-center justify-center px-6 py-10 transition-all duration-200 ease-out",
+          transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+        )}
+      >
         {step === 0 && <StepLanguage selected={language} onSelect={setLanguage} />}
         {step === 1 && <StepGoals selected={goals} onToggle={toggleGoal} />}
         {step === 2 && <StepLevel selected={level} onSelect={setLevel} />}
@@ -418,38 +359,28 @@ export default function OnboardingPage() {
 
       {/* Footer navigation */}
       {step < 3 && (
-        <footer style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 32px',
-          borderTop: '1px solid var(--border-subtle)',
-        }}>
+        <footer className="flex items-center justify-between px-8 py-4 border-t border-border-subtle">
           <button
             onClick={goBack}
             disabled={step === 0}
-            style={{
-              fontFamily: 'var(--font-sans)', fontSize: 14,
-              color: step === 0 ? 'var(--text-muted)' : 'var(--text-secondary)',
-              background: 'transparent', border: 'none',
-              padding: '8px 16px', borderRadius: 8,
-              cursor: step === 0 ? 'default' : 'pointer',
-              transition: 'color .15s',
-            }}
+            className={cn(
+              "text-[14px] bg-transparent border-none px-4 py-2 rounded-lg transition-colors duration-150",
+              step === 0
+                ? "text-text-muted cursor-default"
+                : "text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-hover"
+            )}
           >
             Back
           </button>
           <button
             onClick={goNext}
             disabled={!canAdvance}
-            style={{
-              fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600,
-              color: canAdvance ? '#fff' : 'var(--text-muted)',
-              background: canAdvance ? 'var(--accent-brand)' : 'var(--bg-active)',
-              border: 'none',
-              borderRadius: 10, padding: '10px 28px',
-              cursor: canAdvance ? 'pointer' : 'default',
-              transition: 'all .15s',
-              boxShadow: canAdvance ? '0 1px 3px rgba(0,0,0,.15)' : 'none',
-            }}
+            className={cn(
+              "text-[14px] font-semibold border-none rounded-[10px] px-7 py-2.5 transition-all duration-150",
+              canAdvance
+                ? "text-white bg-accent-brand cursor-pointer shadow-sm hover:bg-[#444] hover:-translate-y-px"
+                : "text-text-muted bg-bg-active cursor-default"
+            )}
           >
             {step === 2 ? 'Finish setup' : 'Continue'}
           </button>
