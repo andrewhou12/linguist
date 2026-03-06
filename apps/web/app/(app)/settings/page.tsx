@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Globe, GraduationCap, Target } from 'lucide-react'
+import { ArrowLeft, Globe, GraduationCap, Target, Languages } from 'lucide-react'
 import type { LearnerProfile } from '@lingle/shared/types'
 import { Spinner } from '@/components/spinner'
 import { api } from '@/lib/api'
@@ -71,7 +71,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-[640px] mx-auto">
+    <div className="max-w-[640px] mx-auto pb-10">
       <div className="flex items-center gap-3 mb-6">
         <button
           className="p-1.5 rounded-md text-text-secondary bg-transparent border-none cursor-pointer transition-colors duration-150 hover:bg-bg-hover"
@@ -88,7 +88,7 @@ export default function SettingsPage() {
 
       <div className="rounded-xl border border-border bg-bg mb-6">
         <div className="flex flex-col">
-          <SettingsRow icon={<Globe size={16} />} label="Target Language" value={profile.targetLanguage} />
+          <SettingsRow icon={<Languages size={16} />} label="Target Language" value={profile.targetLanguage} />
           <hr className="border-t border-border m-0" />
           <SettingsRow icon={<Globe size={16} />} label="Native Language" value={profile.nativeLanguage} />
         </div>

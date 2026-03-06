@@ -128,6 +128,7 @@ export default function GetStartedPage() {
           <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-[-0.03em]">
             Lingle
           </span>
+          <span className="text-[9px] font-semibold tracking-wide uppercase bg-bg-hover text-text-secondary border border-border-strong rounded-sm px-1.5 py-0.5 leading-none">Beta</span>
         </a>
         <div className="flex gap-2 items-center">
           <button
@@ -186,9 +187,12 @@ export default function GetStartedPage() {
 
             {/* Logo */}
             <div className="text-center mb-6">
-              <span className="font-serif text-[28px] font-normal italic text-text-primary">
-                Lingle
-              </span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-serif text-[28px] font-normal italic text-text-primary">
+                  Lingle
+                </span>
+                <span className="text-[9px] font-semibold tracking-wide uppercase bg-bg-hover text-text-secondary border border-border-strong rounded-sm px-1.5 py-0.5 leading-none">Beta</span>
+              </div>
               <div className="text-[15px] font-semibold text-text-primary mt-2">
                 Create your account
               </div>

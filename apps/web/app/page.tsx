@@ -168,6 +168,7 @@ function ModeSwitcher({ activeMode, onModeChange }: { activeMode: string, onMode
     { key: 'conversation', icon: '🗣️', label: 'Conversation' },
     { key: 'lesson', icon: '📖', label: 'Lesson' },
     { key: 'immersion', icon: '🎧', label: 'Immersion' },
+    { key: 'reference', icon: '📚', label: 'Reference' },
   ]
 
   return (
@@ -280,9 +281,9 @@ function useReveal() {
 }
 
 /* ── Level Preview Data ── */
-const levelData: { num: number; width: string; name: string; jp: string; preview: string }[] = [
+const levelData: { num: number; width: string; name: string; jp: string; preview: string; html?: string }[] = [
   { num: 1, width: '17%', name: 'Beginner', jp: 'ひらがな', preview: 'きょうは　てんきが　いいですね。どこかに　いきますか？' },
-  { num: 2, width: '33%', name: 'Elementary', jp: '基本漢字', preview: '今日は天気がいいですね。どこかに行きますか？' },
+  { num: 2, width: '33%', name: 'Elementary', jp: '基本漢字', preview: '', html: '<ruby>今日<rt>きょう</rt></ruby>は<ruby>天気<rt>てんき</rt></ruby>がいいですね。どこかに<ruby>行<rt>い</rt></ruby>きますか？' },
   { num: 3, width: '50%', name: 'Intermediate', jp: '混合', preview: '今日は天気がいいね。どっかに行く？' },
   { num: 4, width: '67%', name: 'Upper-Int.', jp: '自然体', preview: '今日ほんと天気いいね〜。どっか出かけんの？' },
   { num: 5, width: '83%', name: 'Advanced', jp: '上級', preview: '今日めちゃくちゃ天気いいな。どっか出かける気でもあんの？' },
@@ -303,6 +304,7 @@ const subtitles: Record<string, string> = {
   conversation: 'Describe the scene — Lingle Agent becomes whoever you need. A waiter, a hiring manager, a debate partner, a patient tutor. Just start talking.',
   lesson: 'Tell Lingle Agent what you want to learn. It builds a structured lesson around it — grammar, vocabulary, patterns — with practice woven in from the start.',
   immersion: 'Pick a scenario. Lingle Agent generates a native-style exchange, reads it aloud, then walks you through every choice — so you can jump straight in.',
+  reference: 'Ask about any grammar point, conjugation pattern, or cultural concept. Lingle generates a clear, textbook-style explanation with examples, tables, and context — all tailored to your level.',
 }
 
 export default function LandingPage() {
@@ -315,7 +317,60 @@ export default function LandingPage() {
   const [heroSubSwitching, setHeroSubSwitching] = useState(false)
   const [heroSub, setHeroSub] = useState(subtitles.conversation)
   const [activeLevel, setActiveLevel] = useState(2)
+  const [lvFading, setLvFading] = useState(false)
   const promptRef = useRef<HTMLTextAreaElement>(null)
+  const levelRowsRef = useRef<HTMLDivElement>(null)
+  const userPausedRef = useRef(false)
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /* ── Auto-cycle levels when in view ── */
+  useEffect(() => {
+    const container = levelRowsRef.current
+    if (!container) return
+
+    let lvIdx = 1 // start at level 2 (0-based index)
+    let intervalId: ReturnType<typeof setInterval> | null = null
+
+    function advanceLevel() {
+      if (userPausedRef.current) return
+      lvIdx = (lvIdx + 1) % levelData.length
+      setLvFading(true)
+      setTimeout(() => {
+        setActiveLevel(levelData[lvIdx].num)
+        setLvFading(false)
+      }, 300)
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            intervalId = setInterval(advanceLevel, 1800)
+            observer.disconnect()
+          }
+        })
+      },
+      { threshold: 0.4 }
+    )
+
+    observer.observe(container)
+
+    return () => {
+      observer.disconnect()
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [])
+
+  const handleLevelClick = useCallback((num: number) => {
+    userPausedRef.current = true
+    setLvFading(true)
+    setTimeout(() => {
+      setActiveLevel(num)
+      setLvFading(false)
+    }, 300)
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    resumeTimerRef.current = setTimeout(() => { userPausedRef.current = false }, 6000)
+  }, [])
 
   const handlePromptSubmit = useCallback(() => {
     const text = promptValue.trim()
@@ -357,6 +412,7 @@ export default function LandingPage() {
         <Link href="/" className={s['nav-logo']}>
           <div className={s['nav-logo-mark']}><LogoSVG /></div>
           <span className={s['nav-logo-text']}>Lingle</span>
+          <span className={s['nav-beta-badge']}>Beta</span>
         </Link>
         <div className={s['nav-right']}>
           <Link href="/sign-in" className={s['btn-ghost']}>Sign in</Link>
@@ -374,10 +430,7 @@ export default function LandingPage() {
         </div>
 
         <div className={s['hero-eyebrow']}>
-          <div className={s['eyebrow-dot']}>
-            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" fill="white"/></svg>
-          </div>
-          Now in open beta &mdash; Japanese learning sandbox
+          Open beta &mdash; free for early learners
         </div>
 
         <div className={s['hero-title-wrap']}>
@@ -464,55 +517,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── BENTO SECTION ── */}
-      <section className={s['bento-section']} id="modes">
-        <div className={s['bento-inner']}>
-          <div className={`${s['bento-header']} ${s.reveal}`}>
-            <h2 className={s['bento-heading']}>Three ways to practice</h2>
-          </div>
-
-          <div className={s['bento-grid']}>
-            {/* Card 1: Conversation — voice rings */}
-            <div className={`${s['bento-card']} ${s['bento-card-main']} ${s.reveal}`}>
-              <div className={s['voice-visual']}>
-                <div className={s['voice-rings']}>
-                  <div className={s['voice-ring']} />
-                  <div className={s['voice-ring']} />
-                  <div className={s['voice-ring']} />
-                  <div className={s['voice-ring']} />
-                  <div className={s['voice-kanji']}>話</div>
-                </div>
-              </div>
-              <div className={s['bento-text']}>
-                <span className={`${s['bento-label']} ${s['bento-label-light']}`}>Conversation</span>
-                <h3 className={`${s['bento-title']} ${s['bento-title-light']}`}>Speak to anyone.<br/>Any scene.</h3>
-                <p className={`${s['bento-sub']} ${s['bento-sub-light']}`}>Waiter. Interviewer. Debate partner. Just describe it and start talking.</p>
-              </div>
-            </div>
-
-            {/* Card 2: Lesson — kanji grid */}
-            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s.reveal}`}>
-              <KanjiGrid />
-              <div className={s['bento-text-mid']}>
-                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Lesson</span>
-                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Learn exactly<br/>what you ask for.</h3>
-                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Tell it the grammar point. It builds the full lesson around you.</p>
-              </div>
-            </div>
-
-            {/* Card 3: Immersion — wave bars */}
-            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s.reveal}`}>
-              <WaveBars />
-              <div className={s['bento-text-mid']}>
-                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Immersion</span>
-                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Hear it native.<br/>Then speak it.</h3>
-                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Native audio. Read along. Then jump into a live version.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── STEPS SECTION — How it works ── */}
       <section className={s['steps-section']}>
         <div className={s['steps-inner']}>
@@ -521,51 +525,254 @@ export default function LandingPage() {
             <h2 className={s['steps-header-title']}>Start speaking in<br/><span className={s['steps-header-title-em']}>three steps.</span></h2>
           </div>
           <div className={s['steps-grid']}>
+            {/* Step 1 */}
             <div className={`${s['step-col']} ${s.reveal}`}>
               <span className={s['step-num']}>1</span>
               <div className={s['step-icon-art']}>
-                <div className={s['art-prompt']}>
-                  <div className={s['art-prompt-dot']} />
-                  <div className={s['art-prompt-line']} />
-                  <div className={`${s['art-prompt-line']} ${s['art-prompt-line-short']}`} />
+                <div className={s['step-mockup']}>
+                  <div className={s['sm-chrome']}>
+                    <div className={s['sm-dots']}><span className={`${s['sm-dot']} ${s['sm-r']}`} /><span className={`${s['sm-dot']} ${s['sm-y']}`} /><span className={`${s['sm-dot']} ${s['sm-g']}`} /></div>
+                    <div className={s['sm-bar']} />
+                  </div>
+                  <div className={`${s['sm-body']} ${s['sm-body-pad']}`}>
+                    <div className={s['sm-input-row']}>
+                      <div className={s['sm-input-text']}>Practice ordering ramen in Japanese&hellip;<span className={s['sm-cursor-blink']}>|</span></div>
+                    </div>
+                    <div className={s['sm-chiprow']}>
+                      <span className={s['sm-chip']}>N4 level</span>
+                      <span className={s['sm-chip']}>Casual</span>
+                      <span className={s['sm-chip']}>Restaurant</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className={s['step-title']}>Describe the scene</div>
               <div className={s['step-desc']}>Type anything — a scenario, a grammar point, a situation you want to practice. Lingle builds it in seconds.</div>
             </div>
+            {/* Step 2 */}
             <div className={`${s['step-col']} ${s.reveal}`}>
               <span className={s['step-num']}>2</span>
               <div className={s['step-icon-art']}>
-                <div className={s['art-rings']}>
-                  <div className={s['art-ring']} />
-                  <div className={s['art-ring']} />
-                  <div className={s['art-ring']} />
+                <div className={s['step-mockup']}>
+                  <div className={s['sm-chrome']}>
+                    <div className={s['sm-dots']}><span className={`${s['sm-dot']} ${s['sm-r']}`} /><span className={`${s['sm-dot']} ${s['sm-y']}`} /><span className={`${s['sm-dot']} ${s['sm-g']}`} /></div>
+                    <div className={s['sm-bar']} />
+                    <div className={s['sm-status-pill']}><span className={s['sm-live-dot']} />Live</div>
+                  </div>
+                  <div className={`${s['sm-body']} ${s['sm-voice-body']}`}>
+                    <div className={s['sm-voice-top']}>
+                      <div className={s['sm-voice-orb']}>
+                        <div className={`${s['sm-orb-ring']} ${s['sm-orb-ring-1']}`} />
+                        <div className={`${s['sm-orb-ring']} ${s['sm-orb-ring-2']}`} />
+                        <div className={s['sm-orb-center']}>林</div>
+                      </div>
+                      <div className={s['sm-voice-wave-col']}>
+                        {[8,14,20,12,18,10,16].map((h, i) => (
+                          <div key={i} className={s['sm-vw-bar']} style={{ '--svh': h + 'px', animationDelay: (i * 0.1) + 's' } as React.CSSProperties} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className={s['sm-voice-transcript']} dangerouslySetInnerHTML={{ __html: 'いらっしゃいませ！ご<ruby>注文<rt>ちゅうもん</rt></ruby>は？' }} />
+                    <div className={s['sm-mic-row']}>
+                      <div className={s['sm-mic-btn']}>
+                        <svg width="9" height="12" viewBox="0 0 9 12" fill="none"><rect x="2.5" y="0" width="4" height="7" rx="2" fill="currentColor"/><path d="M1 5.5C1 7.7 2.6 9.5 4.5 9.5S8 7.7 8 5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none"/><line x1="4.5" y1="9.5" x2="4.5" y2="11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                      </div>
+                      <span className={s['sm-mic-label']}>Your turn&hellip;</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className={s['step-title']}>Have the conversation</div>
-              <div className={s['step-desc']}>Speak or type. Your AI partner adapts in real time — corrections woven in naturally, never breaking the flow.</div>
+              <div className={s['step-title']}>Just start speaking</div>
+              <div className={s['step-desc']}>Your AI partner listens and responds in real time. Corrections are woven in naturally, never breaking the flow.</div>
             </div>
+            {/* Step 3 */}
             <div className={`${s['step-col']} ${s.reveal}`}>
               <span className={s['step-num']}>3</span>
               <div className={s['step-icon-art']}>
-                <div className={s['art-insight']}>
-                  {[
-                    { label: 'Naturalness', pct: '82%', width: '82%', delay: undefined },
-                    { label: 'Grammar', pct: '74%', width: '74%', delay: '.4s' },
-                    { label: 'Vocab range', pct: '68%', width: '68%', delay: '.8s' },
-                  ].map((row) => (
-                    <div key={row.label} className={s['art-insight-row']}>
-                      <span className={s['art-insight-label']}>{row.label}</span>
-                      <div className={s['art-insight-track']}>
-                        <div className={s['art-insight-fill']} style={{ width: row.width, animationDelay: row.delay }} />
-                      </div>
-                      <span className={s['art-insight-score']}>{row.pct}</span>
+                <div className={s['step-mockup']}>
+                  <div className={s['sm-chrome']}>
+                    <div className={s['sm-dots']}><span className={`${s['sm-dot']} ${s['sm-r']}`} /><span className={`${s['sm-dot']} ${s['sm-y']}`} /><span className={`${s['sm-dot']} ${s['sm-g']}`} /></div>
+                    <div className={s['sm-bar']} />
+                  </div>
+                  <div className={`${s['sm-body']} ${s['sm-review-body']}`}>
+                    <div className={s['sm-review-top']}>
+                      <div className={s['sm-score-circle']}>84</div>
+                      <div className={s['sm-score-label']}>Session score</div>
                     </div>
-                  ))}
+                    <div className={s['sm-review-bars']}>
+                      {[
+                        { label: 'Naturalness', width: '82%', val: '82' },
+                        { label: 'Grammar', width: '74%', val: '74' },
+                        { label: 'Vocab', width: '69%', val: '69' },
+                      ].map((row) => (
+                        <div key={row.label} className={s['sm-rbar-row']}>
+                          <span className={s['sm-rbar-label']}>{row.label}</span>
+                          <div className={s['sm-rbar-track']}><div className={s['sm-rbar-fill']} style={{ width: row.width }} /></div>
+                          <span className={s['sm-rbar-val']}>{row.val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className={s['step-title']}>Review and improve</div>
               <div className={s['step-desc']}>Every session is saved with a full transcript, corrections, new vocabulary, and a score. Nothing slips past.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BENTO SECTION ── */}
+      <section className={s['bento-section']} id="modes">
+        <div className={s['bento-inner']}>
+          <div className={`${s['bento-header']} ${s.reveal}`}>
+            <h2 className={s['bento-heading']}>Four ways to practice</h2>
+          </div>
+
+          <div className={s['bento-grid']}>
+            {/* Card 1: Conversation — dark voice call UI */}
+            <div className={`${s['bento-card']} ${s['bento-card-main']} ${s['bento-card-conversation']} ${s.reveal}`}>
+              <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-dark']}`}>
+                <div className={`${s['bm-window']} ${s['bm-dark']}`}>
+                  <div className={`${s['bm-chrome']} ${s['bm-chrome-dark']}`}>
+                    <div className={s['bm-dots']}><span className={s['bm-dot']} /><span className={s['bm-dot']} /><span className={s['bm-dot']} /></div>
+                    <div className={s['bm-title-text']}>Lingle &middot; Conversation</div>
+                    <div className={s['bm-live-badge']}><span className={s['bm-live-dot-dark']} />Live</div>
+                  </div>
+                  <div className={s['bm-voice-body']}>
+                    <div className={s['bm-scene-bar']}>
+                      <span className={s['bm-scene-label']}>🍜 Ramen shop</span>
+                      <span className={s['bm-scene-sep']}>&middot;</span>
+                      <span className={s['bm-scene-level']}>N3</span>
+                    </div>
+                    <div className={s['bm-orb-area']}>
+                      <div className={`${s['bm-orb-ring']} ${s['bm-orb-r1']}`} />
+                      <div className={`${s['bm-orb-ring']} ${s['bm-orb-r2']}`} />
+                      <div className={`${s['bm-orb-ring']} ${s['bm-orb-r3']}`} />
+                      <div className={s['bm-orb']}>林</div>
+                    </div>
+                    <div className={s['bm-speaking-label']}>Hayashi-san <span className={s['bm-speaking-dot-wrap']}><span className={s['bm-sdot']} /><span className={s['bm-sdot']} style={{ animationDelay: '.2s' }} /><span className={s['bm-sdot']} style={{ animationDelay: '.4s' }} /></span></div>
+                    <div className={s['bm-center-wave']}>
+                      {[8,18,28,38,22,34,44,30,40,24,16,32,20].map((h, i) => (
+                        <div key={i} className={s['bm-cwbar']} style={{ '--cwh': h + 'px', animationDelay: (i * 0.06).toFixed(2) + 's' } as React.CSSProperties} />
+                      ))}
+                    </div>
+                    <div className={s['bm-live-line']} dangerouslySetInnerHTML={{ __html: 'いらっしゃいませ！<ruby>何名様<rt>なんめいさま</rt></ruby>ですか？' }} />
+                    <div className={s['bm-user-row']}>
+                      <div className={s['bm-user-mic']}>
+                        <svg width="11" height="14" viewBox="0 0 11 14" fill="none"><rect x="3" y="0" width="5" height="8.5" rx="2.5" fill="currentColor"/><path d="M1 7C1 9.8 3 12 5.5 12S10 9.8 10 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none"/><line x1="5.5" y1="12" x2="5.5" y2="13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                      </div>
+                      <span className={s['bm-user-label']}>Your turn — speak now</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={s['bento-text']}>
+                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Conversation</span>
+                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Speak to anyone.<br/>Any scene.</h3>
+                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Waiter. Interviewer. Debate partner. Just describe it and start talking.</p>
+              </div>
+            </div>
+
+            {/* Card 2: Lesson — grammar lesson mockup */}
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-lesson']} ${s.reveal}`}>
+              <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
+                <div className={`${s['bm-window']} ${s['bm-light']}`}>
+                  <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
+                    <div className={`${s['bm-dots']} ${s['bm-dots-light']}`}><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /></div>
+                    <div className={`${s['bm-title-text']} ${s['bm-title-dark']}`}>Lingle &middot; Lesson</div>
+                  </div>
+                  <div className={s['bm-lesson-body']}>
+                    <div className={s['bm-lesson-tag']}>て-form</div>
+                    <div className={s['bm-lesson-jp']} dangerouslySetInnerHTML={{ __html: '<ruby>食べ<rt>たべ</rt></ruby>て、<ruby>飲ん<rt>のん</rt></ruby>で、<ruby>話<rt>はな</rt></ruby>して' }} />
+                    <div className={s['bm-lesson-rule']}>Connect two actions: eat, drink, and talk</div>
+                    <div className={s['bm-lesson-divider']} />
+                    <div className={s['bm-lesson-practice-label']}>Try it</div>
+                    <div className={s['bm-lesson-blank']}><span className={s['bm-blank-text']}>食べ___</span><span className={s['bm-cursor-dark']}>|</span></div>
+                  </div>
+                </div>
+              </div>
+              <div className={s['bento-text-mid']}>
+                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Lesson</span>
+                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Learn exactly<br/>what you ask for.</h3>
+                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Tell it the grammar point. It builds the full lesson around you.</p>
+              </div>
+            </div>
+
+            {/* Card 3: Immersion — audio player mockup */}
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-immersion']} ${s.reveal}`}>
+              <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
+                <div className={`${s['bm-window']} ${s['bm-light']}`}>
+                  <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
+                    <div className={`${s['bm-dots']} ${s['bm-dots-light']}`}><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /></div>
+                    <div className={`${s['bm-title-text']} ${s['bm-title-dark']}`}>Lingle &middot; Immersion</div>
+                  </div>
+                  <div className={s['bm-imm-body']}>
+                    <div className={s['bm-imm-player']}>
+                      <div className={s['bm-play-btn']}>&#9654;</div>
+                      <div className={s['bm-imm-wave']}>
+                        {[10,16,8,20,12,18,14,22].map((h, i) => (
+                          <div key={i} className={`${s['bm-ibar']} ${i < 3 ? s['bm-ibar-played'] : ''}`} style={{ '--ih': h + 'px' } as React.CSSProperties} />
+                        ))}
+                      </div>
+                      <div className={s['bm-imm-time']}>0:14</div>
+                    </div>
+                    <div className={s['bm-transcript']}>
+                      <div className={`${s['bm-tline']} ${s['bm-tline-active']}`}>
+                        <span className={s['bm-tspeaker']}>A</span>
+                        <span className={s['bm-ttext']} dangerouslySetInnerHTML={{ __html: '<ruby>今日<rt>きょう</rt></ruby>は<ruby>天気<rt>てんき</rt></ruby>がいいね。' }} />
+                      </div>
+                      <div className={s['bm-tline']}>
+                        <span className={s['bm-tspeaker']}>B</span>
+                        <span className={s['bm-ttext']}>そうだね、どこか行く？</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={s['bento-text-mid']}>
+                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Immersion</span>
+                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Hear it native.<br/>Then speak it.</h3>
+                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Native audio. Read along. Then jump into a live version.</p>
+              </div>
+            </div>
+
+            {/* Card 4: Reference — resource grid mockup */}
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-reference']} ${s.reveal}`}>
+              <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
+                <div className={`${s['bm-window']} ${s['bm-light']}`}>
+                  <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
+                    <div className={`${s['bm-dots']} ${s['bm-dots-light']}`}><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /><span className={s['bm-dot-l']} /></div>
+                    <div className={`${s['bm-title-text']} ${s['bm-title-dark']}`}>Lingle &middot; Reference</div>
+                  </div>
+                  <div className={s['bm-ref-body']}>
+                    <div className={s['bm-ref-header']}>
+                      <span className={s['bm-ref-label']}>Reference</span>
+                      <div className={s['bm-ref-collapse']}>&or;</div>
+                    </div>
+                    <div className={s['bm-ref-grid']}>
+                      {[
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2h3.5v8H2z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/><path d="M6.5 2H10v8H6.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>, text: 'JLPT N3 vocab deck' },
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="7" width="9" height="3" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="1.5" y="2" width="6" height="3" rx="1" stroke="currentColor" strokeWidth="1.2"/></svg>, text: 'Particle cheat sheet' },
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 10V3l4-1.5L10 3v7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/><path d="M4.5 10V7h3v3" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>, text: 'Verb conjugations' },
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2"/><path d="M4 5.5h4M4 7.5h2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>, text: 'Common set phrases' },
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M2 6h6M2 9h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>, text: 'Kanji by radicals' },
+                        { icon: <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 4v2.5l1.5 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>, text: 'Cultural etiquette' },
+                      ].map((item) => (
+                        <div key={item.text} className={s['bm-ref-item']}>
+                          <div className={s['bm-ref-item-icon']}>{item.icon}</div>
+                          <span className={s['bm-ref-item-text']}>{item.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={s['bento-text-mid']}>
+                <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Reference</span>
+                <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Textbook depth,<br/>on demand.</h3>
+                <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Ask about any concept. Get a structured explanation — grammar rules, example sets, conjugation tables, cultural context.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -579,12 +786,12 @@ export default function LandingPage() {
             <h2 className={s['adapt-title']}>Set it once.<br/>Everything <span className={s['adapt-title-em']}>adapts.</span></h2>
             <p className={s['adapt-body']}>Vocabulary, grammar complexity, kanji density, furigana, register — all controlled by a single level setting. You never have to think about it again.</p>
           </div>
-          <div className={`${s['adapt-visual']} ${s.reveal}`}>
+          <div className={`${s['adapt-visual']} ${s.reveal}`} ref={levelRowsRef}>
             {levelData.map((lv) => (
               <div key={lv.num}>
                 <div
                   className={`${s['level-row']} ${activeLevel === lv.num ? s['level-row-active'] : ''}`}
-                  onClick={() => setActiveLevel(lv.num)}
+                  onClick={() => handleLevelClick(lv.num)}
                 >
                   <span className={s['lv-num']}>{lv.num}</span>
                   <div className={s['lv-track']}><div className={s['lv-fill']} style={{ width: lv.width }} /></div>
@@ -592,7 +799,9 @@ export default function LandingPage() {
                   <span className={s['lv-jp']}>{lv.jp}</span>
                 </div>
                 {activeLevel === lv.num && (
-                  <div className={s['lv-preview-jp']}>{lv.preview}</div>
+                  lv.html
+                    ? <div className={`${s['lv-preview-jp']} ${lvFading ? s['lv-preview-fading'] : ''}`} dangerouslySetInnerHTML={{ __html: lv.html }} />
+                    : <div className={`${s['lv-preview-jp']} ${lvFading ? s['lv-preview-fading'] : ''}`}>{lv.preview}</div>
                 )}
               </div>
             ))}
@@ -695,10 +904,10 @@ export default function LandingPage() {
         <div className={s['final-cta-inner']}>
           <div className={s.reveal}>
             <h2 className={s['fctl-big']}>Stop studying.<br/>Start <span className={s['fctl-big-em']}>speaking.</span></h2>
-            <p className={s['fctl-sub']}>Free during beta. No credit card. Start a conversation in under a minute.</p>
+            <p className={s['fctl-sub']}>Free during beta. No credit card. Have your first voice conversation in under a minute.</p>
           </div>
           <div className={`${s['final-cta-right']} ${s.reveal}`}>
-            <Link href="/sign-in" className={s['btn-cta-primary']}>Start practicing free →</Link>
+            <Link href="/sign-in" className={s['btn-cta-primary']}>Start speaking free →</Link>
             <span className={s['cta-footnote']}>No account needed to try</span>
           </div>
         </div>
@@ -710,6 +919,7 @@ export default function LandingPage() {
           <Link href="/" className={s['footer-logo']}>
             <div className={s['footer-logo-mark']}><LogoSVG size={13} /></div>
             <span className={s['footer-logo-name']}>Lingle</span>
+            <span className={s['footer-beta-badge']}>Beta</span>
           </Link>
           <span className={s['footer-copy']}>© 2026 Lingle. All rights reserved.</span>
         </div>
