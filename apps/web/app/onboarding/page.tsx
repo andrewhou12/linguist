@@ -268,6 +268,17 @@ export default function OnboardingPage() {
   const [level, setLevel] = useState('')
   const [transitioning, setTransitioning] = useState(false)
 
+  // Redirect users who already completed onboarding
+  useEffect(() => {
+    fetch('/api/user/me').then(r => {
+      if (!r.ok) return null
+      return r.json()
+    }).then(user => {
+      if (user?.onboardingCompleted) router.replace('/conversation')
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const totalSteps = 4
 
   const canAdvance = step === 0 ? !!language : step === 1 ? goals.length > 0 : step === 2 ? !!level : true

@@ -37,16 +37,22 @@ export const POST = withAuth(async (request, { userId }) => {
     return NextResponse.json(serialize(existing))
   }
 
-  const profile = await prisma.learnerProfile.create({
-    data: {
-      userId,
-      targetLanguage: body.targetLanguage || 'Japanese',
-      nativeLanguage: body.nativeLanguage || 'English',
-      selfReportedLevel: body.selfReportedLevel || 'beginner',
-      difficultyLevel: body.difficultyLevel || 2,
-      learningGoals: Array.isArray(body.goals) ? body.goals : [],
-    },
-  })
+  const [profile] = await prisma.$transaction([
+    prisma.learnerProfile.create({
+      data: {
+        userId,
+        targetLanguage: body.targetLanguage || 'Japanese',
+        nativeLanguage: body.nativeLanguage || 'English',
+        selfReportedLevel: body.selfReportedLevel || 'beginner',
+        difficultyLevel: body.difficultyLevel || 2,
+        learningGoals: Array.isArray(body.goals) ? body.goals : [],
+      },
+    }),
+    prisma.user.update({
+      where: { id: userId },
+      data: { onboardingCompleted: true },
+    }),
+  ])
   return NextResponse.json(serialize(profile))
 })
 
