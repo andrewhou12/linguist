@@ -22,7 +22,8 @@ const LEVELS = [
   { id: 'elementary', label: 'Elementary', desc: 'I can handle simple daily conversations', cefr: 'A2', tag: 'N4' },
   { id: 'intermediate', label: 'Intermediate', desc: 'I can express opinions on familiar topics', cefr: 'B1', tag: 'N3' },
   { id: 'upper_intermediate', label: 'Upper Intermediate', desc: 'I understand most native content with effort', cefr: 'B2', tag: 'N2' },
-  { id: 'advanced', label: 'Advanced', desc: 'I\'m near-fluent and want to refine nuance', cefr: 'C1', tag: 'N1' },
+  { id: 'advanced', label: 'Advanced', desc: 'I can follow complex arguments and express nuance', cefr: 'C1', tag: 'N1' },
+  { id: 'near_native', label: 'Near-Native', desc: 'I\'m fluent and want to master subtlety and register', cefr: 'C2', tag: 'C2' },
 ]
 
 const LEVEL_TO_DIFFICULTY: Record<string, number> = {
@@ -32,6 +33,7 @@ const LEVEL_TO_DIFFICULTY: Record<string, number> = {
   intermediate: 3,
   upper_intermediate: 4,
   advanced: 5,
+  near_native: 6,
 }
 
 /* ── Step components ── */
@@ -266,12 +268,16 @@ export default function OnboardingPage() {
   const [level, setLevel] = useState('')
   const [transitioning, setTransitioning] = useState(false)
 
-  // Redirect if user already has a profile
+  // Redirect users who already completed onboarding
   useEffect(() => {
-    fetch('/api/profile').then(r => r.json()).then(profile => {
-      if (profile) router.replace('/conversation')
+    fetch('/api/user/me').then(r => {
+      if (!r.ok) return null
+      return r.json()
+    }).then(user => {
+      if (user?.onboardingCompleted) router.replace('/conversation')
     }).catch(() => {})
-  }, [router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const totalSteps = 4
 
@@ -339,6 +345,7 @@ export default function OnboardingPage() {
           <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-[-0.03em]">
             Lingle
           </span>
+          <span className="text-[9px] font-semibold tracking-wide uppercase bg-bg-hover text-text-secondary border border-border-strong rounded-sm px-1.5 py-0.5 leading-none">Beta</span>
         </div>
         <ProgressDots current={step} total={totalSteps} />
         <div className="w-20" /> {/* Spacer for centering */}

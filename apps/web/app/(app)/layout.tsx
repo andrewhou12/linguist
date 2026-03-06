@@ -8,7 +8,14 @@ import {
   MoreHorizontal,
   LogOut,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react'
+import {
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/outline'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
@@ -23,13 +30,16 @@ import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { SUPPORTED_LANGUAGES } from '@/lib/languages'
 import { LanguageProvider, useLanguage } from '@/hooks/use-language'
+import { getDifficultyLevel } from '@/lib/difficulty-levels'
 
 /* ── Nav Sections ── */
+
+const IC = 'w-[18px] h-[18px]'
 
 interface NavSectionItem {
   id: string
   href: string
-  emoji: string
+  icon: ReactNode
   label: string
   badge?: number
 }
@@ -43,23 +53,14 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Practice',
     items: [
-      { id: 'practice', href: '/conversation', emoji: '\uD83D\uDCAC', label: 'Practice' },
-      { id: 'review', href: '/conversation?tab=review', emoji: '\uD83D\uDD01', label: 'Review', badge: 12 },
-    ],
-  },
-  {
-    label: 'Learn',
-    items: [
-      { id: 'lessons', href: '/conversation?tab=lessons', emoji: '\uD83D\uDCDA', label: 'Lessons' },
-      { id: 'vocabulary', href: '/conversation?tab=vocabulary', emoji: '\uD83D\uDDC3\uFE0F', label: 'Vocabulary' },
-      { id: 'kanji', href: '/conversation?tab=kanji', emoji: '\uD83C\uDE33', label: 'Kanji' },
+      { id: 'practice', href: '/conversation', icon: <ChatBubbleLeftRightIcon className={IC} />, label: 'Practice' },
     ],
   },
   {
     label: 'Track',
     items: [
-      { id: 'progress', href: '/conversation?tab=progress', emoji: '\uD83D\uDCC8', label: 'Progress' },
-      { id: 'settings', href: '/settings', emoji: '\u2699\uFE0F', label: 'Settings' },
+      { id: 'progress', href: '/progress', icon: <ClockIcon className={IC} />, label: 'History' },
+      { id: 'settings', href: '/settings', icon: <Cog6ToothIcon className={IC} />, label: 'Settings' },
     ],
   },
 ]
@@ -68,6 +69,7 @@ const NAV_SECTIONS: NavSection[] = [
 
 const BREADCRUMB_MAP: Record<string, string> = {
   '/conversation': 'Practice',
+  '/progress': 'History',
   '/settings': 'Settings',
   '/upgrade': 'Upgrade',
 }
@@ -109,10 +111,34 @@ function UsageBanner() {
   const percentage = limitMinutes ? Math.min(100, (usage.usedSeconds / usage.limitSeconds) * 100) : 0
   const isNearLimit = percentage >= 80
   const isAtLimit = usage.isLimitReached
+function DailyGoalWidget() {
+  const { targetLanguage } = useLanguage()
+  const [level, setLevel] = useState<string | null>(null)
+  const [streak, setStreak] = useState<number | null>(null)
+  const [minutesToday, setMinutesToday] = useState<number | null>(null)
+  const [goalMinutes, setGoalMinutes] = useState(30)
+
+  useEffect(() => {
+    api.profileGet().then((p) => {
+      if (p) {
+        const dl = getDifficultyLevel(p.difficultyLevel)
+        setLevel(dl.label.match(/\(([^)]+)\)/)?.[1] ?? dl.label)
+        setStreak(p.currentStreak)
+        setGoalMinutes(p.dailyGoalMinutes ?? 30)
+      }
+    }).catch(() => {})
+
+    api.statsToday().then((s) => {
+      setMinutesToday(s.minutesToday)
+    }).catch(() => {})
+  }, [targetLanguage])
+
+  const mins = minutesToday ?? 0
+  const pct = Math.min(100, Math.round((mins / goalMinutes) * 100))
 
   return (
-    <div className="mx-2.5 mt-2.5 mb-1">
-      <div className="p-3.5 bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+    <Link href="/progress" className="block mx-2.5 mt-2.5 mb-1 no-underline">
+      <div className="p-3.5 bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] transition-colors duration-100 hover:bg-bg-hover cursor-pointer">
         <div className="flex justify-between items-center mb-2">
           <span className="text-[13px] font-medium text-text-primary">
             {isPro ? 'Pro plan' : 'Free plan'}
@@ -122,6 +148,21 @@ function UsageBanner() {
               ? `${usedMinutes} min today`
               : `${usedMinutes} / ${limitMinutes} min`}
           </span>
+          <span className="text-[13px] font-medium text-text-primary">Daily goal</span>
+          <span className="text-[12px] text-text-muted">{mins} / {goalMinutes} min</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-bg-active overflow-hidden">
+          <div className="h-full rounded-full bg-accent-brand transition-[width] duration-300" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="flex justify-between mt-2.5">
+          <div>
+            <div className="text-[13px] font-semibold text-text-primary">{streak ?? 0}</div>
+            <div className="text-[12px] text-text-muted">day streak</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[13px] font-semibold text-text-primary">{level ?? '--'}</div>
+            <div className="text-[12px] text-text-muted">current level</div>
+          </div>
         </div>
         {!isPro && (
           <>
@@ -147,11 +188,11 @@ function UsageBanner() {
           </>
         )}
       </div>
-    </div>
+    </Link>
   )
 }
 
-function UserFooter() {
+function UserFooter({ collapsed }: { collapsed: boolean }) {
   const router = useRouter()
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null)
 
@@ -167,22 +208,32 @@ function UserFooter() {
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/sign-in')
+    router.push('/')
   }
 
   return (
-    <div className="px-3.5 py-3 border-t border-border">
+    <div className={cn('py-3 border-t border-border', collapsed ? 'px-0 flex justify-center' : 'px-3.5')}>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-3 w-full px-0 py-0 bg-transparent border-none cursor-pointer transition-colors duration-100 hover:opacity-80">
+          <button
+            className={cn(
+              'flex items-center w-full bg-transparent border-none cursor-pointer transition-colors duration-100 hover:opacity-80',
+              collapsed ? 'justify-center px-0 py-0' : 'gap-3 px-0 py-0'
+            )}
+            title={collapsed ? displayName : undefined}
+          >
             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-bg-active border border-border">
               <span className="text-[14px] font-semibold text-text-primary leading-none">{initials}</span>
             </div>
-            <div className="flex flex-col min-w-0 flex-1 text-left">
-              <span className="text-[14px] font-medium text-text-primary truncate leading-tight">{displayName}</span>
-              <span className="text-[12px] text-text-muted">Intermediate</span>
-            </div>
-            <MoreHorizontal size={14} className="text-text-muted shrink-0" />
+            {!collapsed && (
+              <>
+                <div className="flex flex-col min-w-0 flex-1 text-left">
+                  <span className="text-[14px] font-medium text-text-primary truncate leading-tight">{displayName}</span>
+                  <span className="text-[12px] text-text-muted">Intermediate</span>
+                </div>
+                <MoreHorizontal size={14} className="text-text-muted shrink-0" />
+              </>
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-[200px] p-1.5">
@@ -195,6 +246,28 @@ function UserFooter() {
           </button>
         </PopoverContent>
       </Popover>
+    </div>
+  )
+}
+
+function OnlineIndicator() {
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+
+  useEffect(() => {
+    const on = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => {
+      window.removeEventListener('online', on)
+      window.removeEventListener('offline', off)
+    }
+  }, [])
+
+  return (
+    <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
+      <div className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-green' : 'bg-text-muted'}`} />
+      {online ? 'Online' : 'Offline'}
     </div>
   )
 }
@@ -213,6 +286,19 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const { targetLanguage, setTargetLanguage } = useLanguage()
 
+  // Sidebar collapse state with localStorage persistence
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    const stored = localStorage.getItem('lingle_sidebar_collapsed')
+    if (stored === 'true') setCollapsed(true)
+  }, [])
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      localStorage.setItem('lingle_sidebar_collapsed', String(!prev))
+      return !prev
+    })
+  }
+
   // Prefetch common data on first mount
   useEffect(() => { api.prefetch() }, [])
 
@@ -221,7 +307,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
     return pathname === basePath || pathname.startsWith(basePath + '/')
   }
 
-  const breadcrumb = BREADCRUMB_MAP[pathname] ?? ''
+  const breadcrumb = BREADCRUMB_MAP[pathname] ?? (pathname.startsWith('/progress/') ? 'Session Details' : '')
   const isVoiceRoute = pathname.startsWith('/conversation/voice')
 
   // Voice mode is full-screen — render children with no shell
@@ -232,29 +318,67 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen bg-bg overflow-hidden" style={{ fontFamily: "'Geist Sans', var(--font-sans)" }}>
       {/* Sidebar */}
-      <nav className="w-[240px] border-r border-border bg-bg-secondary shrink-0 flex flex-col overflow-hidden">
+      <nav className={cn(
+        'border-r border-border bg-bg-secondary shrink-0 flex flex-col overflow-hidden transition-[width] duration-200',
+        collapsed ? 'w-[60px]' : 'w-[240px]'
+      )}>
         {/* Logo header */}
-        <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border">
-          <LogoIcon />
-          <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-tight">
-            Lingle
-          </span>
-          <span className="text-[9px] font-semibold tracking-wide uppercase bg-bg-hover text-text-secondary border border-border-strong rounded-sm px-1.5 py-0.5 leading-none">Beta</span>
+        <div className={cn(
+          'flex items-center border-b border-border',
+          collapsed ? 'px-0 py-3 justify-center' : 'gap-2.5 px-3.5 py-3'
+        )}>
+          {collapsed ? (
+            <button
+              onClick={toggleCollapsed}
+              className="group bg-transparent border-none cursor-pointer p-0 flex items-center justify-center relative w-8 h-8"
+              title="Expand sidebar"
+            >
+              <span className="transition-opacity duration-150 group-hover:opacity-0">
+                <LogoIcon />
+              </span>
+              <span className="absolute inset-0 flex items-center justify-center text-text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                <PanelLeft size={18} />
+              </span>
+            </button>
+          ) : (
+            <>
+              <LogoIcon />
+              <span className="font-serif text-[18px] font-normal italic text-text-primary tracking-tight whitespace-nowrap overflow-hidden">
+                Lingle
+              </span>
+              <span className="text-[9px] font-semibold tracking-wide uppercase bg-bg-hover text-text-secondary border border-border-strong rounded-sm px-1.5 py-0.5 leading-none whitespace-nowrap">Beta</span>
+              <button
+                onClick={toggleCollapsed}
+                className="ml-auto bg-transparent border-none cursor-pointer p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors duration-100 shrink-0 flex items-center justify-center"
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Usage banner */}
         <UsageBanner />
+        {/* Daily goal widget — hidden when collapsed */}
+        {!collapsed && <DailyGoalWidget />}
 
         {/* Nav sections */}
-        <nav className="flex-1 overflow-y-auto px-2.5 pb-2.5">
-          {NAV_SECTIONS.map((section) => (
+        <nav className={cn('flex-1 overflow-y-auto pb-2.5', collapsed ? 'px-1' : 'px-2.5')}>
+          {NAV_SECTIONS.map((section, i) => (
             <div key={section.label}>
-              <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted px-3 pt-5 pb-1.5">
-                {section.label}
-              </div>
+              {!collapsed && (
+                <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted px-3 pt-5 pb-1.5">
+                  {section.label}
+                </div>
+              )}
+              {collapsed && i > 0 && <div className="mx-2 my-2 border-t border-border" />}
+              {collapsed && i === 0 && <div className="pt-3" />}
               {section.items.map((item) => {
                 const active = item.id === 'practice'
                   ? pathname === '/conversation'
+                  : item.id === 'progress'
+                  ? pathname === '/progress' || pathname.startsWith('/progress/')
                   : item.id === 'settings'
                   ? pathname === '/settings'
                   : false
@@ -263,19 +387,24 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
                   <Link
                     key={item.id}
                     href={item.href}
+                    title={collapsed ? item.label : undefined}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-1.5 rounded-md text-[14px] font-medium no-underline transition-[background,color] duration-100 w-full',
+                      'flex items-center rounded-md text-[14px] font-medium no-underline transition-[background,color] duration-100 w-full',
+                      collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-1.5',
                       active
                         ? 'text-text-primary bg-bg-active'
                         : 'text-text-secondary bg-transparent hover:bg-bg-hover hover:text-text-primary'
                     )}
                   >
-                    <span className="w-5 text-[15px] flex items-center justify-center">{item.emoji}</span>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge !== undefined && (
+                    <span className="w-5 flex items-center justify-center shrink-0">{item.icon}</span>
+                    {!collapsed && <span className="flex-1 whitespace-nowrap overflow-hidden">{item.label}</span>}
+                    {!collapsed && item.badge !== undefined && (
                       <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-accent-warm text-white text-[10.5px] font-bold leading-none">
                         {item.badge}
                       </span>
+                    )}
+                    {collapsed && item.badge !== undefined && (
+                      <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-accent-warm" />
                     )}
                   </Link>
                 )
@@ -285,7 +414,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         </nav>
 
         {/* User footer */}
-        <UserFooter />
+        <UserFooter collapsed={collapsed} />
       </nav>
 
       {/* Main content */}
@@ -298,10 +427,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
             <span className="text-text-primary font-medium">{breadcrumb || 'Home'}</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
-              <div className="w-1.5 h-1.5 rounded-full bg-green" />
-              AI ready
-            </div>
+            <OnlineIndicator />
             <Select value={targetLanguage} onValueChange={setTargetLanguage}>
               <SelectTrigger className="h-auto px-2.5 py-1 rounded-md border border-border bg-bg-pure text-[13px] font-medium text-text-secondary shadow-[0_1px_2px_rgba(0,0,0,.04)] hover:bg-bg-hover transition-colors gap-1.5 w-auto">
                 <SelectValue>

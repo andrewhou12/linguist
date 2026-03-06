@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Square, PanelRight, Volume2, VolumeX, Mic, MessageSquare, ChevronRight, ArrowUp } from 'lucide-react'
+import { Square, PanelRight, Volume2, VolumeX, Mic, MessageSquare, ChevronRight, ArrowUp, ArrowRight } from 'lucide-react'
+import {
+  MapPinIcon, BuildingStorefrontIcon, FireIcon, HomeIcon, TruckIcon,
+  PencilIcon, HashtagIcon, FlagIcon, SpeakerWaveIcon,
+  BookOpenIcon, ChatBubbleLeftIcon, ClockIcon, TrophyIcon,
+  NewspaperIcon, FilmIcon, BookmarkIcon, MusicalNoteIcon,
+  TvIcon, DocumentTextIcon, MicrophoneIcon,
+  FolderOpenIcon, MagnifyingGlassIcon, GlobeAltIcon, LanguageIcon,
+  ChartBarIcon, ClipboardDocumentListIcon, ShoppingCartIcon,
+} from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
@@ -55,138 +64,154 @@ function getModeDefaultPrompts(language: string): Record<string, string> {
   }
 }
 
+/* ── Icon shorthand ── */
+const IC = 'w-[18px] h-[18px]'
+const hi = {
+  fire: <FireIcon className={IC} />, pin: <MapPinIcon className={IC} />, store: <BuildingStorefrontIcon className={IC} />,
+  home: <HomeIcon className={IC} />, truck: <TruckIcon className={IC} />, trophy: <TrophyIcon className={IC} />,
+  pencil: <PencilIcon className={IC} />, hash: <HashtagIcon className={IC} />, flag: <FlagIcon className={IC} />,
+  speaker: <SpeakerWaveIcon className={IC} />, book: <BookOpenIcon className={IC} />, chat: <ChatBubbleLeftIcon className={IC} />,
+  clock: <ClockIcon className={IC} />, news: <NewspaperIcon className={IC} />, film: <FilmIcon className={IC} />,
+  bookmark: <BookmarkIcon className={IC} />, music: <MusicalNoteIcon className={IC} />, tv: <TvIcon className={IC} />,
+  doc: <DocumentTextIcon className={IC} />, mic: <MicrophoneIcon className={IC} />, folder: <FolderOpenIcon className={IC} />,
+  search: <MagnifyingGlassIcon className={IC} />, globe: <GlobeAltIcon className={IC} />, lang: <LanguageIcon className={IC} />,
+  chart: <ChartBarIcon className={IC} />, clipboard: <ClipboardDocumentListIcon className={IC} />,
+  cart: <ShoppingCartIcon className={IC} />,
+}
+
 /* ── Suggestions per mode per language ── */
-const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, { icon: string; label: string }[]>> = {
+type Suggestion = { icon: React.ReactNode; label: string }
+const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> = {
   Japanese: {
     conversation: [
-      { icon: '\uD83C\uDF5C', label: 'Order ramen at a busy Tokyo shop' },
-      { icon: '\uD83D\uDE86', label: 'Ask for directions at Shinjuku station' },
-      { icon: '\uD83C\uDFEE', label: 'Haggle at an Osaka flea market' },
-      { icon: '\uD83C\uDF38', label: 'Small talk during hanami season' },
-      { icon: '\u2615', label: 'Chat with a barista in Kyoto' },
-      { icon: '\uD83C\uDFE8', label: 'Check into a ryokan in Hakone' },
-      { icon: '\uD83D\uDE95', label: 'Give directions to a taxi driver' },
-      { icon: '\uD83C\uDF89', label: 'Make plans for a weekend trip' },
+      { icon: hi.fire, label: 'Order ramen at a busy Tokyo shop' },
+      { icon: hi.pin, label: 'Ask for directions at Shinjuku station' },
+      { icon: hi.store, label: 'Haggle at an Osaka flea market' },
+      { icon: hi.globe, label: 'Small talk during hanami season' },
+      { icon: hi.fire, label: 'Chat with a barista in Kyoto' },
+      { icon: hi.home, label: 'Check into a ryokan in Hakone' },
+      { icon: hi.truck, label: 'Give directions to a taxi driver' },
+      { icon: hi.trophy, label: 'Make plans for a weekend trip' },
     ],
     tutor: [
-      { icon: '\u270D\uFE0F', label: 'Master the \u3066-form conjugation' },
-      { icon: '\uD83D\uDD24', label: 'Learn 20 essential counters' },
-      { icon: '\uD83C\uDF8C', label: 'Keigo \u2014 polite speech patterns' },
-      { icon: '\uD83D\uDD0A', label: 'Pitch accent fundamentals' },
-      { icon: '\uD83D\uDCD6', label: 'Difference between \u306F and \u304C' },
-      { icon: '\uD83D\uDCAC', label: 'Casual vs. polite form practice' },
-      { icon: '\uD83D\uDD22', label: 'Japanese time expressions' },
-      { icon: '\uD83C\uDFAF', label: 'Common particle mistakes' },
+      { icon: hi.pencil, label: 'Master the \u3066-form conjugation' },
+      { icon: hi.hash, label: 'Learn 20 essential counters' },
+      { icon: hi.flag, label: 'Keigo \u2014 polite speech patterns' },
+      { icon: hi.speaker, label: 'Pitch accent fundamentals' },
+      { icon: hi.book, label: 'Difference between \u306F and \u304C' },
+      { icon: hi.chat, label: 'Casual vs. polite form practice' },
+      { icon: hi.clock, label: 'Japanese time expressions' },
+      { icon: hi.trophy, label: 'Common particle mistakes' },
     ],
     immersion: [
-      { icon: '\uD83D\uDCF0', label: 'Read today\u2019s NHK Easy News' },
-      { icon: '\uD83C\uDFAC', label: 'Analyze a scene from Your Name' },
-      { icon: '\uD83D\uDCD6', label: 'Manga panel \u2014 decode slang' },
-      { icon: '\uD83C\uDFB5', label: 'Break down Yoasobi lyrics' },
-      { icon: '\uD83C\uDFAE', label: 'Translate a game dialogue' },
-      { icon: '\uD83D\uDCFA', label: 'News clip listening practice' },
-      { icon: '\uD83D\uDCDD', label: 'Read a short story excerpt' },
-      { icon: '\uD83C\uDF99\uFE0F', label: 'Podcast transcript breakdown' },
+      { icon: hi.news, label: 'Read today\u2019s NHK Easy News' },
+      { icon: hi.film, label: 'Analyze a scene from Your Name' },
+      { icon: hi.bookmark, label: 'Manga panel \u2014 decode slang' },
+      { icon: hi.music, label: 'Break down Yoasobi lyrics' },
+      { icon: hi.trophy, label: 'Translate a game dialogue' },
+      { icon: hi.tv, label: 'News clip listening practice' },
+      { icon: hi.doc, label: 'Read a short story excerpt' },
+      { icon: hi.mic, label: 'Podcast transcript breakdown' },
     ],
     reference: [
-      { icon: '\uD83D\uDDC2\uFE0F', label: 'JLPT N3 vocabulary deck' },
-      { icon: '\uD83D\uDCD0', label: 'Particle cheat sheet' },
-      { icon: '\uD83C\uDE33', label: 'Kanji by radicals \u2014 RTK method' },
-      { icon: '\uD83D\uDCCB', label: 'Common set phrases \u2014 \u6163\u7528\u53E5' },
-      { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
-      { icon: '\uD83D\uDCDA', label: 'Onomatopoeia dictionary' },
-      { icon: '\uD83C\uDDEF\uD83C\uDDF5', label: 'Cultural etiquette notes' },
-      { icon: '\uD83D\uDCC8', label: 'JLPT grammar comparison chart' },
+      { icon: hi.folder, label: 'JLPT N3 vocabulary deck' },
+      { icon: hi.chart, label: 'Particle cheat sheet' },
+      { icon: hi.lang, label: 'Kanji by radicals \u2014 RTK method' },
+      { icon: hi.clipboard, label: 'Common set phrases \u2014 \u6163\u7528\u53E5' },
+      { icon: hi.search, label: 'Verb conjugation table' },
+      { icon: hi.book, label: 'Onomatopoeia dictionary' },
+      { icon: hi.globe, label: 'Cultural etiquette notes' },
+      { icon: hi.chart, label: 'JLPT grammar comparison chart' },
     ],
   },
   Korean: {
     conversation: [
-      { icon: '\uD83C\uDF5C', label: 'Order bibimbap at a Seoul restaurant' },
-      { icon: '\uD83D\uDE87', label: 'Navigate the subway in Busan' },
-      { icon: '\uD83D\uDED2', label: 'Shop at Myeongdong market' },
-      { icon: '\uD83C\uDFB6', label: 'Chat about your favorite K-pop group' },
-      { icon: '\u2615', label: 'Order drinks at a Korean caf\u00E9' },
-      { icon: '\uD83C\uDFE8', label: 'Book a hanok guesthouse in Jeonju' },
-      { icon: '\uD83D\uDE95', label: 'Hail a taxi in Gangnam' },
-      { icon: '\uD83C\uDF89', label: 'Plan a trip to Jeju Island' },
+      { icon: hi.fire, label: 'Order bibimbap at a Seoul restaurant' },
+      { icon: hi.pin, label: 'Navigate the subway in Busan' },
+      { icon: hi.cart, label: 'Shop at Myeongdong market' },
+      { icon: hi.music, label: 'Chat about your favorite K-pop group' },
+      { icon: hi.fire, label: 'Order drinks at a Korean caf\u00E9' },
+      { icon: hi.home, label: 'Book a hanok guesthouse in Jeonju' },
+      { icon: hi.truck, label: 'Hail a taxi in Gangnam' },
+      { icon: hi.trophy, label: 'Plan a trip to Jeju Island' },
     ],
     tutor: [
-      { icon: '\u270D\uFE0F', label: 'Korean honorific speech levels' },
-      { icon: '\uD83D\uDD24', label: 'Essential Korean counters (\uAC1C, \uBA85, \uBC88)' },
-      { icon: '\uD83D\uDCD6', label: 'Difference between \uC740/\uB294 and \uC774/\uAC00' },
-      { icon: '\uD83D\uDCAC', label: '\uBC18\uB9D0 vs. \uC874\uB313\uB9D0 practice' },
-      { icon: '\uD83D\uDD22', label: 'Sino-Korean vs. native numbers' },
-      { icon: '\uD83C\uDFAF', label: 'Common particle mistakes' },
-      { icon: '\uD83D\uDD0A', label: 'Korean pronunciation rules' },
-      { icon: '\uD83D\uDCDA', label: 'Verb conjugation patterns' },
+      { icon: hi.pencil, label: 'Korean honorific speech levels' },
+      { icon: hi.hash, label: 'Essential Korean counters (\uAC1C, \uBA85, \uBC88)' },
+      { icon: hi.book, label: 'Difference between \uC740/\uB294 and \uC774/\uAC00' },
+      { icon: hi.chat, label: '\uBC18\uB9D0 vs. \uC874\uB313\uB9D0 practice' },
+      { icon: hi.hash, label: 'Sino-Korean vs. native numbers' },
+      { icon: hi.trophy, label: 'Common particle mistakes' },
+      { icon: hi.speaker, label: 'Korean pronunciation rules' },
+      { icon: hi.book, label: 'Verb conjugation patterns' },
     ],
     immersion: [
-      { icon: '\uD83D\uDCFA', label: 'Analyze a K-drama dialogue scene' },
-      { icon: '\uD83C\uDFB5', label: 'Break down BTS song lyrics' },
-      { icon: '\uD83D\uDCF0', label: 'Read Korean news for beginners' },
-      { icon: '\uD83C\uDFAC', label: 'Movie scene \u2014 decode slang' },
-      { icon: '\uD83C\uDFAE', label: 'Translate a webtoon panel' },
-      { icon: '\uD83D\uDCDD', label: 'Read a short Korean story' },
-      { icon: '\uD83C\uDF99\uFE0F', label: 'Korean podcast breakdown' },
-      { icon: '\uD83D\uDCD6', label: 'Webtoon dialogue practice' },
+      { icon: hi.tv, label: 'Analyze a K-drama dialogue scene' },
+      { icon: hi.music, label: 'Break down BTS song lyrics' },
+      { icon: hi.news, label: 'Read Korean news for beginners' },
+      { icon: hi.film, label: 'Movie scene \u2014 decode slang' },
+      { icon: hi.trophy, label: 'Translate a webtoon panel' },
+      { icon: hi.doc, label: 'Read a short Korean story' },
+      { icon: hi.mic, label: 'Korean podcast breakdown' },
+      { icon: hi.bookmark, label: 'Webtoon dialogue practice' },
     ],
     reference: [
-      { icon: '\uD83D\uDDC2\uFE0F', label: 'TOPIK vocabulary by level' },
-      { icon: '\uD83D\uDCD0', label: 'Korean particle cheat sheet' },
-      { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
-      { icon: '\uD83D\uDCCB', label: 'Common Korean expressions' },
-      { icon: '\uD83D\uDCDA', label: 'Korean onomatopoeia guide' },
-      { icon: '\uD83C\uDDF0\uD83C\uDDF7', label: 'Cultural etiquette notes' },
-      { icon: '\uD83D\uDCC8', label: 'TOPIK grammar patterns' },
-      { icon: '\uD83D\uDD24', label: 'Hangul reading practice' },
+      { icon: hi.folder, label: 'TOPIK vocabulary by level' },
+      { icon: hi.chart, label: 'Korean particle cheat sheet' },
+      { icon: hi.search, label: 'Verb conjugation table' },
+      { icon: hi.clipboard, label: 'Common Korean expressions' },
+      { icon: hi.book, label: 'Korean onomatopoeia guide' },
+      { icon: hi.globe, label: 'Cultural etiquette notes' },
+      { icon: hi.chart, label: 'TOPIK grammar patterns' },
+      { icon: hi.lang, label: 'Hangul reading practice' },
     ],
   },
 }
 
-const DEFAULT_SUGGESTIONS: Record<ScenarioMode, { icon: string; label: string }[]> = {
+const DEFAULT_SUGGESTIONS: Record<ScenarioMode, Suggestion[]> = {
   conversation: [
-    { icon: '\u2615', label: 'Order coffee at a local caf\u00E9' },
-    { icon: '\uD83D\uDE86', label: 'Ask for directions at a train station' },
-    { icon: '\uD83D\uDED2', label: 'Go grocery shopping at a market' },
-    { icon: '\uD83C\uDF89', label: 'Make plans for a weekend trip' },
-    { icon: '\uD83C\uDFE8', label: 'Check into a hotel' },
-    { icon: '\uD83D\uDE95', label: 'Give directions to a taxi driver' },
-    { icon: '\uD83C\uDF74', label: 'Order food at a restaurant' },
-    { icon: '\uD83D\uDCAC', label: 'Small talk with a new friend' },
+    { icon: hi.fire, label: 'Order coffee at a local caf\u00E9' },
+    { icon: hi.pin, label: 'Ask for directions at a train station' },
+    { icon: hi.cart, label: 'Go grocery shopping at a market' },
+    { icon: hi.trophy, label: 'Make plans for a weekend trip' },
+    { icon: hi.home, label: 'Check into a hotel' },
+    { icon: hi.truck, label: 'Give directions to a taxi driver' },
+    { icon: hi.fire, label: 'Order food at a restaurant' },
+    { icon: hi.chat, label: 'Small talk with a new friend' },
   ],
   tutor: [
-    { icon: '\u270D\uFE0F', label: 'Key verb conjugation patterns' },
-    { icon: '\uD83D\uDCD6', label: 'Essential grammar structures' },
-    { icon: '\uD83D\uDCAC', label: 'Formal vs. informal speech' },
-    { icon: '\uD83D\uDD22', label: 'Numbers and counting' },
-    { icon: '\uD83D\uDD0A', label: 'Pronunciation fundamentals' },
-    { icon: '\uD83C\uDFAF', label: 'Common beginner mistakes' },
-    { icon: '\uD83D\uDD24', label: 'Everyday vocabulary' },
-    { icon: '\uD83D\uDCDA', label: 'Reading practice' },
+    { icon: hi.pencil, label: 'Key verb conjugation patterns' },
+    { icon: hi.book, label: 'Essential grammar structures' },
+    { icon: hi.chat, label: 'Formal vs. informal speech' },
+    { icon: hi.hash, label: 'Numbers and counting' },
+    { icon: hi.speaker, label: 'Pronunciation fundamentals' },
+    { icon: hi.trophy, label: 'Common beginner mistakes' },
+    { icon: hi.lang, label: 'Everyday vocabulary' },
+    { icon: hi.book, label: 'Reading practice' },
   ],
   immersion: [
-    { icon: '\uD83D\uDCF0', label: 'Read a news article for beginners' },
-    { icon: '\uD83C\uDFAC', label: 'Analyze a movie dialogue scene' },
-    { icon: '\uD83C\uDFB5', label: 'Break down song lyrics' },
-    { icon: '\uD83C\uDFAE', label: 'Translate a game dialogue' },
-    { icon: '\uD83D\uDCFA', label: 'TV show listening practice' },
-    { icon: '\uD83D\uDCDD', label: 'Read a short story excerpt' },
-    { icon: '\uD83C\uDF99\uFE0F', label: 'Podcast transcript breakdown' },
-    { icon: '\uD83D\uDCD6', label: 'Cultural reading passage' },
+    { icon: hi.news, label: 'Read a news article for beginners' },
+    { icon: hi.film, label: 'Analyze a movie dialogue scene' },
+    { icon: hi.music, label: 'Break down song lyrics' },
+    { icon: hi.trophy, label: 'Translate a game dialogue' },
+    { icon: hi.tv, label: 'TV show listening practice' },
+    { icon: hi.doc, label: 'Read a short story excerpt' },
+    { icon: hi.mic, label: 'Podcast transcript breakdown' },
+    { icon: hi.bookmark, label: 'Cultural reading passage' },
   ],
   reference: [
-    { icon: '\uD83D\uDDC2\uFE0F', label: 'Core vocabulary list' },
-    { icon: '\uD83D\uDD0D', label: 'Verb conjugation table' },
-    { icon: '\uD83D\uDCD0', label: 'Grammar cheat sheet' },
-    { icon: '\uD83D\uDCCB', label: 'Common expressions and idioms' },
-    { icon: '\uD83D\uDCDA', label: 'Cultural etiquette notes' },
-    { icon: '\uD83D\uDCC8', label: 'Grammar comparison chart' },
-    { icon: '\uD83D\uDD24', label: 'Writing system guide' },
-    { icon: '\uD83C\uDFAF', label: 'Pronunciation guide' },
+    { icon: hi.folder, label: 'Core vocabulary list' },
+    { icon: hi.search, label: 'Verb conjugation table' },
+    { icon: hi.chart, label: 'Grammar cheat sheet' },
+    { icon: hi.clipboard, label: 'Common expressions and idioms' },
+    { icon: hi.globe, label: 'Cultural etiquette notes' },
+    { icon: hi.chart, label: 'Grammar comparison chart' },
+    { icon: hi.lang, label: 'Writing system guide' },
+    { icon: hi.speaker, label: 'Pronunciation guide' },
   ],
 }
 
-function getSuggestions(language: string): Record<ScenarioMode, { icon: string; label: string }[]> {
+function getSuggestions(language: string): Record<ScenarioMode, Suggestion[]> {
   return LANGUAGE_SUGGESTIONS[language] ?? DEFAULT_SUGGESTIONS
 }
 
@@ -195,13 +220,6 @@ const SUGGESTION_TITLES: Record<ScenarioMode, string> = {
   tutor: 'Suggested Lessons',
   immersion: 'Suggested Content',
   reference: 'Browse Topics',
-}
-
-const MODE_DOTS: Record<string, string> = {
-  conversation: '#22a355',
-  tutor: '#3b6ec2',
-  immersion: '#8b5cf6',
-  reference: '#c8572a',
 }
 
 function formatRelativeTime(timestamp: string): string {
@@ -251,7 +269,7 @@ function ConversationViewInner() {
   const [error, setError] = useState<string | null>(null)
   const [selectedMode, setSelectedMode] = useState<ScenarioMode>('conversation')
   const [activeMode, setActiveMode] = useState<ScenarioMode>('conversation')
-  const [inputMode, setInputMode] = useState<'chat' | 'voice'>('chat')
+  const [inputMode, setInputMode] = useState<'chat' | 'voice'>('voice')
   const [voiceSessionConfig, setVoiceSessionConfig] = useState<{ prompt: string; mode: ScenarioMode } | null>(null)
   const [chosenChoiceIds, setChosenChoiceIds] = useState<Set<string>>(new Set())
   const [difficultyLevel, setDifficultyLevel] = useState(3) // default intermediate
@@ -266,7 +284,7 @@ function ConversationViewInner() {
   const usageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const idleTextareaRef = useRef<HTMLTextAreaElement>(null)
-  const idleIme = useJapaneseIME(input, setInput)
+  const idleIme = useJapaneseIME(input, setInput, { initialActive: false })
   const sessionIdRef = useRef<string | null>(null)
   sessionIdRef.current = sessionId
   const { showRomaji, toggle: toggleRomaji } = useRomaji()
@@ -457,7 +475,7 @@ function ConversationViewInner() {
         if (profile?.difficultyLevel) setDifficultyLevel(profile.difficultyLevel)
       }).catch(() => {})
     }
-  }, [phase])
+  }, [phase, targetLanguage])
 
   // Pick up pending prompt from landing page / onboarding
   useEffect(() => {
@@ -755,24 +773,34 @@ function ConversationViewInner() {
                           </svg>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] text-text-placeholder select-none">
-                          {idleIme.imeActive
-                            ? idleIme.mode !== 'direct'
-                              ? 'Enter confirm \u00B7 Space candidates \u00B7 Esc revert'
-                              : '\u23CE send \u00B7 \u2318Space toggle IME'
-                            : '\u23CE send \u00B7 \u21E7\u23CE newline'
+                      <div className="flex items-center gap-3">
+                        <span className={cn("text-[12px] select-none", input.trim() ? "text-text-placeholder" : "text-text-muted/50")}>
+                          {!input.trim()
+                            ? 'No topic needed \u2014 just jump in'
+                            : idleIme.imeActive
+                              ? idleIme.mode !== 'direct'
+                                ? 'Enter confirm \u00B7 Space candidates \u00B7 Esc revert'
+                                : '\u23CE send \u00B7 \u2318Space toggle IME'
+                              : '\u23CE send \u00B7 \u21E7\u23CE newline'
                           }
                         </span>
-                        <button
-                          className={cn(
-                            'w-8 h-8 rounded-lg bg-accent-brand border-none cursor-pointer flex items-center justify-center transition-opacity duration-150 shrink-0',
-                            !input.trim() && 'bg-bg-active cursor-default'
-                          )}
-                          onClick={handleFreePromptSubmit}
-                        >
-                          <ArrowUp size={14} className={input.trim() ? 'text-white' : 'text-text-muted'} />
-                        </button>
+                        {input.trim() ? (
+                          <button
+                            className="h-8 px-2 rounded-lg bg-accent-brand border-none cursor-pointer flex items-center justify-center transition-all duration-150 shrink-0 hover:opacity-90"
+                            onClick={handleFreePromptSubmit}
+                          >
+                            <ArrowUp size={14} className="text-white" />
+                          </button>
+                        ) : (
+                          <button
+                            className="h-8 px-3 rounded-lg bg-accent-brand border-none cursor-pointer flex items-center gap-1.5 text-[12.5px] font-semibold text-white transition-all duration-150 shrink-0 hover:opacity-90 whitespace-nowrap"
+                            onClick={handleFreePromptSubmit}
+                            style={{ fontFamily: 'inherit' }}
+                          >
+                            Just start
+                            <ArrowRight size={13} strokeWidth={2.2} />
+                          </button>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -851,7 +879,7 @@ function ConversationViewInner() {
                       }}
                       style={{ fontFamily: 'inherit' }}
                     >
-                      <span className="text-[20px] leading-none mt-0.5 shrink-0">{s.icon}</span>
+                      <span className="mt-0.5 shrink-0 w-[18px] h-[18px] text-text-muted">{s.icon}</span>
                       <div className="text-[13px] font-medium text-text-primary leading-[1.4]">{s.label}</div>
                     </button>
                   ))}
@@ -864,24 +892,25 @@ function ConversationViewInner() {
                   <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-1.5">
                     Recent Sessions
                   </div>
-                  <div className="bg-bg-pure border border-border-subtle rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-                    {recentSessions.filter(s => s.durationSeconds !== null && s.durationSeconds >= 60).slice(0, 5).map((session, i) => {
-                      const dot = MODE_DOTS[session.mode] || '#9b9b9b'
+                  <div className="flex flex-col gap-1.5">
+                    {recentSessions.filter(s => s.durationSeconds !== null && s.durationSeconds >= 60).slice(0, 5).map((session) => {
                       const duration = formatDuration(session.durationSeconds)
                       const time = formatRelativeTime(session.timestamp)
                       const label = session.sessionFocus || MODE_LABELS[session.mode as ScenarioMode] || 'Session'
+                      const modeLabel = MODE_LABELS[session.mode as ScenarioMode] || session.mode
                       return (
                         <button
                           key={session.id}
-                          className="flex items-center gap-3 px-2.5 py-2 bg-transparent border-none w-full cursor-pointer text-left transition-colors hover:bg-bg-hover"
-                          style={{ fontFamily: 'inherit', borderTop: i > 0 ? '1px solid var(--bg-hover)' : 'none' }}
+                          className="flex items-center gap-3 px-3.5 py-3 bg-bg-pure border border-border-subtle rounded-lg w-full cursor-pointer text-left transition-[box-shadow,border-color,transform] duration-150 hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:-translate-y-px shadow-[0_1px_2px_rgba(0,0,0,.04)]"
+                          style={{ fontFamily: 'inherit' }}
                         >
-                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
-                          <span className="flex-1 text-[13px] font-medium text-text-primary truncate">{label}</span>
-                          <span className="text-[12px] text-text-muted shrink-0">
-                            {time}{duration ? ` \u00B7 ${duration}` : ''}
-                          </span>
-                          <ChevronRight size={12} className="text-text-muted" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-medium text-text-primary truncate leading-snug">{label}</div>
+                            <div className="text-[11.5px] text-text-muted mt-0.5">
+                              {modeLabel} · {time}{duration ? ` · ${duration}` : ''}
+                            </div>
+                          </div>
+                          <ChevronRight size={13} className="text-text-muted/50 shrink-0" />
                         </button>
                       )
                     })}

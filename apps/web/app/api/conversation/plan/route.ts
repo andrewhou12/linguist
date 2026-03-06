@@ -286,6 +286,7 @@ Make the plan specific to the user's prompt and difficulty level.`
     data: {
       userId,
       mode: resolvedMode,
+      targetLanguage: profile.targetLanguage,
       transcript: [],
       targetsPlanned: {},
       targetsHit: [],
