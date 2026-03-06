@@ -111,6 +111,48 @@ function UsageBanner() {
   const percentage = limitMinutes ? Math.min(100, (usage.usedSeconds / usage.limitSeconds) * 100) : 0
   const isNearLimit = percentage >= 80
   const isAtLimit = usage.isLimitReached
+
+  return (
+    <div className="mx-2.5 mt-2.5 mb-1">
+      <div className="p-3.5 bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[13px] font-medium text-text-primary">
+            {isPro ? 'Pro plan' : 'Free plan'}
+          </span>
+          <span className="text-[12px] text-text-muted">
+            {isPro
+              ? `${usedMinutes} min today`
+              : `${usedMinutes} / ${limitMinutes} min`}
+          </span>
+        </div>
+        {!isPro && (
+          <>
+            <div className="h-1.5 rounded-full bg-bg-active overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-[width] duration-300',
+                  isAtLimit ? 'bg-accent-warm' : isNearLimit ? 'bg-[#d4a017]' : 'bg-accent-brand'
+                )}
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+            {isNearLimit && !isAtLimit && (
+              <Link href="/upgrade" className="mt-2.5 text-[12px] text-accent-brand font-medium hover:underline block no-underline">
+                Upgrade for unlimited practice
+              </Link>
+            )}
+            {isAtLimit && (
+              <Link href="/upgrade" className="mt-2.5 text-[12px] text-accent-warm font-medium hover:underline block no-underline">
+                Limit reached &mdash; upgrade to continue
+              </Link>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function DailyGoalWidget() {
   const { targetLanguage } = useLanguage()
   const [level, setLevel] = useState<string | null>(null)
@@ -140,14 +182,6 @@ function DailyGoalWidget() {
     <Link href="/progress" className="block mx-2.5 mt-2.5 mb-1 no-underline">
       <div className="p-3.5 bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] transition-colors duration-100 hover:bg-bg-hover cursor-pointer">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[13px] font-medium text-text-primary">
-            {isPro ? 'Pro plan' : 'Free plan'}
-          </span>
-          <span className="text-[12px] text-text-muted">
-            {isPro
-              ? `${usedMinutes} min today`
-              : `${usedMinutes} / ${limitMinutes} min`}
-          </span>
           <span className="text-[13px] font-medium text-text-primary">Daily goal</span>
           <span className="text-[12px] text-text-muted">{mins} / {goalMinutes} min</span>
         </div>
@@ -164,29 +198,6 @@ function DailyGoalWidget() {
             <div className="text-[12px] text-text-muted">current level</div>
           </div>
         </div>
-        {!isPro && (
-          <>
-            <div className="h-1.5 rounded-full bg-bg-active overflow-hidden">
-              <div
-                className={cn(
-                  'h-full rounded-full transition-[width] duration-300',
-                  isAtLimit ? 'bg-accent-warm' : isNearLimit ? 'bg-[#d4a017]' : 'bg-accent-brand'
-                )}
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-            {isNearLimit && !isAtLimit && (
-              <Link href="/upgrade" className="mt-2.5 text-[12px] text-accent-brand font-medium hover:underline block no-underline">
-                Upgrade for unlimited practice
-              </Link>
-            )}
-            {isAtLimit && (
-              <Link href="/upgrade" className="mt-2.5 text-[12px] text-accent-warm font-medium hover:underline block no-underline">
-                Limit reached &mdash; upgrade to continue
-              </Link>
-            )}
-          </>
-        )}
       </div>
     </Link>
   )
