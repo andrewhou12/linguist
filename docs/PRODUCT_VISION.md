@@ -2,7 +2,7 @@
 
 ## The One-Line Pitch
 
-Lingle is a conversation practice engine for language learners. The AI plays the other person — you practice speaking.
+Lingle is a generative practice engine for language learners. Describe what you want to practice, and the AI builds a structured, realistic session around it — text or voice.
 
 ---
 
@@ -10,51 +10,51 @@ Lingle is a conversation practice engine for language learners. The AI plays the
 
 The product's job is to get users to **speak and use language**. Not to generate stories or immersive scenes. The AI plays the other person in a conversation — like a tutor saying "I'll be the waiter, you need to order. Go."
 
-Three explicit modes:
+One prompt creates an entire practice environment: a character with a personality and relationship to the learner, a realistic setting, conversational tension, target vocabulary, a difficulty ceiling, and behavioral rules. The learner doesn't pick from a menu of pre-made scenarios. They describe what they want to practice, and the system builds it.
 
-1. **Contextual Conversation** — AI plays the other person. Context = situation + who + user's goal + how the AI character behaves. Then just talk.
-2. **Interactive Lesson** — Structured teaching (grammar, vocab, patterns) with practice built in.
-3. **Listening Practice** — AI generates an example conversation. User listens (TTS), asks questions about why things were said that way, what alternatives exist, then optionally jumps into a similar conversation themselves.
-
-One prompt. Three formats. The learner describes what they want and the engine builds it.
-
-The core experience: after a 15-minute session, the learner should feel like they just had a real conversation in their target language. Not a quiz. Not a lesson. A conversation they'd actually tell someone about.
+This is the product's fundamental bet: **a generative practice engine is better than a content library** because it's infinitely flexible, always novel, and shaped by exactly what the learner needs right now.
 
 ---
 
 ## The Core Product
 
-Lingle is a **conversation practice engine**. The AI is the other person in the conversation. The difficulty system, tools, and correction style all serve one purpose: making that conversation feel real and productive.
+### The Generative Pipeline
 
-### What makes the engine work
+Every session follows the same three-stage pipeline:
+
+**1. The prompt.** The learner describes what they want in natural language. This can be specific ("I need to practice declining a coworker's invitation to drinks politely") or vague ("Let's just chat"). The system handles both.
+
+**2. The plan.** A fast planning model (Claude Haiku) takes the prompt, the learner's difficulty level, native language, and the selected mode, and generates a structured session plan. This isn't a generic outline — it's a mode-specific blueprint:
+
+- **Conversation mode** → a **scene card**: who the AI is playing (name, relationship, personality), register, tone, setting, cultural context, and a tension point that forces specific language use
+- **Tutor mode** → a **lesson plan**: a clear objective, 3-8 pedagogical steps, specific concepts tagged as grammar/vocabulary/usage, and exercise types
+- **Immersion mode** → a **content plan**: what native content to generate, target vocabulary, comprehension questions
+- **Reference mode** → a **Q&A plan**: topic, related topics, milestones focused on definition → examples → common mistakes → practice
+
+**3. The session.** The plan is injected into the system prompt on every turn. The AI reads it, follows it, and updates it as the session evolves. The plan is a living document, not a script.
+
+### What Makes the Engine Work
 
 **Realistic conversation partners.** The AI stays in character. A waiter takes orders. A coworker chats about work. A friend makes plans. It doesn't break character to narrate or describe — it just responds naturally.
 
-**Difficulty that's invisible.** Six calibrated levels control everything the AI does — vocabulary ceiling, grammar complexity, kanji density, English support, ruby annotations, register. The learner sets it once. Every interaction adapts without them thinking about it again.
+**Invisible difficulty.** Six calibrated levels control everything the AI does — vocabulary ceiling, grammar complexity, kanji density, English support, ruby annotations, register. The learner sets it once. Every interaction adapts without them thinking about it again.
 
 **Corrections that don't break flow.** When the learner makes a mistake, the AI recasts it naturally in its next response. An italic aside appears only when the error is instructive. The conversation never stops for a grammar lecture.
 
-**Three modes, fluid transitions:**
+**Live plan evolution.** The AI tracks progress against its plan. In tutor mode, it marks lesson steps as completed and advances to the next. In conversation mode, it can shift the scene. The learner sees this happening in the plan sidebar. The AI isn't just reacting turn by turn; it's following a trajectory.
 
-| What the learner says | What happens |
-|---|---|
-| "Let's just chat in Japanese" | Casual conversation partner — friendly, natural |
-| "I need to practice ordering food" | AI plays the waiter, learner orders |
-| "Teach me how to use te-form" | Structured lesson with examples and practice |
-| "I want to practice keigo for a job interview" | AI plays the interviewer, formal register |
-| "Show me what a conversation at a restaurant sounds like" | AI generates example dialogue, then analyzes it |
+**Steering.** The plan isn't handed down and locked. Before the session, the learner sees the generated plan and can add steering messages ("Make it harder," "Use Kansai dialect"). During the session, a sidebar shows the live plan with more steering available. The AI steers too — calling `updateSessionPlan` when the conversation naturally evolves.
 
----
+### Four Modes, One Engine
 
-## The Feeling
+| Mode | What it generates | The feeling |
+|------|-----------|-------------------|
+| **Conversation** | A scene with a character, setting, and tension | Like texting or talking to a real person |
+| **Tutor** | A structured lesson with steps and exercises | Like a great private tutor |
+| **Immersion** | Native content with analysis and comprehension | Like studying with a knowledgeable friend |
+| **Reference** | Structured explanations with examples and practice | Like a language encyclopedia that talks back |
 
-**Met where they are.** A beginner sees furigana on every kanji, English hints woven in, and simple responses. An advanced learner gets raw Japanese with dialect, slang, and register shifts. Same app, same scenario — completely different experience.
-
-**Gently stretched.** The AI speaks at the learner's level + 10%. Not so easy it's boring. Not so hard it's paralyzing. The 70-85% comprehension sweet spot where acquisition happens naturally.
-
-**Never punished.** When you make a mistake, the AI recasts it naturally. "I went to store" becomes "Oh, you went to the store? Which one?" You're never stopped. You're never told "that's wrong."
-
-**Natural.** The AI responds like a real person would. It asks follow-up questions. It reacts to what you say. It doesn't over-teach during conversation or under-explain during lessons.
+The engine underneath is the same Claude Sonnet conversation with the same tools. What changes per mode is the plan structure, system prompt behavior, tool availability, and UI routing.
 
 ---
 
@@ -62,15 +62,24 @@ Lingle is a **conversation practice engine**. The AI is the other person in the 
 
 ### Conversation Engine
 - **AI partner** powered by Claude Sonnet 4, staying in character as the other person in the conversation
-- **21 curated scenarios** across 3 modes: conversation practice, structured lessons, and listening exercises
-- **Free prompt input** — describe any situation and the AI sets it up
+- **21 curated scenarios** across 4 modes + free prompt input
+- **Mode-specific session plans** generated by Claude Haiku (~300ms)
+- **Pre-session plan preview** with steering messages
+- **Live plan sidebar** with mid-session steering
 - **Streaming responses** with real-time rendering
-- **Contextual suggestions** — after each response, the AI proposes 2-3 natural next actions
-- **Branching choices** — the AI can offer dialogue options with Japanese text and English hints
-- **Session persistence** — every conversation is stored with full transcript
+- **Contextual suggestions** and branching choices
+- **Session persistence** — every conversation stored with full transcript
+
+### Voice Conversations
+- **Push-to-talk interface** with full-screen overlay
+- **Soniox realtime STT** for streaming Japanese transcription
+- **Sentence-boundary TTS** — each sentence spoken as soon as it's generated
+- **5-state FSM** (idle → listening → thinking → speaking → interrupted)
+- **Animated canvas orb** with state-dependent visual feedback
+- **Voice-specific tool routing** — corrections inline, vocab as toasts, suggestions spoken naturally
 
 ### Difficulty System
-Six calibrated levels that control everything the AI does:
+Six calibrated levels controlling vocabulary, grammar, kanji, furigana, English support, and register:
 
 | Level | Label | What it means |
 |---|---|---|
@@ -81,93 +90,95 @@ Six calibrated levels that control everything the AI does:
 | 5 | Advanced (N1) | Full natural Japanese, furigana only for rare kanji |
 | 6 | Near-Native | Unrestricted complexity, no furigana |
 
-### Japanese Input
-A full Japanese IME built into the chat:
-- Type romaji, see it convert to kana in real-time
-- Space bar brings up kanji candidates
-- Hiragana/katakana toggle
-- Composition highlighting that feels native
-
-### Reading Support
-- **Furigana** — the AI annotates kanji with `{kanji|reading}` syntax, rendered as proper ruby annotations
-- **Romaji toggle** — for absolute beginners, overlay romaji on all Japanese text
-
-### Voice
-- **Text-to-speech** on every AI message — hear how it sounds with natural Japanese pronunciation
-- Play/stop controls on each message
-
 ### AI Tools
 The conversation partner has structured tools it can call mid-conversation:
+- **Update session plan** — mark milestones, adjust goals
 - **Suggest actions** — contextual next moves for the learner
 - **Display choices** — dialogue options with hints
 - **Show vocabulary cards** — word, reading, meaning, example sentence, notes
 - **Show grammar notes** — pattern, formation, examples, JLPT level
 - **Show corrections** — original vs. corrected with explanation
 
+### Japanese Input
+A full Japanese IME built into the chat:
+- Romaji-to-kana conversion in real-time
+- Kanji candidate selection via space bar
+- Hiragana/katakana toggle
+- Composition highlighting
+
+### Reading Support
+- **Furigana** — the AI annotates kanji with `{kanji|reading}` syntax, rendered as proper ruby annotations
+- **Romaji toggle** — for absolute beginners, overlay romaji on all Japanese text
+- **JLPT difficulty validation** — after each AI response, vocabulary is checked against the learner's level with subtle badges for above-level words
+
+### Onboarding
+- **Prompt-first entry** — type what you want to practice on the landing page, sign up, and your first conversation is pre-filled
+- **4-step wizard** — language, goals, level, and you're in
+- **Google OAuth** via Supabase Auth
+
+### Monetization
+- **Free tier** — 10 minutes of conversation per day
+- **Pro tier** — $8/month, unlimited conversation time
+- **Stripe integration** — checkout, billing portal, webhook handling
+- **Usage tracking** — live session time tracking with sidebar progress bar
+- **Blocking modal** when daily limit is hit, with upgrade CTA
+
 ### Infrastructure
 - **Auth** — Google OAuth via Supabase
-- **Database** — PostgreSQL with Prisma ORM
+- **Database** — PostgreSQL with Prisma ORM (13 models)
 - **Stack** — Next.js 15, React 19, TypeScript, Tailwind CSS, Vercel AI SDK
+- **Monorepo** — Turborepo + pnpm workspaces
+- **Payment** — Stripe (checkout, portal, webhooks)
 
 ---
 
 ## What Makes This Different
 
-**1. The AI is the other person.** Not a narrator, not a game master, not a chatbot with a language learning wrapper. The AI plays the waiter, the coworker, the friend. It stays in character and responds naturally. This is how real conversation practice works.
+**1. Generative, not a content library.** Duolingo has pre-written exercises. Italki has human tutors. Lingle generates custom practice environments from a single prompt. "Practice ordering food" creates a different restaurant, a different server, different menu items every time.
 
-**2. Three modes, one engine.** Conversation practice, structured lessons, and listening exercises all flow from the same AI engine. A conversation can become a mini-lesson when you ask "why did you say that?" A lesson can become practice when you're ready to try it yourself.
+**2. Four modes, one engine.** Conversation practice, structured lessons, immersion exercises, and reference explanations all flow from the same AI engine. A conversation can become a mini-lesson when you ask "why did you say that?" A lesson can become practice when you're ready to try.
 
-**3. Invisible difficulty.** No "N3 mode" label. No "select your level" before every session. You set it once, and everything calibrates: vocabulary, grammar, kanji, English support, register. The learner doesn't think about difficulty. They just talk.
+**3. Voice makes it real.** Text is the stepping stone. When the plan generates "Yuki, close friend, cheerful, casual register" and you *hear* Yuki talking to you in casual Japanese, the generated scenario stops feeling like an exercise and starts feeling like a conversation.
 
-**4. Corrections that don't break flow.** In real conversation, nobody stops you mid-sentence to correct your grammar. A good conversation partner uses the right form in their response, and you absorb it. Lingle does the same.
+**4. Invisible difficulty.** You set it once, and everything calibrates. The learner doesn't think about difficulty. They just talk.
 
-**5. Voice is the endgame.** Text is the stepping stone. The real product is voice conversations — speaking and being spoken to. Every architectural decision supports this trajectory.
+**5. Corrections through compassion.** In real conversation, nobody stops you mid-sentence to correct your grammar. A good conversation partner uses the right form in their response, and you absorb it. Lingle does the same — recasts naturally, shows corrections as visual overlays without breaking flow.
 
-**6. One prompt, instant start.** No onboarding wizard. No loading screen. Type or tap, and you're talking.
-
----
-
-## Architecture: Tools as Capabilities
-
-The engine's power comes from its tools. Each new modality — exercises, audio, documents — is just another tool the model can call. The model decides when to use each tool based on context.
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   CONVERSATION ENGINE                          │
-│                                                              │
-│  System prompt + learner difficulty + session context         │
-│                                                              │
-│  Tools:                                                      │
-│    Text output (streaming markdown)                          │
-│    suggestActions     → suggestion chips                     │
-│    displayChoices     → dialogue option buttons               │
-│    showVocabularyCard → vocabulary teaching card              │
-│    showGrammarNote    → grammar explanation card              │
-│    showCorrection     → error correction card                │
-│    generateExercise   → interactive exercise (fill-blank,    │
-│                         MCQ, matching, ordering, listening)  │
-│    playAudio          → TTS for specific text                │
-│                                                              │
-│  The model decides what to use based on what the learner     │
-│  needs. No hard-coded sequences. No mode switching.          │
-└──────────────────────────────────────────────────────────────┘
-```
+**6. Sessions have arc.** Every session has a plan — a trajectory, not just turn-by-turn reactions. Tutor sessions have warm-up, explanation, practice, and review. Conversations have tension points and scene evolution. The learner and the AI are both shaping the session in real time.
 
 ---
 
 ## Roadmap
 
-### Interactive Exercises (next)
-The AI generates exercises on-the-fly during conversation. Fill-in-the-blank, multiple choice, matching, sentence ordering. Exercises render as interactive React components inline in the chat.
+### Near-Term: Polish and Retention
 
-### Content-Based Learning
-The learner shares a URL, uploads a file, or pastes text. The system extracts it, and the AI builds a learning experience around it — walking through an article paragraph by paragraph, glossing vocabulary, explaining grammar, generating comprehension exercises.
+**Latency optimization.** The voice loop needs to feel like a real conversation. Targets: STT endpoint → LLM first token < 300ms, total voice-to-voice consistently under 1.5s, targeting < 1s.
 
-### Voice Conversations
-Full speech pipeline: the learner speaks, their speech is transcribed, fed to the same engine, and the response is spoken aloud with native-quality pronunciation. Modular (STT → LLM → TTS) so we keep the text transcript for corrections and logging. Target: under 1 second voice-to-voice. **This is the endgame — the product becomes a real conversation partner you talk to.**
+**ElevenLabs TTS.** The current TTS uses OpenAI's tts-1. ElevenLabs Flash v2.5 offers better Japanese voice quality and ~75ms TTFB. For a language learning app, the voice the learner listens to *is* their model for natural speech.
 
-### Multi-Language Support
-The architecture is language-agnostic. Expanding to Korean, Mandarin, Spanish, and others requires new difficulty definitions and language-specific input methods — but no architectural changes.
+**Session history and replay.** After a session: full transcript with inline corrections highlighted, vocabulary cards collected, AI-generated summary of what you practiced and where you struggled. Over time, a journal of your learning.
+
+**Plan quality.** Improving the planning prompt and adding few-shot examples so every session feels crafted, not generic.
+
+### Medium-Term: The Engine Gets Smarter
+
+**Knowledge-aware plan generation.** Feed the plan generator the learner's vocabulary history, error patterns, and avoidance patterns. "Practice at a restaurant" for a learner who avoids counter words automatically generates a scenario that forces counter word usage.
+
+**Post-session analysis.** Analyze every transcript: which targets were produced, what errors recurred, what was avoided, what new vocabulary appeared naturally. Close the loop so each session calibrates the next.
+
+**Interactive exercises.** Tutor mode generates exercises mid-conversation: fill-in-the-blank, multiple choice, sentence ordering. Voice makes this feel like a tutor asking you to try something, not a quiz widget.
+
+**Content as prompt.** Paste a URL, upload a photo of a menu, share a manga panel. The system generates a practice session around real content.
+
+### Long-Term: The Learner Model is the Product
+
+**Full knowledge state.** Every item tracked with mastery states and separate FSRS scheduling for recognition and production. The learner profile becomes a living probabilistic map of what they know.
+
+**SRS as daily anchor.** Spaced repetition review sessions computed locally. The daily queue brings learners back every day.
+
+**Adaptive generation.** The generative engine reads the full learner model. "Free conversation" for a learner with 5 avoidance patterns automatically creates scenarios that surface those patterns. The engine generates practice for what the learner *needs*, not just what they asked for.
+
+**Multi-language.** The architecture is language-agnostic. Korean, Mandarin, Spanish require new difficulty definitions and input methods, but no architectural changes.
 
 ---
 
@@ -175,7 +186,7 @@ The architecture is language-agnostic. Expanding to Korean, Mandarin, Spanish, a
 
 **The motivated self-studier who wants to use their Japanese, not just study it.**
 
-They've done the textbook thing. They know some grammar, recognize some kanji, can read simple sentences. But they don't have opportunities to practice real conversation. They might live somewhere Japanese isn't spoken. They might be too anxious to practice with real people. They want a low-pressure space to try things out.
+They've done the textbook thing. They know some grammar, recognize some kanji, can read simple sentences. But they don't have opportunities to practice real conversation. They want a low-pressure space to try things out.
 
 They don't want flashcards. They don't want grammar drills in isolation. They want to feel what it's like to actually use the language — to order food, to chat with someone, to handle a phone call.
 
@@ -194,14 +205,17 @@ They are:
 - **Session duration** — average session is 10-20 minutes
 - **Mode variety** — learners use conversation, lesson, and listening modes
 - **Free prompt usage** — learners create their own scenarios, not just pick from curated ones
+- **Free-to-Pro conversion** — meaningful percentage of free users upgrade within 2 weeks
 
 ### Experience
-- **"I had a real conversation"** — the core qualitative measure. After a session, the learner feels like they practiced the language, not like they used an app
+- **"I had a real conversation"** — the core qualitative measure
 - **Difficulty calibration** — the learner doesn't feel lost or bored
 - **Error correction acceptance** — learners absorb recasts without feeling corrected
+- **Voice naturalness** — voice sessions feel like talking to someone, not using an app
 
 ### Technical
 - **Time to first token** — under 1 second from send to first streamed response
+- **Voice-to-voice latency** — under 1.5 seconds, targeting < 1 second
 - **Session startup** — instant, no loading screen
 - **IME responsiveness** — kana conversion and kanji candidate display feel native
 
@@ -215,6 +229,8 @@ They are:
 
 **Earn every return visit.** Language learning is a years-long commitment. The app has to be a place people want to come back to — natural, useful, never frustrating.
 
-**Simple surface, deep engine.** The UI is a text box and a grid of scenarios. Behind it: a system prompt engine, difficulty calibration, multi-tool AI partner, streaming architecture, and three distinct modes. The complexity serves the learner without burdening them.
+**Simple surface, deep engine.** The UI is a text box and a grid of scenarios. Behind it: a generative pipeline, difficulty calibration, voice processing, mode-specific planning, and six AI tools. The complexity serves the learner without burdening them.
 
 **Corrections through compassion.** The hardest part of language learning isn't grammar — it's the courage to try. Every design decision protects that courage.
+
+**Prompt → plan → session.** This is the product loop. Everything we build should make this loop faster, smarter, and more personalized.

@@ -1,38 +1,38 @@
 # Lingle
 
-A language learning agent that builds a living, probabilistic knowledge model of the learner. Every interaction — reviews, conversations, lookups — updates a multi-dimensional map of what the learner knows, and the app uses that map to decide what they should encounter next.
+A generative language practice engine. Describe what you want to practice, and the AI builds a structured, realistic session around it — text or voice. One prompt creates a conversation partner with a personality, a setting, target vocabulary, and a difficulty ceiling. Every session is novel, every session has a plan.
 
-Available as both a **desktop app** (Electron) and a **web app** (Next.js), sharing the same database and business logic via a Turborepo monorepo.
-
-V1 target: Japanese. Text-only (voice in V2).
+V1 target: Japanese. Voice + text.
 
 ## Why Lingle Exists
 
-Most language learning apps treat learners as interchangeable. Duolingo follows a fixed curriculum. Anki tracks card-level recall but has no concept of the learner as a whole. Conversation apps like Langua offer freeform practice but don't know what you're weak on.
+Most language learning apps treat learners as interchangeable. Duolingo follows a fixed curriculum. Anki tracks card-level recall but has no concept of the learner as a whole. Conversation apps offer freeform practice but don't know what you're weak on.
 
-Lingle's core thesis: **the learner profile is the product**. The app maintains a rich, multi-layered model of what you know, what you're shaky on, what you avoid, and where you're ready to grow — and every feature reads from and writes to that model.
+Lingle's approach: **generative practice environments built from a single prompt.** Instead of pre-written exercises, the AI generates custom sessions — a ramen shop owner who speaks in dialect, a job interviewer using keigo, a friend planning a weekend trip — calibrated to the learner's exact level.
 
 ### What Makes It Different
 
-**Knowledge model, not a card deck.** Items aren't just "due" or "not due." Each item tracks mastery state, recognition vs. production strength, accumulated production weight, context breadth (how many distinct contexts you've used it in), and per-modality exposure (reading, writing, listening, speaking). Promotion through mastery tiers is gated by evidence: you can't reach journeyman without production, expert without context breadth, or master without demonstrating transfer to novel contexts.
+**Generative, not a content library.** "Practice ordering food" creates a different restaurant, a different server personality, different conversational wrinkles every time. The learner controls the curriculum by describing what they need.
 
-**Theory of Mind engine.** The system infers higher-level beliefs about the learner beyond raw review data: avoidance patterns (items you drill but never use in conversation), confusion pairs (items that co-occur in errors), regression (previously stable items slipping), modality gaps (strong reading but weak writing), and transfer gaps (grammar patterns only used in the context where they were first learned). These inferences feed directly into session planning.
+**Four modes, one engine.** Conversation practice, structured lessons, immersion exercises, and reference explanations all flow from the same AI engine. A conversation can become a mini-lesson. A lesson can become practice.
 
-**Conversation partner with goals.** The AI conversation partner isn't generic — it reads the learner profile before every session and has explicit targets. It engineers natural moments to elicit specific vocabulary and grammar from the learner, tracks register usage, notes circumlocution as a positive strategy, and runs post-session analysis to update the knowledge model. Every conversation produces structured data that makes the next one better.
+**Voice-first trajectory.** Push-to-talk voice conversations with streaming STT → LLM → TTS pipeline. The AI speaks back sentence-by-sentence as it generates. Text remains fully functional alongside voice.
 
-**Curriculum generator (i+1).** Instead of a fixed syllabus, the curriculum engine computes a "knowledge bubble" — a per-CEFR-level breakdown of what you know — identifies your current level and frontier, and recommends items just beyond your edge using Krashen's i+1 principle. Recommendations are scored by frequency, gap-filling priority, prerequisite readiness, and ToM signals.
+**Invisible difficulty.** Six calibrated levels control vocabulary, grammar, kanji density, furigana, English support, and register. Set it once — everything adapts.
 
-**Pragmatic competence tracking.** Beyond vocabulary and grammar, the system tracks pragmatic skills: register accuracy (casual vs. polite), communication strategies (circumlocution, L1 fallback, silence), and avoided patterns. This is Layer 3 of the knowledge model — the dimension most apps ignore entirely.
+**Corrections through recasting.** When the learner makes a mistake, the AI uses the correct form naturally in its response. Corrections appear as visual overlays without breaking conversational flow.
 
 ## Stack
 
 - **Monorepo:** Turborepo + pnpm workspaces
-- **Desktop app:** Electron + React + TypeScript + Radix UI
-- **Web app:** Next.js 15 (App Router) + React + TypeScript + Radix UI
+- **Web app:** Next.js 15 (App Router) + React 19 + TypeScript + Tailwind CSS
 - **Auth:** Supabase Auth (Google OAuth) via `@supabase/ssr`
 - **Database:** Hosted Supabase (Postgres) + Prisma ORM
-- **AI:** Claude Sonnet (conversation partner, session planning, post-session analysis, pragmatic analysis, daily brief polishing)
-- **SRS:** FSRS (ts-fsrs), runs fully locally
+- **AI:** Claude Sonnet 4 (conversation), Claude Haiku 4.5 (session planning)
+- **Voice STT:** Soniox stt-rt-v4 (realtime streaming Japanese transcription)
+- **Voice TTS:** OpenAI tts-1 (→ ElevenLabs Flash planned)
+- **Payment:** Stripe (checkout, billing portal, webhooks)
+- **AI SDK:** Vercel AI SDK for streaming
 
 ## Prerequisites
 
@@ -47,13 +47,18 @@ pnpm install
 
 # Copy env and add your keys
 cp .env.example .env
-# Edit .env → set ANTHROPIC_API_KEY, DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY
 
 # For the web app, create apps/web/.env.local:
 #   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 #   DATABASE_URL=your-database-url
 #   ANTHROPIC_API_KEY=your-api-key
+#   SONIOX_API_KEY=your-soniox-key
+#   STRIPE_SECRET_KEY=sk_...
+#   STRIPE_WEBHOOK_SECRET=whsec_...
+#   STRIPE_PRICE_ID=price_...
+#   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+#   NEXT_PUBLIC_APP_URL=https://...
 
 # Generate the Prisma client
 pnpm prisma generate
@@ -63,67 +68,18 @@ pnpm prisma migrate dev
 
 # Start the web app
 pnpm --filter @lingle/web dev
-
-# Or start the desktop app
-pnpm --filter @lingle/desktop dev
 ```
 
 ### Authentication
 
-Both apps use Supabase Auth with Google OAuth against a hosted Supabase instance. Users sign in via Google, and a DB user record is created/updated on each sign-in. The web app uses cookie-based sessions via `@supabase/ssr`; the desktop app uses PKCE flow via Electron.
-
-### Database Seeding
-
-The seed script (`prisma/seed.ts`) populates the database with a realistic starter dataset so all features are immediately usable. It creates:
-
-**Learner Profile:**
-- Target language: Japanese, native language: English
-- Daily new item limit: 10, target retention: 90%
-- Computed level: A1
-
-**Pragmatic Profile:**
-- Preferred register: polite
-- All accuracy/strategy counters initialized to zero
-
-**30 Vocabulary Items** across 5 mastery states:
-
-| State | Count | Items | FSRS State |
-|---|---|---|---|
-| `apprentice_1` | 8 | 食べる, 飲む, 大きい, 小さい, 学校, 先生, 時間, 新しい | stability ~1d, due today |
-| `apprentice_2` | 6 | 水, 友達, 行く, 来る, 本, 天気 | stability ~2d, due today |
-| `apprentice_3` | 4 | 人, 見る, 言う, 日本語 | stability ~4d, due today |
-| `journeyman` | 4 | 私, する, ある, いい | stability ~14d, due today |
-| `introduced` | 4 | 電車, 買う, 病院, 書く | not in SRS yet |
-| `unseen` | 4 | 映画, 走る, 高い, 安い | not in SRS yet |
-
-**8 Grammar Patterns:**
-
-| State | Count | Patterns |
-|---|---|---|
-| `apprentice_1` | 3 | て-form, たい-form, ない-form |
-| `apprentice_2` | 2 | です/だ copula, は topic marker |
-| `introduced` | 2 | が subject marker, past tense |
-| `unseen` | 1 | に particle |
-
-All apprentice/journeyman items are set with FSRS due dates of today, so the review queue is immediately populated.
-
-**To re-seed** (wipes existing data and starts fresh):
-```bash
-pnpm prisma db seed
-```
-
-**To reset everything** (drops all tables, re-migrates, and re-seeds):
-```bash
-pnpm prisma migrate reset
-```
+Users sign in via Google OAuth through Supabase Auth. New users go through a 4-step onboarding flow (language → goals → level → first conversation). Returning users go straight to the conversation view.
 
 ## Scripts
 
 | Command | Description |
 |---|---|
 | `pnpm --filter @lingle/web dev` | Start Next.js web app (localhost:3000) |
-| `pnpm --filter @lingle/desktop dev` | Launch Electron desktop app with hot reload |
-| `pnpm --filter @lingle/web build` | Production build (web) |
+| `pnpm --filter @lingle/web build` | Production build |
 | `pnpm turbo typecheck` | TypeScript check (all packages) |
 | `pnpm prisma migrate dev` | Run Prisma migrations |
 | `pnpm prisma studio` | Open Prisma Studio (DB browser) |
@@ -136,162 +92,152 @@ pnpm prisma migrate reset
 
 ```
 lingle/
-├── turbo.json                      # Turborepo task config
-├── pnpm-workspace.yaml             # pnpm workspace definition
-├── package.json                    # Root (devDeps: turbo, typescript, prisma)
+├── turbo.json
+├── pnpm-workspace.yaml
+├── package.json
 ├── prisma/
-│   ├── schema.prisma               # Database schema (10+ models)
-│   ├── seed.ts                     # Database seed script
+│   ├── schema.prisma               # 13 database models
+│   ├── seed.ts
 │   └── migrations/
 ├── apps/
-│   ├── desktop/                    # Electron app (@lingle/desktop)
-│   │   ├── electron/               # Main process (IPC handlers, auth, DB)
-│   │   └── src/                    # React renderer (pages, hooks, components)
-│   └── web/                        # Next.js app (@lingle/web)
-│       ├── app/                    # App Router pages + API routes
-│       │   ├── (auth)/             # Sign-in, OAuth callback
-│       │   ├── (app)/              # Authenticated pages (shared sidebar layout)
-│       │   │   ├── dashboard/
-│       │   │   ├── review/
-│       │   │   ├── learn/
-│       │   │   ├── knowledge/
-│       │   │   ├── chat/
-│       │   │   ├── settings/
-│       │   │   ├── insights/
-│       │   │   └── onboarding/
-│       │   └── api/                # 30 API routes (replaces Electron IPC)
-│       ├── lib/                    # Supabase clients, auth helpers, API client
-│       ├── hooks/                  # Fetch-based data hooks
-│       └── components/             # Shared UI components
+│   └── web/                         # Next.js 15 app (@lingle/web)
+│       ├── app/
+│       │   ├── page.tsx             # Landing page (prompt-first)
+│       │   ├── get-started/         # Pre-auth interstitial
+│       │   ├── onboarding/          # 4-step setup wizard
+│       │   ├── (auth)/              # Sign-in, OAuth callback
+│       │   ├── (app)/               # Authenticated pages
+│       │   │   ├── conversation/    # Text conversation view
+│       │   │   │   └── voice/       # Voice session overlay
+│       │   │   ├── progress/        # Session history
+│       │   │   ├── upgrade/         # Pricing / Stripe checkout
+│       │   │   └── ...
+│       │   └── api/                 # API routes
+│       │       ├── conversation/    # send, plan, end, list, xray
+│       │       ├── voice/           # soniox-key, stt
+│       │       ├── stripe/          # checkout, portal, webhook
+│       │       ├── usage/           # Daily usage tracking
+│       │       ├── subscription/    # Subscription status
+│       │       ├── profile/         # Learner profile CRUD
+│       │       └── tts/             # Text-to-speech
+│       ├── components/
+│       │   ├── voice/               # Voice session UI (15 components)
+│       │   ├── chat/                # Chat input, message rendering
+│       │   └── panels/              # Side panel (plan + cards)
+│       ├── hooks/                   # useChat, useVoice, useSoniox, useTTS, etc.
+│       └── lib/                     # Supabase, Stripe, AI tools, prompts
 ├── packages/
-│   ├── core/                       # Pure business logic (@lingle/core)
-│   │   └── src/
-│   │       ├── fsrs/               # FSRS scheduler (ts-fsrs)
-│   │       ├── mastery/            # Evidence-gated state machine
-│   │       ├── tom/                # Theory of Mind engine (5 detectors)
-│   │       ├── conversation/       # Session planning + post-session analysis
-│   │       ├── profile/            # CEFR ceilings, skill levels, streaks
-│   │       ├── curriculum/         # Knowledge bubble + i+1 recommender
-│   │       ├── pragmatics/         # Register accuracy, strategies
-│   │       ├── narrative/          # AI daily brief templates
-│   │       └── onboarding/         # Assessment items + placement
-│   ├── shared/                     # TypeScript types (@lingle/shared)
-│   │   └── src/types.ts
-│   └── db/                         # Prisma client singleton (@lingle/db)
-│       └── src/client.ts
-└── supabase/                       # Supabase project config
+│   ├── shared/                      # TypeScript types (@lingle/shared)
+│   └── db/                          # Prisma client singleton (@lingle/db)
+├── docs/
+│   ├── PRODUCT_VISION.md
+│   ├── ARCHITECTURE_V2.md
+│   ├── V2_VOICE_UPDATE.md
+│   ├── GENERATIVE_ENGINE_PLAN.md
+│   ├── design-system.md
+│   └── progress/                    # Development logs
+└── supabase/
 ```
 
-**Boundary rules:**
-- `packages/core/` is pure TypeScript — trivially testable, no framework deps
-- Desktop: `electron/ipc/` calls `@lingle/core` + `@lingle/db`, exposes via IPC
-- Web: `app/api/` routes call `@lingle/core` + `@lingle/db`, return JSON
-- Desktop renderer accesses data through `window.lingle` IPC hooks
-- Web pages access data through `lib/api.ts` fetch client
-- `packages/shared/types.ts` is importable everywhere
-
-### Data Flow
+### The Generative Pipeline
 
 ```
-User action (review, conversation, lookup)
+User types a prompt
       ↓
-Event logged to DB (ReviewEvent + ItemContextLog)
+Session plan generated (Claude Haiku, ~300ms)
+  ├── Conversation → scene card (character, setting, tension)
+  ├── Tutor → lesson plan (steps, concepts, exercises)
+  ├── Immersion → content plan (native material, comprehension)
+  └── Reference → Q&A plan (topic, examples, practice)
       ↓
-Learner profile updated
-  ├── FSRS state (recognition + production, per item)
-  ├── Mastery state machine (evidence-gated promotions)
-  ├── Modality counters (reading/writing/listening/speaking)
-  ├── Context breadth (distinct context types per item)
-  └── Production weight (accumulated, drill=0.5 conversation=1.0)
+Plan injected into system prompt on every turn
       ↓
-ToM engine infers higher-level beliefs
-  ├── Avoidance detection
-  ├── Confusion pair detection
-  ├── Regression detection
-  ├── Modality gap detection
-  └── Transfer gap detection
+Claude Sonnet streams response (text + 6 tools)
+  ├── suggestActions → suggestion chips
+  ├── displayChoices → dialogue option buttons
+  ├── showVocabularyCard → vocabulary teaching card
+  ├── showGrammarNote → grammar explanation card
+  ├── showCorrection → error correction card
+  └── updateSessionPlan → live plan updates
       ↓
-Curriculum generator computes knowledge bubble + i+1 recommendations
+If voice mode:
+  ├── Sentence boundary tracker → TTS queue → audio playback
+  └── Tool outputs routed to toasts/panels instead of inline
       ↓
-Conversation agent reads profile + ToM brief + curriculum
-  → Plans session with specific targets (3-5 vocab, 1-2 grammar)
-  → Conducts conversation with 10 behavioral rules
-  → Post-session: analyzes transcript, updates knowledge model
-  → Pragmatic analysis: register accuracy, strategies, avoided patterns
-      ↓
-Profile recalculated (CEFR ceilings, skill levels, streaks)
+Plan evolves as the session progresses
 ```
 
-### Three-Layer Knowledge Model
+### Voice Pipeline
 
-**Layer 1 — Item-level knowledge:** Each vocabulary and grammar item has a mastery state, dual FSRS states (recognition/production), accumulated production weight, context breadth, and per-modality exposure counts. Mastery promotion is gated by evidence:
+```
+Push-to-talk button held → Soniox realtime streaming STT
+    → Endpoint detection (1500ms silence)
+    → Final utterance text → Claude Sonnet (streaming)
+    → SentenceBoundaryTracker (。！？ detection)
+    → Each sentence → /api/tts → audio blob → sequential playback
+```
 
-| Transition | Gate |
-|---|---|
-| apprentice_4 → journeyman | Production weight >= 1.0 |
-| journeyman → expert | Context count >= 3 |
-| expert → master | Novel context count >= 2 (grammar) |
-
-**Layer 2 — Aggregate competence:** The profile calculator computes CEFR-level ceilings from item-level data. Comprehension ceiling = highest level where avg recognition retrievability > 0.80. Production ceiling = highest where avg production retrievability > 0.60. The curriculum generator uses these to identify the frontier level and recommend i+1 items.
-
-**Layer 3 — Pragmatic competence:** Register accuracy (casual/polite), communication strategies (circumlocution, L1 fallback, silence), and avoided patterns. Updated after each conversation session via exponential moving average.
+5-state FSM: IDLE → LISTENING → THINKING → SPEAKING → INTERRUPTED (user talks mid-AI-response, clears queue, returns to LISTENING).
 
 ### Database Models
 
 | Model | Purpose |
 |---|---|
-| `User` | Auth user with Google OAuth profile (name, email, avatar) |
-| `LearnerProfile` | Computed CEFR level, comprehension/production ceilings, modality levels, streaks, pattern summaries |
-| `LexicalItem` | Vocabulary with dual FSRS states, mastery state, context breadth, modality counters, production weight |
-| `GrammarItem` | Grammar patterns with FSRS states, prerequisites, novel context tracking |
-| `ReviewEvent` | Every SRS review graded with production weight and context type |
-| `ConversationSession` | Transcript, system prompt, session plan, planned targets, hits, errors, avoidance events |
-| `TomInference` | System beliefs: avoidance, confusion pairs, regression, modality gap, transfer gap |
-| `ItemContextLog` | Every encounter per item across contexts (SRS, conversation, reading, drill) with modality + success |
-| `PragmaticProfile` | Register accuracy (casual/polite), communication strategies, avoided patterns |
-| `CurriculumItem` | Queued i+1 recommendations with priority scoring and introduction status |
+| `User` | Auth user (Google OAuth) |
+| `LearnerProfile` | CEFR level, difficulty, goals, streaks |
+| `LexicalItem` | Vocabulary with dual FSRS states, mastery tracking |
+| `GrammarItem` | Grammar patterns with FSRS states |
+| `ChunkItem` | Collocations and pragmatic formulas |
+| `ReviewEvent` | Every SRS review |
+| `ConversationSession` | Transcript, plan, targets, errors, cached analysis |
+| `TomInference` | System beliefs (avoidance, confusion, regression) |
+| `ItemContextLog` | Every item encounter across contexts |
+| `PragmaticProfile` | Register accuracy, communication strategies |
+| `CurriculumItem` | i+1 recommendations with priority scoring |
+| `Subscription` | Stripe subscription (free/pro) |
+| `DailyUsage` | Conversation seconds per user per day |
 
-## Pages
+### Monetization
 
-| Page | Status | Description |
-|---|---|---|
-| **Dashboard** | Working | Due count, today's review stats, AI-generated daily brief, 3 frontier visualizations (level progress, mastery distribution, gap count) |
-| **Review** | Working | Full SRS session — recognition and production cards, keyboard shortcuts (1-4 for grading), FSRS scheduling, mastery transitions, session summary with accuracy stats |
-| **Learn** | Working | Complete conversation partner flow — curriculum preview with skip/refresh → session planning via Claude API → in-session chat with session info bar → post-session analysis with target checklist, errors, new items, overall assessment |
-| **Knowledge** | Working | Searchable/filterable vocabulary table with mastery state badges, due dates, FSRS stability, frequency rank |
-| **Chat** | Working | Multi-conversation streaming chatbot with Claude (web uses Vercel AI SDK, desktop uses IPC streaming) |
-| **Settings** | Working | Target/native language selectors, daily new item limit (5-30), target retention (80-97%), read-only progress stats |
-| **Onboarding** | Working | Multi-step wizard: language selection → JLPT level self-report → vocabulary/grammar assessment → study preferences → item seeding |
-| **Insights** | Stub | Placeholder for ToM inference visualization |
+| Plan | Limit | Price |
+|------|-------|-------|
+| Free | 10 min/day | $0 |
+| Pro | Unlimited | $8/month |
+
+Usage is tracked per-session with live elapsed time computation. When the daily limit is hit, a blocking modal directs users to the upgrade page. Pro users manage subscriptions through Stripe's billing portal.
 
 ## Environment Variables
 
-### Root `.env` (used by Prisma and desktop app)
-```
-ANTHROPIC_API_KEY=sk-ant-...
-DATABASE_URL=postgresql://...
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-```
-
 ### Web app `apps/web/.env.local`
 ```
+# Required
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
 DATABASE_URL=postgresql://...
 ANTHROPIC_API_KEY=sk-ant-...
+
+# Voice
+SONIOX_API_KEY=...
+OPENAI_API_KEY=...              # For TTS and fallback STT
+
+# Payment
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+NEXT_PUBLIC_APP_URL=https://...
 ```
 
 ## Progress
 
-See [docs/progress/](docs/progress/) for detailed session-by-session development logs.
+See [docs/progress/](docs/progress/) for detailed development logs.
 
-## Known Issues
+## Documentation
 
-- Learn page shows item IDs in session summary rather than surface forms (analysis returns IDs, needs lookup)
-- Word bank detail view (editing, history) not built
-- No error boundary or toast notifications for API failures — errors go to console only
-- Session planning occasionally slow (Claude API latency) with no progress indicator beyond loading state
-- Chat page is disconnected from the knowledge model — no profile-aware system prompt, no post-session analysis
+| Document | Description |
+|----------|-------------|
+| [PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Product direction and roadmap |
+| [ARCHITECTURE_V2.md](docs/ARCHITECTURE_V2.md) | Technical architecture (session plans, voice, tools) |
+| [V2_VOICE_UPDATE.md](docs/V2_VOICE_UPDATE.md) | Voice pipeline deep dive |
+| [GENERATIVE_ENGINE_PLAN.md](docs/GENERATIVE_ENGINE_PLAN.md) | Conversation engine technical plan |
+| [design-system.md](docs/design-system.md) | UI design system reference |
