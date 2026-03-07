@@ -8,6 +8,7 @@ import {
   ChatBubbleLeftRightIcon,
   ClockIcon,
   Cog6ToothIcon,
+  CreditCardIcon,
   EllipsisHorizontalIcon,
   ArrowRightStartOnRectangleIcon,
   ChevronRightIcon,
@@ -57,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Track',
     items: [
       { id: 'progress', href: '/progress', icon: <ClockIcon className={IC} />, label: 'History' },
+      { id: 'plan', href: '/upgrade', icon: <CreditCardIcon className={IC} />, label: 'Plan' },
       { id: 'settings', href: '/settings', icon: <Cog6ToothIcon className={IC} />, label: 'Settings' },
     ],
   },
@@ -353,6 +355,8 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
                   ? pathname === '/conversation'
                   : item.id === 'progress'
                   ? pathname === '/progress' || pathname.startsWith('/progress/')
+                  : item.id === 'plan'
+                  ? pathname === '/upgrade'
                   : item.id === 'settings'
                   ? pathname === '/settings'
                   : false
