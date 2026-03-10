@@ -73,11 +73,11 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
       { icon: hi.trophy, label: 'Make plans for a weekend trip' },
     ],
     tutor: [
-      { icon: hi.pencil, label: 'Master the \u3066-form conjugation' },
+      { icon: hi.pencil, label: 'Master the て-form conjugation' },
       { icon: hi.hash, label: 'Learn 20 essential counters' },
-      { icon: hi.flag, label: 'Keigo \u2014 polite speech patterns' },
+      { icon: hi.flag, label: 'Keigo — polite speech patterns' },
       { icon: hi.speaker, label: 'Pitch accent fundamentals' },
-      { icon: hi.book, label: 'Difference between \u306F and \u304C' },
+      { icon: hi.book, label: 'Difference between は and が' },
       { icon: hi.chat, label: 'Casual vs. polite form practice' },
       { icon: hi.clock, label: 'Japanese time expressions' },
       { icon: hi.trophy, label: 'Common particle mistakes' },
@@ -85,7 +85,7 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
     immersion: [
       { icon: hi.news, label: 'Read today\u2019s NHK Easy News' },
       { icon: hi.film, label: 'Analyze a scene from Your Name' },
-      { icon: hi.bookmark, label: 'Manga panel \u2014 decode slang' },
+      { icon: hi.bookmark, label: 'Manga panel — decode slang' },
       { icon: hi.music, label: 'Break down Yoasobi lyrics' },
       { icon: hi.trophy, label: 'Translate a game dialogue' },
       { icon: hi.tv, label: 'News clip listening practice' },
@@ -95,8 +95,8 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
     reference: [
       { icon: hi.folder, label: 'JLPT N3 vocabulary deck' },
       { icon: hi.chart, label: 'Particle cheat sheet' },
-      { icon: hi.lang, label: 'Kanji by radicals \u2014 RTK method' },
-      { icon: hi.clipboard, label: 'Common set phrases \u2014 \u6163\u7528\u53E5' },
+      { icon: hi.lang, label: 'Kanji by radicals — RTK method' },
+      { icon: hi.clipboard, label: 'Common set phrases — 慣用句' },
       { icon: hi.search, label: 'Verb conjugation table' },
       { icon: hi.book, label: 'Onomatopoeia dictionary' },
       { icon: hi.globe, label: 'Cultural etiquette notes' },
@@ -109,16 +109,16 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
       { icon: hi.pin, label: 'Navigate the subway in Busan' },
       { icon: hi.cart, label: 'Shop at Myeongdong market' },
       { icon: hi.music, label: 'Chat about your favorite K-pop group' },
-      { icon: hi.fire, label: 'Order drinks at a Korean caf\u00E9' },
+      { icon: hi.fire, label: 'Order drinks at a Korean café' },
       { icon: hi.home, label: 'Book a hanok guesthouse in Jeonju' },
       { icon: hi.truck, label: 'Hail a taxi in Gangnam' },
       { icon: hi.trophy, label: 'Plan a trip to Jeju Island' },
     ],
     tutor: [
       { icon: hi.pencil, label: 'Korean honorific speech levels' },
-      { icon: hi.hash, label: 'Essential Korean counters (\uAC1C, \uBA85, \uBC88)' },
-      { icon: hi.book, label: 'Difference between \uC740/\uB294 and \uC774/\uAC00' },
-      { icon: hi.chat, label: '\uBC18\uB9D0 vs. \uC874\uB313\uB9D0 practice' },
+      { icon: hi.hash, label: 'Essential Korean counters (개, 명, 번)' },
+      { icon: hi.book, label: 'Difference between 은/는 and 이/가' },
+      { icon: hi.chat, label: '반말 vs. 존댓말 practice' },
       { icon: hi.hash, label: 'Sino-Korean vs. native numbers' },
       { icon: hi.trophy, label: 'Common particle mistakes' },
       { icon: hi.speaker, label: 'Korean pronunciation rules' },
@@ -128,7 +128,7 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
       { icon: hi.tv, label: 'Analyze a K-drama dialogue scene' },
       { icon: hi.music, label: 'Break down BTS song lyrics' },
       { icon: hi.news, label: 'Read Korean news for beginners' },
-      { icon: hi.film, label: 'Movie scene \u2014 decode slang' },
+      { icon: hi.film, label: 'Movie scene — decode slang' },
       { icon: hi.trophy, label: 'Translate a webtoon panel' },
       { icon: hi.doc, label: 'Read a short Korean story' },
       { icon: hi.mic, label: 'Korean podcast breakdown' },
@@ -149,7 +149,7 @@ const LANGUAGE_SUGGESTIONS: Record<string, Record<ScenarioMode, Suggestion[]>> =
 
 const DEFAULT_SUGGESTIONS: Record<ScenarioMode, Suggestion[]> = {
   conversation: [
-    { icon: hi.fire, label: 'Order coffee at a local caf\u00E9' },
+    { icon: hi.fire, label: 'Order coffee at a local café' },
     { icon: hi.pin, label: 'Ask for directions at a train station' },
     { icon: hi.cart, label: 'Go grocery shopping at a market' },
     { icon: hi.trophy, label: 'Make plans for a weekend trip' },
@@ -383,7 +383,7 @@ export function PromptScreen({ targetLanguage, error, isLoading, onStart }: Prom
                         ta.style.height = 'auto'
                         ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'
                       }}
-                      placeholder={idleIme.imeActive ? "Type romaji to write Japanese... (e.g., 'taberu' \u2192 \u98DF\u3079\u308B)" : getModePlaceholders(targetLanguage)[selectedMode]}
+                      placeholder={idleIme.imeActive ? "Type romaji to write Japanese... (e.g., 'taberu' → 食べる)" : getModePlaceholders(targetLanguage)[selectedMode]}
                       onKeyDown={(e) => {
                         const consumed = idleIme.handleKeyDown(e)
                         if (consumed) return
@@ -417,7 +417,7 @@ export function PromptScreen({ targetLanguage, error, isLoading, onStart }: Prom
                         onClick={idleIme.toggleIME}
                         title={idleIme.imeActive ? 'Japanese IME on' : 'Japanese IME off'}
                       >
-                        {idleIme.imeActive ? '\u3042' : 'A'}
+                        {idleIme.imeActive ? 'あ' : 'A'}
                       </button>
                       {/* Voice */}
                       <button
@@ -441,12 +441,12 @@ export function PromptScreen({ targetLanguage, error, isLoading, onStart }: Prom
                     <div className="flex items-center gap-3">
                       <span className={cn("text-[12px] select-none", input.trim() ? "text-text-placeholder" : "text-text-muted/50")}>
                         {!input.trim()
-                          ? 'No topic needed \u2014 just jump in'
+                          ? 'No topic needed — just jump in'
                           : idleIme.imeActive
                             ? idleIme.mode !== 'direct'
-                              ? 'Enter confirm \u00B7 Space candidates \u00B7 Esc revert'
-                              : '\u23CE send \u00B7 \u2318Space toggle IME'
-                            : '\u23CE send \u00B7 \u21E7\u23CE newline'
+                              ? 'Enter confirm · Space candidates · Esc revert'
+                              : '⏎ send · ⌘Space toggle IME'
+                            : '⏎ send · ⇧⏎ newline'
                         }
                       </span>
                       {input.trim() ? (
@@ -546,7 +546,7 @@ export function PromptScreen({ targetLanguage, error, isLoading, onStart }: Prom
                   className="bg-transparent border-none cursor-pointer text-[13px] text-text-muted hover:text-text-primary transition-colors"
                   onClick={() => setShowAllSuggestions((v) => !v)}
                 >
-                  {showAllSuggestions ? 'Show less' : 'See all \u2192'}
+                  {showAllSuggestions ? 'Show less' : 'See all →'}
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">

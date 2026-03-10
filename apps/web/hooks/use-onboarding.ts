@@ -52,9 +52,10 @@ export function useOnboarding() {
   }, [snapshot])
 
   const isDismissed = useCallback((id: HintId): boolean => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem(PREFIX + id) === '1'
-  }, [])
+    const values = snapshot.split(',')
+    const idx = HINT_IDS.indexOf(id)
+    return !!values[idx]
+  }, [snapshot])
 
   const dismiss = useCallback((id: HintId) => {
     localStorage.setItem(PREFIX + id, '1')

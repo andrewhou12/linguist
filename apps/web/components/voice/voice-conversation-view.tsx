@@ -11,40 +11,9 @@ import { VoiceCentralOrb } from './voice-central-orb'
 import { BeginOverlay } from '@/components/session/begin-overlay'
 import { VoiceSessionOverlay } from './voice-session-overlay'
 import { SessionDebrief } from '@/components/session/session-debrief'
+import { LoadingScreen } from '@/components/session/loading-screen'
 import type { SessionEndData } from '@/lib/session-types'
 import { Spinner } from '@/components/spinner'
-
-const LOADING_SUBTITLES = [
-  'Designing your session...',
-  'Writing your conversation plan...',
-  'Picking vocabulary targets...',
-  'Setting the scene...',
-]
-
-function CyclingSubtitle() {
-  const [index, setIndex] = useState(0)
-  const [fade, setFade] = useState(true)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false)
-      setTimeout(() => {
-        setIndex(i => (i + 1) % LOADING_SUBTITLES.length)
-        setFade(true)
-      }, 200)
-    }, 2800)
-    return () => clearInterval(interval)
-  }, [])
-
-  return (
-    <p
-      className="text-[13px] text-text-muted transition-opacity duration-200"
-      style={{ opacity: fade ? 1 : 0 }}
-    >
-      {LOADING_SUBTITLES[index]}
-    </p>
-  )
-}
 
 const MODE_DEFAULTS: Record<string, string> = {
   conversation: "Let's have a casual conversation in Japanese.",
@@ -226,22 +195,9 @@ export function VoiceConversationView() {
     )
   }
 
-  // Loading state — portal to body
+  // Loading state — reuse shared loading screen with step indicators
   if (viewState.type === 'loading') {
-    return createPortal(
-      <div className="fixed inset-0 z-[99999] bg-bg flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center gap-5">
-          <Spinner size={22} />
-          <div className="flex flex-col items-center gap-1.5">
-            <p className="text-[15px] font-medium text-text-primary tracking-[-0.01em]">
-              Preparing your session
-            </p>
-            <CyclingSubtitle />
-          </div>
-        </div>
-      </div>,
-      document.body,
-    )
+    return <LoadingScreen />
   }
 
   // Prompt input screen — portal to body

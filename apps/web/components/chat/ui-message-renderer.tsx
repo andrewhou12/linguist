@@ -1,10 +1,9 @@
 'use client'
 
 import Markdown from 'react-markdown'
-import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import type { UIMessage } from 'ai'
-import { rubyToHtml } from '@/lib/ruby-annotator'
+import { stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { getToolZone } from '@/lib/tool-zones'
 import type { DifficultyViolation } from '@/lib/difficulty-validator'
 import { MessageBlock } from '@/components/chat/message-block'
@@ -111,14 +110,14 @@ function PartRenderer({
     const text = (part as { type: 'text'; text: string }).text
     if (!text.trim()) return null
 
-    const htmlText = rubyToHtml(text)
+    const htmlText = stripRubyAnnotations(text)
 
     return (
       <div className={cn(
         "chat-markdown text-text-primary leading-[1.7] text-[14.5px]",
         isStreaming && "[&>p:last-of-type]:inline"
       )}>
-        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+        <Markdown remarkPlugins={[remarkGfm]}>
           {htmlText}
         </Markdown>
         {isStreaming && <span className="blink-cursor" />}

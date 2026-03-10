@@ -396,16 +396,6 @@ function SessionOverlayInner({
     setShowEndConfirm(false)
   }, [])
 
-  // Escape opens confirmation (but not while talking or confirming)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showKeyboard && !voice.isTalking && !showEndConfirm) {
-        requestEnd()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [requestEnd, showKeyboard, voice.isTalking, showEndConfirm])
 
   // Cleanup
   useEffect(() => {

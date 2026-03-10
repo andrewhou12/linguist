@@ -63,7 +63,6 @@ function getSubtitle(plan: SessionPlan): string | null {
 export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }: BeginOverlayProps) {
   const [steerMessages, setSteerMessages] = useState<SteerMessage[]>([])
   const [inputValue, setInputValue] = useState('')
-  const [isExiting, setIsExiting] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const title = getTitle(plan)
@@ -79,10 +78,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
   }, [inputValue])
 
   const handleBegin = useCallback(() => {
-    setIsExiting(true)
-    setTimeout(() => {
-      onBegin(steerMessages.map(m => m.text))
-    }, 350)
+    onBegin(steerMessages.map(m => m.text))
   }, [onBegin, steerMessages])
 
   // Build plan detail sections
@@ -91,7 +87,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: isExiting ? 0 : 1 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-[99999] bg-bg overflow-y-auto"
     >
@@ -99,7 +95,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {/* Back */}
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: isExiting ? 0 : 1 }}
+          animate={{ opacity: 1 }}
           transition={{ delay: 0.05, duration: 0.3 }}
         >
           <button
@@ -114,7 +110,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 8 : 0 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
           className="mb-8"
         >
@@ -138,7 +134,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {profile && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 8 : 0 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.4 }}
             className="flex items-center gap-2 flex-wrap mb-6"
           >
@@ -160,7 +156,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {/* Plan sections */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 8 : 0 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}
           className="flex flex-col gap-3 mb-8"
         >
@@ -237,7 +233,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {/* Adjust input */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 8 : 0 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4 }}
           className="mb-8"
         >
@@ -271,7 +267,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
         {/* Begin button */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 8 : 0 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}
           className="flex flex-col items-center"
         >
@@ -283,7 +279,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
             <ArrowRightIcon className="w-4 h-4" />
           </button>
           <p className="text-[12px] text-text-muted mt-3">
-            {hintText ?? 'Hold mic to speak \u00B7 Corrections appear inline'}
+            {hintText ?? 'Hold mic to speak · Corrections appear inline'}
           </p>
         </motion.div>
       </div>

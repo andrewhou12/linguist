@@ -21,7 +21,6 @@ import { useTTS } from '@/hooks/use-tts'
 import { useStreamingTTS } from '@/hooks/use-streaming-tts'
 import { UIMessageRenderer } from '@/components/chat/ui-message-renderer'
 import { ChatInput } from '@/components/chat/chat-input'
-import { SuggestionChips } from '@/components/chat/suggestion-chips'
 import { SessionNavBar } from '@/components/session/session-nav-bar'
 import { SessionPlanSidebar } from '@/components/session/session-plan-sidebar'
 import { EndConfirmation } from '@/components/session/end-confirmation'
@@ -34,12 +33,6 @@ import { cn } from '@/lib/utils'
 import { useOnboarding } from '@/hooks/use-onboarding'
 import { CoachMark } from '@/components/onboarding/coach-mark'
 import type { UsageInfo } from '@lingle/shared/types'
-
-const CHAT_DEFAULT_SUGGESTIONS = [
-  'Hello!',
-  'What should we talk about?',
-  'Can you repeat that?',
-]
 
 type ActivePanel = 'feedback' | 'help' | 'lookup' | null
 
@@ -191,26 +184,6 @@ export function ChatSessionOverlay({
   }, [messages, isSending])
   const streamingTts = useStreamingTTS(latestAssistantText, isSending)
 
-  // ── Dynamic suggestions ──
-  const dynamicSuggestions = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i]
-      if (msg.role !== 'assistant') continue
-      for (const part of msg.parts) {
-        const partType = (part as { type: string }).type
-        if (partType === 'tool-suggestActions') {
-          const toolPart = part as { type: string; state: string; output?: unknown }
-          if (toolPart.state === 'output-available' && toolPart.output) {
-            const output = toolPart.output as { suggestions: string[] }
-            if (output.suggestions?.length > 0) return output.suggestions
-          }
-        }
-      }
-      break
-    }
-    return null
-  }, [messages])
-
   // ── Update plan from updateSessionPlan tool ──
   useEffect(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -319,6 +292,54 @@ export function ChatSessionOverlay({
     }
     prevIsSendingRef.current = isSending
   }, [isSending, messages, difficultyLevel, difficultyViolations])
+
+  // ── Extract showCorrection tool outputs into analysisResults ──
+  useEffect(() => {
+    const toolCorrections: Array<{ original: string; corrected: string; explanation: string; grammarPoint?: string }> = []
+    for (const msg of messages) {
+      if (msg.role !== 'assistant') continue
+      for (const part of msg.parts) {
+        const partType = (part as { type: string }).type
+        if (partType === 'tool-showCorrection') {
+          const toolPart = part as { type: string; state: string; output?: unknown }
+          if (toolPart.state === 'output-available' && toolPart.output) {
+            const output = toolPart.output as { original: string; corrected: string; explanation: string; grammarPoint?: string }
+            toolCorrections.push(output)
+          }
+        }
+      }
+    }
+    if (toolCorrections.length === 0) return
+
+    setAnalysisResults(prev => {
+      // Collect all existing corrections across all turns for dedup
+      const existingSet = new Set<string>()
+      for (const result of Object.values(prev)) {
+        for (const c of result.corrections) {
+          existingSet.add(`${c.original}::${c.corrected}`)
+        }
+      }
+
+      // Find new corrections not already in analysisResults
+      const newCorrections = toolCorrections.filter(c => !existingSet.has(`${c.original}::${c.corrected}`))
+      if (newCorrections.length === 0) return prev
+
+      // Merge into turn 0 (tool-based corrections bucket)
+      const existing = prev[0] || { corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [] }
+      // Dedup within the tool bucket too
+      const bucketSet = new Set(existing.corrections.map(c => `${c.original}::${c.corrected}`))
+      const toAdd = newCorrections.filter(c => !bucketSet.has(`${c.original}::${c.corrected}`))
+      if (toAdd.length === 0) return prev
+
+      return {
+        ...prev,
+        [0]: {
+          ...existing,
+          corrections: [...existing.corrections, ...toAdd],
+        },
+      }
+    })
+  }, [messages])
 
   // ── Section tracking from latest analysis ──
   const currentSectionLabel = useMemo(() => {
@@ -496,10 +517,6 @@ export function ChatSessionOverlay({
     await sendMessage({ text })
   }, [input, isSending, sendMessage])
 
-  const handleSuggestionSelect = useCallback((text: string) => {
-    setInput(text)
-  }, [])
-
   const handleChoiceSelect = useCallback((text: string, blockId: string) => {
     setChosenChoiceIds((prev) => new Set(prev).add(blockId))
     sendMessage({ text })
@@ -548,22 +565,13 @@ export function ChatSessionOverlay({
       analysisResults,
     }
 
-    try { await api.conversationEnd(sessionId) } catch {}
+    api.conversationEnd(sessionId).catch(() => {})
     onEnd(endData)
   }, [messages, sessionDuration, analysisResults, sessionId, onEnd])
 
   const handleEndCancel = useCallback(() => {
     setShowEndConfirm(false)
   }, [])
-
-  // ── Escape key ──
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showEndConfirm) requestEnd()
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [requestEnd, showEndConfirm])
 
   // ── Feedback count for nav ──
   const transcriptCount = messages.length
@@ -711,22 +719,6 @@ export function ChatSessionOverlay({
             {/* Bottom area */}
             <div className="px-6 pt-2 pb-4 flex flex-col gap-3">
               <div className="max-w-3xl mx-auto w-full flex flex-col gap-3">
-                {/* Suggestion chips */}
-                {(messages.length === 0 || (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !isSending)) && (
-                  <CoachMark
-                    hintId="hint_chat_suggestions"
-                    content="Tap a suggestion or type your own reply below."
-                    side="top"
-                    show={hasAssistantMessages && !isDismissed('hint_chat_suggestions')}
-                    onDismiss={() => dismiss('hint_chat_suggestions')}
-                  >
-                    <SuggestionChips
-                      suggestions={dynamicSuggestions ?? CHAT_DEFAULT_SUGGESTIONS}
-                      onSelect={handleSuggestionSelect}
-                    />
-                  </CoachMark>
-                )}
-
                 {/* Helper chip buttons */}
                 {hasAssistantMessages && (
                   <CoachMark

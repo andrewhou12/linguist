@@ -23,9 +23,9 @@ function formatDuration(seconds: number): string {
 }
 
 const MOTIVATION_MESSAGES = [
-  'Stay consistent \u2014 every session builds fluency!',
+  'Stay consistent — every session builds fluency!',
   'Small steps daily lead to big breakthroughs.',
-  'You showed up today \u2014 that matters more than perfection.',
+  'You showed up today — that matters more than perfection.',
   'Consistency beats intensity. See you tomorrow!',
   'Each conversation makes the next one easier.',
 ]
@@ -189,7 +189,7 @@ export function SessionDebrief({
             className="text-center py-6 mb-8"
           >
             <p className="text-[14px] text-text-secondary">
-              No corrections this session \u2014 nice work!
+              No corrections this session — nice work!
             </p>
           </motion.div>
         )}

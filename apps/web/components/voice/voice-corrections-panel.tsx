@@ -97,34 +97,38 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
 
                 {/* Corrections */}
                 {result.corrections.map((c, i) => (
-                  <div key={`c-${i}`} className="ml-4 py-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[14px] font-jp-clean text-text-muted line-through decoration-accent-warm/40">{c.original}</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
-                        <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span className="text-[14px] font-jp-clean font-medium text-text-primary">{c.corrected}</span>
-                    </div>
-                    <div className="flex items-baseline gap-2 mt-1.5">
-                      {c.grammarPoint && (
-                        <span className="text-[11px] font-medium text-accent-warm bg-warm-soft rounded px-2 py-0.5 shrink-0 font-sans">{c.grammarPoint}</span>
-                      )}
-                      <span className="text-[13px] text-text-muted leading-[1.6] font-sans">{c.explanation}</span>
+                  <div key={`c-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-jp-clean text-text-muted line-through decoration-text-placeholder/40">{c.original}</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
+                          <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{c.corrected}</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mt-2">
+                        {c.grammarPoint && (
+                          <span className="text-[10.5px] font-medium text-text-secondary bg-bg-secondary rounded-full px-2 py-0.5 shrink-0 font-sans">{c.grammarPoint}</span>
+                        )}
+                        <span className="text-[12px] text-text-muted leading-[1.5] font-sans">{c.explanation}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
 
                 {/* Naturalness */}
                 {result.naturalnessFeedback.map((n, i) => (
-                  <div key={`n-${i}`} className="ml-4 py-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[14px] font-jp-clean text-text-secondary">{n.original}</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
-                        <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span className="text-[14px] font-jp-clean font-medium text-text-primary">{n.suggestion}</span>
+                  <div key={`n-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-jp-clean text-text-secondary">{n.original}</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
+                          <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{n.suggestion}</span>
+                      </div>
+                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{n.explanation}</span>
                     </div>
-                    <span className="text-[13px] text-text-muted leading-[1.6] font-sans block mt-1.5">{n.explanation}</span>
                   </div>
                 ))}
 

@@ -7,6 +7,7 @@ import { stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { cn } from '@/lib/utils'
 import { getTargetFontCleanClass, getLanguageById } from '@/lib/languages'
 import { useLanguage } from '@/hooks/use-language'
+import { CorrectionCard } from '@/components/chat/correction-card'
 
 interface CorrectionInfo {
   original: string
@@ -211,7 +212,15 @@ export function VoiceExchangeView({
               <div className={cn("px-[13px] py-[9px] text-[13.5px] leading-[1.72] rounded-xl rounded-br-[3px] bg-accent-brand text-white", fontClean)}>
                 {userLine.text}
               </div>
-              {correction && <CorrectionInline correction={correction} />}
+              {correction && (
+                <motion.div
+                  initial={{ opacity: 0, maxHeight: 0 }}
+                  animate={{ opacity: 1, maxHeight: 200 }}
+                  transition={{ duration: 0.5, ease: [0.2, 0.85, 0.4, 1] }}
+                >
+                  <CorrectionCard {...correction} />
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
@@ -262,27 +271,3 @@ function KaraokeText({ text, highlightChars }: { text: string; highlightChars: n
   )
 }
 
-function CorrectionInline({ correction }: { correction: CorrectionInfo }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, maxHeight: 0 }}
-      animate={{ opacity: 1, maxHeight: 120 }}
-      transition={{ duration: 0.5, ease: [0.2, 0.85, 0.4, 1] }}
-      className={cn(
-        'flex items-start gap-2 text-[12px] rounded-[10px] px-[11px] py-2 leading-[1.58] mt-px',
-        'voice-correction-bad',
-      )}
-    >
-      <span className="text-[14px] shrink-0 leading-[1.3]">&#10022;</span>
-      <div className="flex flex-col gap-[2px]">
-        <span className="text-[11px] text-text-muted">
-          You said: <strong className="font-medium underline decoration-wavy decoration-accent-warm/50 underline-offset-[3px]">{correction.original}</strong>
-        </span>
-        <span className="text-[12px] text-text-primary">
-          Try: <strong className="font-semibold">{correction.corrected}</strong>
-        </span>
-        <span className="text-[11px] text-text-muted">{correction.explanation}</span>
-      </div>
-    </motion.div>
-  )
-}

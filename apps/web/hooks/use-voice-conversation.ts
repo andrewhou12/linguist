@@ -680,11 +680,9 @@ export function useVoiceConversation(
     await fsmRef.current.endSession()
 
     if (sessionIdRef.current) {
-      try {
-        await api.conversationEnd(sessionIdRef.current)
-      } catch (err) {
+      api.conversationEnd(sessionIdRef.current).catch(err => {
         console.error('[voice-conversation] Failed to end session:', err)
-      }
+      })
     }
   }, [])
 

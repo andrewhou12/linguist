@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { UsageLimitError } from '@/lib/api'
@@ -108,63 +109,60 @@ function ConversationViewInner() {
     setViewState({ type: 'prompt' })
   }, [])
 
-  // Debrief
-  if (viewState.type === 'debrief') {
-    return (
-      <SessionDebrief
-        duration={viewState.data.duration}
-        transcript={viewState.data.transcript}
-        analysisResults={viewState.data.analysisResults}
-        plan={usage?.plan}
-        onDone={handleDebriefDone}
-      />
-    )
-  }
+  const isOverlayActive = viewState.type !== 'prompt'
 
-  // Active session
-  if (viewState.type === 'active') {
-    return (
-      <ChatSessionOverlay
-        prompt={viewState.prompt}
-        mode={activeMode}
-        sessionId={viewState.sessionId}
-        plan={viewState.plan}
-        steeringNotes={viewState.steeringNotes}
-        usage={usage}
-        onEnd={handleEnd}
-      />
-    )
-  }
-
-  // Begin overlay
-  if (viewState.type === 'begin') {
-    return (
-      <BeginOverlay
-        plan={viewState.plan}
-        mode={activeMode}
-        prompt={viewState.prompt}
-        profile={profile}
-        onBegin={handleBegin}
-        onBack={() => setViewState({ type: 'prompt' })}
-        hintText="Type to chat \u00B7 Corrections appear inline"
-      />
-    )
-  }
-
-  // Loading
-  if (viewState.type === 'loading') {
-    return <LoadingScreen />
-  }
-
-  // Prompt
   return (
     <>
-      <PromptScreen
-        targetLanguage={targetLanguage}
-        error={error}
-        isLoading={isLoading}
-        onStart={handleStart}
-      />
+      {/* PromptScreen always mounted; hidden when overlay is active */}
+      <div style={{ display: isOverlayActive ? 'none' : undefined }}>
+        <PromptScreen
+          targetLanguage={targetLanguage}
+          error={error}
+          isLoading={isLoading}
+          onStart={handleStart}
+        />
+      </div>
+
+      {/* Persistent backdrop prevents flash between portal swaps */}
+      {isOverlayActive && createPortal(
+        <div className="fixed inset-0 z-[99998] bg-bg" />,
+        document.body,
+      )}
+
+      {/* Overlay screens (each renders its own z-[99999] portal) */}
+      {viewState.type === 'loading' && <LoadingScreen />}
+      {viewState.type === 'begin' && (
+        <BeginOverlay
+          plan={viewState.plan}
+          mode={activeMode}
+          prompt={viewState.prompt}
+          profile={profile}
+          onBegin={handleBegin}
+          onBack={() => setViewState({ type: 'prompt' })}
+          hintText="Type to chat · Corrections appear inline"
+        />
+      )}
+      {viewState.type === 'active' && (
+        <ChatSessionOverlay
+          prompt={viewState.prompt}
+          mode={activeMode}
+          sessionId={viewState.sessionId}
+          plan={viewState.plan}
+          steeringNotes={viewState.steeringNotes}
+          usage={usage}
+          onEnd={handleEnd}
+        />
+      )}
+      {viewState.type === 'debrief' && (
+        <SessionDebrief
+          duration={viewState.data.duration}
+          transcript={viewState.data.transcript}
+          analysisResults={viewState.data.analysisResults}
+          plan={usage?.plan}
+          onDone={handleDebriefDone}
+        />
+      )}
+
       <UsageLimitModal
         open={showUsageLimitModal}
         onClose={() => setShowUsageLimitModal(false)}
