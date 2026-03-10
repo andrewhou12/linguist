@@ -14,6 +14,7 @@ interface SessionSummary {
   timestamp: string
   durationSeconds: number | null
   mode: string
+  inputMode: string | null
   sessionFocus: string
 }
 
@@ -119,7 +120,7 @@ export default function ProgressPage() {
                       <div className="text-[13px] font-medium text-text-primary truncate">{label}</div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[11px] px-1.5 py-px rounded bg-bg-secondary text-text-muted font-medium uppercase tracking-wide">
-                          {MODE_LABELS[session.mode as ScenarioMode] || session.mode}
+                          {session.inputMode === 'voice' ? 'Voice ' : session.inputMode === 'chat' ? 'Chat ' : ''}{MODE_LABELS[session.mode as ScenarioMode] || session.mode}
                         </span>
                         <span className="text-[11px] text-text-muted">
                           {formatRelativeTime(session.timestamp)}

@@ -186,6 +186,7 @@ model ConversationSession {
   userId          String
   user            User     @relation(fields: [userId], references: [id])
   mode            String   @default("conversation")
+  inputMode       String?
   targetLanguage  String
   timestamp       DateTime @default(now())
   durationSeconds Int?

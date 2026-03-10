@@ -139,7 +139,7 @@ export function useHumeVoice(opts: {
     async (prompt: string, mode: string) => {
       setError(null)
       try {
-        const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+        const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
         const newSessionId = result._sessionId ?? null
         setSessionId(newSessionId)
         setSessionPlan(result.plan ?? null)

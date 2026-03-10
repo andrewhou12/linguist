@@ -212,8 +212,8 @@ export function SessionDebrief({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-semibold text-text-primary">Upgrade to Pro for detailed analysis</div>
-                <div className="text-[12px] text-text-muted">Session replay, in-depth feedback, and unlimited practice</div>
+                <div className="text-[13px] font-semibold text-text-primary">Become an Early Adopter for detailed analysis</div>
+                <div className="text-[12px] text-text-muted">Session replay, in-depth feedback, and unlimited practice — $5/mo</div>
               </div>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-muted shrink-0">
                 <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

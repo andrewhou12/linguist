@@ -69,7 +69,7 @@ function ConversationViewInner() {
         return
       }
 
-      const result = await api.conversationPlan(prompt, mode)
+      const result = await api.conversationPlan(prompt, mode, 'chat')
       setActiveMode(mode)
       setViewState({
         type: 'begin',

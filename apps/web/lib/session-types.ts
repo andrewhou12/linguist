@@ -34,6 +34,23 @@ export interface TurnAnalysisResult {
     suggestion: string
     explanation: string
   }>
+  registerMismatches?: Array<{
+    original: string
+    suggestion: string
+    expected: string
+    explanation: string
+  }>
+  l1Interference?: Array<{
+    original: string
+    issue: string
+    suggestion: string
+  }>
+  alternativeExpressions?: Array<{
+    original: string
+    alternative: string
+    explanation: string
+  }>
+  takeaways?: string[]
   sectionTracking?: {
     currentSectionId: string
     completedSectionIds: string[]

@@ -87,6 +87,7 @@ export class VoiceSessionFSM {
   private _firstTokenLogged = false
   private _firstMessageReceived = false
   private _sendInFlight = false
+  private _cancelled = false
 
   constructor(deps: FSMDeps) {
     this._deps = deps
@@ -164,6 +165,12 @@ export class VoiceSessionFSM {
   handleUtterance(utterance: EnrichedUtterance) {
     const text = utterance.text.trim()
     if (!text) return
+
+    // Reject utterances arriving after cancel (e.g. from async Soniox finalized events)
+    if (this._cancelled) {
+      console.log(`[voice] handleUtterance: ignoring (cancelled) text:"${text.slice(0, 40)}"`)
+      return
+    }
 
     // Guard: prevent duplicate sends
     if (this._state === 'THINKING' || this._state === 'SPEAKING' || this._sendInFlight) {
@@ -270,6 +277,7 @@ export class VoiceSessionFSM {
   // Push-to-talk: start recording
   async startTalking() {
     if (!this._isActive || !this._firstMessageReceived) return
+    this._cancelled = false
 
     // Interrupt if AI is speaking
     if (this._state === 'SPEAKING' || this._state === 'THINKING') {
@@ -313,7 +321,10 @@ export class VoiceSessionFSM {
 
   // Cancel current recording
   cancelTalking() {
+    this._cancelled = true
     this._deps.onTalkingChange(false)
+    // Flush and discard accumulated tokens so async Soniox events can't send them
+    this._deps.soniox.immediateFlush()
     this._deps.soniox.pause()
     this.dispatch('RESET')
   }

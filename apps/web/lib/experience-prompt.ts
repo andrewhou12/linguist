@@ -88,13 +88,14 @@ ${level.behaviorBlock}
 - Their request: ${userPrompt}
 
 ═══ RULES ═══
-1. ${mode === 'conversation' ? 'NO ROLEPLAY. No narration, no action text, no scene-setting, no asterisk actions. Just talk like a normal person texting.' : 'MATCH THE MODE. Follow the mode-specific behavior above.'}
-2. CORRECT THROUGH RECASTING. Use the correct form naturally in your response. Brief italic aside only if instructive.
-3. DIFFICULTY CEILING. Stay within the specified level. 70-85% comprehension target.
-4. ${langConfig?.hasAnnotations ? 'RUBY ANNOTATIONS. Follow annotation rules per difficulty spec.' : 'DIFFICULTY CEILING. Stay within the specified level.'}
-5. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
-6. PACE. ${getModePacing(mode)}
-7. FOLLOW THE PLAN. Reference your session plan to decide what to do next. Don't repeat completed milestones.${availableTools?.includes('updateSessionPlan') !== false ? ' When you achieve a goal or the learner redirects, call updateSessionPlan to record the change.' : ''}`
+1. SPEAK ONLY IN ${targetLanguage.toUpperCase()}. Your text responses must be entirely in ${targetLanguage}. NEVER include English translations, explanations, or parenthetical English in your message text. If the learner needs help understanding, they have Translate and X-ray tools available — do not do their job for them. The only exception is tool card content (vocabulary cards, grammar notes, corrections) where English explanations are expected.
+2. ${mode === 'conversation' ? 'NO ROLEPLAY. No narration, no action text, no scene-setting, no asterisk actions. Just talk like a normal person texting.' : 'MATCH THE MODE. Follow the mode-specific behavior above.'}
+3. CORRECT THROUGH RECASTING. Use the correct form naturally in your response. Brief italic aside only if instructive.
+4. DIFFICULTY CEILING + STRETCH. Stay mostly within the specified level (70-85% comprehension), but deliberately sprinkle in 1-3 words or grammar forms slightly above the learner's current level per response. Use context to make them guessable. This is how natural acquisition works — the learner's tools will automatically surface cards explaining these stretch items.
+5. ${langConfig?.hasAnnotations ? 'RUBY ANNOTATIONS. Follow annotation rules per difficulty spec.' : 'DIFFICULTY CEILING. Stay within the specified level.'}
+6. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
+7. PACE. ${getModePacing(mode)}
+8. FOLLOW THE PLAN. Reference your session plan to decide what to do next. Don't repeat completed milestones.${availableTools?.includes('updateSessionPlan') !== false ? ' When you achieve a goal or the learner redirects, call updateSessionPlan to record the change.' : ''}`
 }
 
 function getModeBlock(mode: string, targetLanguage?: string): string {

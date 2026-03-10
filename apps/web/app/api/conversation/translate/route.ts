@@ -15,6 +15,7 @@ export const POST = withAuth(async (request, { userId: _userId }) => {
     const { text: translation } = await generateText({
       model: anthropic('claude-haiku-4-5-20251001'),
       prompt: `Translate this ${lang} text to natural English. Return ONLY the translation, nothing else.\n\n${text}`,
+      maxOutputTokens: 300,
     })
 
     return NextResponse.json({ translation: translation.trim() })

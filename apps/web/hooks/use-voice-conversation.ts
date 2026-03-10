@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
 import { api } from '@/lib/api'
 import type { SessionPlan } from '@/lib/session-plan'
+import { extractTextFromMessage } from '@/lib/message-utils'
 import { useSoniox, type EnrichedUtterance, type SonioxContext } from './use-soniox'
 import { useVoiceTTS } from './use-voice-tts'
 import { useLanguage } from './use-language'
@@ -31,12 +32,7 @@ function findCurrentAssistantMessage(messages: UIMessage[]): UIMessage | null {
   return messages[lastAssistantIdx]
 }
 
-function extractText(msg: UIMessage): string {
-  return msg.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => (p as { type: 'text'; text: string }).text)
-    .join('')
-}
+const extractText = extractTextFromMessage
 
 // ── Hook ──
 
@@ -582,7 +578,7 @@ export function useVoiceConversation(
       getVoicePlayer().warmup()
       sonioxRef.current.warmup?.()
       try {
-        const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+        const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
         setSessionId(result._sessionId ?? null)
         setSessionPlan(result.plan ?? null)
         setMessages([])

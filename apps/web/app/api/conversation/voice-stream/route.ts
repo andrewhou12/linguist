@@ -1,12 +1,12 @@
 import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@lingle/db'
 import { createVoiceModeTools } from '@/lib/conversation-tools'
 import { buildVoiceSystemPrompt } from '@/lib/conversation-prompt'
+import { getSessionWithCache } from '@/lib/conversation-session-cache'
+import { persistTranscript } from '@/lib/conversation-transcript'
+import { truncateMessages, MAX_CONVERSATION_MESSAGES, applyCacheBreakpoint } from '@/lib/conversation-cache-control'
 import type { ScenarioMode } from '@/lib/experience-scenarios'
-import type { ConversationMessage } from '@lingle/shared/types'
-import type { Prisma } from '@prisma/client'
 import { createSentenceBoundaryTracker } from '@/lib/voice/sentence-boundary'
 import { parseCartesiaSSE } from '@/lib/cartesia-sse'
 import { FRAME, encodeFrame } from '@/lib/voice/voice-stream-protocol'
@@ -58,9 +58,6 @@ function detectSentenceLanguage(text: string, targetLangCode: string): string {
   return targetLangCode
 }
 
-// Same session cache as send route — systemPrompt/sessionPlan/mode/targetLanguage never change mid-session
-const sessionCache = new Map<string, { systemPrompt: string; sessionPlan: unknown; mode: string | null; targetLanguage: string }>()
-
 function cleanForTTS(text: string): string {
   return text.replace(RUBY_REGEX, '$1').replace(PAUSE_MARKER_REGEX, '').trim()
 }
@@ -87,25 +84,7 @@ export const POST = withAuth(async (request, { userId }) => {
   }
 
   // Session lookup with caching
-  if (bustCache) {
-    sessionCache.delete(sessionId)
-  }
-  let session = sessionCache.get(sessionId)
-  const cacheHit = !!session
-  if (!session) {
-    const dbSession = await prisma.conversationSession.findUniqueOrThrow({
-      where: { id: sessionId },
-      select: { systemPrompt: true, sessionPlan: true, mode: true, targetLanguage: true },
-    })
-    if (!dbSession.systemPrompt) throw new Error('Session has no system prompt')
-    session = {
-      systemPrompt: dbSession.systemPrompt,
-      sessionPlan: dbSession.sessionPlan,
-      mode: dbSession.mode,
-      targetLanguage: dbSession.targetLanguage,
-    }
-    sessionCache.set(sessionId, session)
-  }
+  const { session, cacheHit } = await getSessionWithCache(sessionId, { bustCache })
 
   const targetLanguage = session.targetLanguage
   const langConfig = getLanguageById(targetLanguage)
@@ -132,10 +111,7 @@ export const POST = withAuth(async (request, { userId }) => {
   const tools = createVoiceModeTools(userId, sessionId)
 
   // Cap conversation history for latency
-  const MAX_VOICE_MESSAGES = 20
-  const inputMessages = messages.length > MAX_VOICE_MESSAGES
-    ? messages.slice(-MAX_VOICE_MESSAGES)
-    : messages
+  const { messages: inputMessages } = truncateMessages(messages, MAX_CONVERSATION_MESSAGES)
 
   const encoder = new TextEncoder()
   const { readable, writable } = new TransformStream<Uint8Array>()
@@ -232,22 +208,12 @@ export const POST = withAuth(async (request, { userId }) => {
     }
 
     try {
-      // Build messages with cache breakpoint on second-to-last message
-      const modelMessages = inputMessages.map((m, i) => {
-        const isBreakpoint = inputMessages.length >= 3 && i === inputMessages.length - 2
-        if (m.role === 'assistant') {
-          return {
-            role: 'assistant' as const,
-            content: m.content,
-            ...(isBreakpoint ? { providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } } } : {}),
-          }
-        }
-        return {
-          role: 'user' as const,
-          content: m.content,
-          ...(isBreakpoint ? { providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } } } : {}),
-        }
-      })
+      // Build messages then apply cache breakpoint
+      const modelMessages = inputMessages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+      applyCacheBreakpoint(modelMessages)
 
       const result = streamText({
         model: anthropic('claude-haiku-4-5-20251001'),
@@ -310,7 +276,8 @@ export const POST = withAuth(async (request, { userId }) => {
       await writer.close()
 
       // Persist transcript (fire-and-forget)
-      persistTranscript(sessionId, messages, fullText).catch(err => {
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+      persistTranscript(sessionId, lastUserMsg?.content ?? null, fullText).catch(err => {
         console.error('[voice-stream] Failed to persist transcript:', err)
       })
     } catch (err) {
@@ -329,39 +296,3 @@ export const POST = withAuth(async (request, { userId }) => {
     },
   })
 })
-
-async function persistTranscript(
-  sessionId: string,
-  messages: Array<{ role: string; content: string }>,
-  assistantText: string,
-) {
-  const current = await prisma.conversationSession.findUniqueOrThrow({
-    where: { id: sessionId },
-    select: { transcript: true },
-  })
-  const transcript = (current.transcript as unknown as ConversationMessage[]) ?? []
-
-  // Add user message
-  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
-  if (lastUserMsg) {
-    transcript.push({
-      role: 'user',
-      content: lastUserMsg.content,
-      timestamp: new Date().toISOString(),
-    })
-  }
-
-  // Add assistant response
-  if (assistantText) {
-    transcript.push({
-      role: 'assistant',
-      content: assistantText,
-      timestamp: new Date().toISOString(),
-    })
-  }
-
-  await prisma.conversationSession.update({
-    where: { id: sessionId },
-    data: { transcript: transcript as unknown as Prisma.InputJsonValue },
-  })
-}

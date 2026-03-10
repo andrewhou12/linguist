@@ -14,8 +14,8 @@ interface VoiceCorrectionsPanelProps {
 type Grade = 'good' | 'ok' | 'fix'
 
 function gradeForResult(r: TurnAnalysisResult): Grade {
-  if (r.corrections.length > 0) return 'fix'
-  if (r.naturalnessFeedback.length > 0) return 'ok'
+  if (r.corrections.length > 0 || (r.registerMismatches?.length ?? 0) > 0 || (r.l1Interference?.length ?? 0) > 0) return 'fix'
+  if (r.naturalnessFeedback.length > 0 || (r.alternativeExpressions?.length ?? 0) > 0) return 'ok'
   return 'good'
 }
 
@@ -35,9 +35,9 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
   const scrollRef = useRef<HTMLDivElement>(null)
   const entries = Object.entries(turnResults).sort(([a], [b]) => Number(a) - Number(b))
 
-  const totalCorrections = entries.reduce((sum, [, r]) => sum + r.corrections.length, 0)
-  const totalNaturalness = entries.reduce((sum, [, r]) => sum + r.naturalnessFeedback.length, 0)
-  const totalItems = totalCorrections + totalNaturalness
+  const totalCorrections = entries.reduce((sum, [, r]) => sum + r.corrections.length + (r.registerMismatches?.length ?? 0) + (r.l1Interference?.length ?? 0), 0)
+  const totalTips = entries.reduce((sum, [, r]) => sum + r.naturalnessFeedback.length + (r.alternativeExpressions?.length ?? 0), 0)
+  const totalItems = totalCorrections + totalTips
 
   useEffect(() => {
     if (scrollRef.current && isOpen) {
@@ -59,7 +59,7 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
           <div className="text-[15px] font-semibold text-text-primary tracking-[-0.02em]">Feedback</div>
           <div className="text-[13px] text-text-muted mt-0.5">
             {totalItems > 0
-              ? `${totalCorrections} correction${totalCorrections !== 1 ? 's' : ''}, ${totalNaturalness} tip${totalNaturalness !== 1 ? 's' : ''}`
+              ? `${totalCorrections} correction${totalCorrections !== 1 ? 's' : ''}, ${totalTips} tip${totalTips !== 1 ? 's' : ''}`
               : 'All good so far'
             }
           </div>
@@ -81,7 +81,7 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
         ) : (
           entries.map(([turnIdx, result]) => {
             const grade = gradeForResult(result)
-            const hasContent = result.corrections.length > 0 || result.naturalnessFeedback.length > 0
+            const hasContent = result.corrections.length > 0 || result.naturalnessFeedback.length > 0 || (result.registerMismatches?.length ?? 0) > 0 || (result.l1Interference?.length ?? 0) > 0 || (result.alternativeExpressions?.length ?? 0) > 0
 
             return (
               <div key={turnIdx} className="py-3.5 border-b border-border/60 last:border-b-0">
@@ -116,6 +116,45 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                   </div>
                 ))}
 
+                {/* Register mismatches */}
+                {result.registerMismatches?.map((r, i) => (
+                  <div key={`r-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-baseline gap-2 mb-1.5">
+                        <span className="text-[10.5px] font-medium text-accent-warm bg-warm-soft rounded-full px-2 py-0.5 shrink-0 font-sans">Register</span>
+                        <span className="text-[10.5px] font-medium text-text-secondary bg-bg-secondary rounded-full px-2 py-0.5 shrink-0 font-sans">expected: {r.expected}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-jp-clean text-text-muted">{r.original}</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
+                          <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{r.suggestion}</span>
+                      </div>
+                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{r.explanation}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* L1 interference */}
+                {result.l1Interference?.map((l, i) => (
+                  <div key={`l-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-baseline gap-2 mb-1.5">
+                        <span className="text-[10.5px] font-medium text-accent-warm bg-warm-soft rounded-full px-2 py-0.5 shrink-0 font-sans">L1 Transfer</span>
+                      </div>
+                      <span className="text-[13.5px] font-jp-clean text-text-muted block">{l.original}</span>
+                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-1.5">{l.issue}</span>
+                      <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                        <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
+                          <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{l.suggestion}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 {/* Naturalness */}
                 {result.naturalnessFeedback.map((n, i) => (
                   <div key={`n-${i}`} className="ml-4 mt-1">
@@ -128,6 +167,25 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                         <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{n.suggestion}</span>
                       </div>
                       <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{n.explanation}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Alternative expressions */}
+                {result.alternativeExpressions?.map((a, i) => (
+                  <div key={`a-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-baseline gap-2 mb-1.5">
+                        <span className="text-[10.5px] font-medium text-accent-brand bg-blue-soft rounded-full px-2 py-0.5 shrink-0 font-sans">Alternative</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-jp-clean text-text-secondary">{a.original}</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
+                          <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{a.alternative}</span>
+                      </div>
+                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{a.explanation}</span>
                     </div>
                   </div>
                 ))}

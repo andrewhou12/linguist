@@ -9,6 +9,7 @@ import {
   QuestionMarkCircleIcon,
   PencilSquareIcon,
   LanguageIcon,
+  LightBulbIcon,
 } from '@heroicons/react/24/outline'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
@@ -23,12 +24,15 @@ import { UIMessageRenderer } from '@/components/chat/ui-message-renderer'
 import { ChatInput } from '@/components/chat/chat-input'
 import { SessionNavBar } from '@/components/session/session-nav-bar'
 import { SessionPlanSidebar } from '@/components/session/session-plan-sidebar'
+import { ConversationFlowPanel } from '@/components/session/conversation-flow-panel'
+import { SessionNotesPanel } from '@/components/session/session-notes-panel'
 import { EndConfirmation } from '@/components/session/end-confirmation'
 import { VoiceHelpPanel } from '@/components/voice/voice-help-panel'
 import { VoiceLookupPanel } from '@/components/voice/voice-lookup-panel'
 import { VoiceCorrectionsPanel } from '@/components/voice/voice-corrections-panel'
 import { Spinner } from '@/components/spinner'
 import { UsageLimitModal } from '@/components/usage-limit-modal'
+import { extractTextFromMessage } from '@/lib/message-utils'
 import { cn } from '@/lib/utils'
 import { useOnboarding } from '@/hooks/use-onboarding'
 import { CoachMark } from '@/components/onboarding/coach-mark'
@@ -90,6 +94,10 @@ export function ChatSessionOverlay({
   // ── X-ray state ──
   const [xrayTokens, setXrayTokens] = useState<Array<{ surface: string; reading: string; meaning: string; pos: string }> | null>(null)
   const [xrayLoading, setXrayLoading] = useState(false)
+
+  // ── Suggestion state ──
+  const [suggestion, setSuggestion] = useState<string | null>(null)
+  const [suggestionLoading, setSuggestionLoading] = useState(false)
 
   // ── Steering ──
   const [steeringMessages, setSteeringMessages] = useState<Array<{ text: string; time: string }>>(
@@ -174,10 +182,7 @@ export function ChatSessionOverlay({
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i]
       if (msg.role === 'assistant') {
-        return msg.parts
-          .filter((p) => p.type === 'text')
-          .map((p) => (p as { type: 'text'; text: string }).text)
-          .join('')
+        return extractTextFromMessage(msg)
       }
     }
     return null
@@ -216,10 +221,7 @@ export function ChatSessionOverlay({
     if (prevIsSendingRef.current && !isSending) {
       const lastMsg = messages[messages.length - 1]
       if (lastMsg?.role === 'assistant' && !difficultyViolations.has(lastMsg.id)) {
-        const text = lastMsg.parts
-          .filter((p) => p.type === 'text')
-          .map((p) => (p as { type: 'text'; text: string }).text)
-          .join('')
+        const text = extractTextFromMessage(lastMsg)
         if (text.trim()) {
           validateDifficulty(text, difficultyLevel).then((violations) => {
             if (violations.length > 0) {
@@ -240,21 +242,12 @@ export function ChatSessionOverlay({
         const lastAssistant = messages[messages.length - 1]
         const lastUser = [...messages].reverse().find(m => m.role === 'user')
         if (lastAssistant?.role === 'assistant' && lastUser) {
-          const userText = lastUser.parts
-            .filter(p => p.type === 'text')
-            .map(p => (p as { type: 'text'; text: string }).text)
-            .join('')
-          const assistantText = lastAssistant.parts
-            .filter(p => p.type === 'text')
-            .map(p => (p as { type: 'text'; text: string }).text)
-            .join('')
+          const userText = extractTextFromMessage(lastUser)
+          const assistantText = extractTextFromMessage(lastAssistant)
 
           const recentHistory = messages.slice(-6).map(m => ({
             role: m.role,
-            content: m.parts
-              .filter(p => p.type === 'text')
-              .map(p => (p as { type: 'text'; text: string }).text)
-              .join(''),
+            content: extractTextFromMessage(m),
           }))
 
           fetch('/api/conversation/voice-analyze', {
@@ -277,6 +270,7 @@ export function ChatSessionOverlay({
                     vocabularyCards: result.vocabularyCards || [],
                     grammarNotes: result.grammarNotes || [],
                     naturalnessFeedback: result.naturalnessFeedback || [],
+                    takeaways: result.takeaways || [],
                     sectionTracking: result.sectionTracking || undefined,
                   },
                 }))
@@ -286,9 +280,10 @@ export function ChatSessionOverlay({
         }
       }
 
-      // Clear translate/xray on new assistant message
+      // Clear translate/xray/suggestion on new assistant message
       setTranslation(null)
       setXrayTokens(null)
+      setSuggestion(null)
     }
     prevIsSendingRef.current = isSending
   }, [isSending, messages, difficultyLevel, difficultyViolations])
@@ -372,10 +367,7 @@ export function ChatSessionOverlay({
   const getLastAssistantText = useCallback(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === 'assistant') {
-        return messages[i].parts
-          .filter(p => p.type === 'text')
-          .map(p => (p as { type: 'text'; text: string }).text)
-          .join('')
+        return extractTextFromMessage(messages[i])
       }
     }
     return null
@@ -392,10 +384,7 @@ export function ChatSessionOverlay({
     try {
       const recentHistory = messages.slice(-6).map(m => ({
         role: m.role,
-        content: m.parts
-          .filter(p => p.type === 'text')
-          .map(p => (p as { type: 'text'; text: string }).text)
-          .join(''),
+        content: extractTextFromMessage(m),
       }))
       const res = await fetch('/api/conversation/help', {
         method: 'POST',
@@ -509,6 +498,34 @@ export function ChatSessionOverlay({
     }
   }, [xrayTokens, getLastAssistantText])
 
+  // ── Suggestion handler (toggle) ──
+  const handleSuggest = useCallback(async () => {
+    if (suggestion) {
+      setSuggestion(null)
+      return
+    }
+    setSuggestionLoading(true)
+    try {
+      const recentHistory = messages.slice(-6).map(m => ({
+        role: m.role,
+        content: extractTextFromMessage(m),
+      }))
+      const res = await fetch('/api/conversation/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recentHistory }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSuggestion(data.suggestion)
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSuggestionLoading(false)
+    }
+  }, [suggestion, messages])
+
   // ── Handlers ──
   const handleSend = useCallback(async () => {
     if (!input.trim() || isSending) return
@@ -551,10 +568,7 @@ export function ChatSessionOverlay({
     // Build transcript from messages
     const transcript = messages.map(m => ({
       role: m.role as 'user' | 'assistant',
-      text: m.parts
-        .filter(p => p.type === 'text')
-        .map(p => (p as { type: 'text'; text: string }).text)
-        .join(''),
+      text: extractTextFromMessage(m),
       isFinal: true,
       timestamp: Date.now(),
     }))
@@ -584,7 +598,16 @@ export function ChatSessionOverlay({
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] overflow-hidden bg-bg">
-      {/* Session Plan sidebar (left) */}
+      {/* Persistent flow panel (left) */}
+      <ConversationFlowPanel
+        plan={sessionPlan}
+        currentSectionId={sectionTracking?.currentSectionId}
+        completedSectionIds={sectionTracking?.completedSectionIds}
+        duration={sessionDuration}
+        onOpenFullPlan={() => setPlanOpen(true)}
+      />
+
+      {/* Full Session Plan sidebar overlay (left, on top of flow panel) */}
       <SessionPlanSidebar
         isOpen={planOpen}
         plan={sessionPlan}
@@ -594,15 +617,15 @@ export function ChatSessionOverlay({
         steeringMessages={steeringMessages}
         currentSectionId={sectionTracking?.currentSectionId}
         completedSectionIds={sectionTracking?.completedSectionIds}
+        className="z-[15]"
       />
+
+      {/* Persistent session notes (right) */}
+      <SessionNotesPanel analysisResults={analysisResults} />
 
       {/* Main layout */}
       <div
-        className={cn(
-          'relative z-[1] h-screen flex flex-col transition-[padding-left,padding-right] duration-[380ms] ease-[cubic-bezier(.76,0,.24,1)]',
-          planOpen ? 'pl-[290px]' : 'pl-0',
-          activePanel ? 'pr-[380px]' : 'pr-0',
-        )}
+        className="relative z-[1] h-screen flex flex-col"
       >
         {/* Nav bar */}
         <SessionNavBar
@@ -618,6 +641,7 @@ export function ChatSessionOverlay({
           onToggleSubtitles={() => {}}
           onEnd={requestEnd}
           currentSectionLabel={currentSectionLabel}
+          inputMode="chat"
           rightSlot={
             <button
               className={cn(
@@ -635,7 +659,7 @@ export function ChatSessionOverlay({
         />
 
         {/* Chat area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden pl-[310px] pr-[310px]">
           {/* Messages column */}
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-auto">
@@ -647,17 +671,11 @@ export function ChatSessionOverlay({
                     chosenChoiceIds={chosenChoiceIds}
                     onChoiceSelect={handleChoiceSelect}
                     onPlay={
-                      msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim())
-                        ? () => {
-                            const textContent = msg.parts
-                              .filter((p) => p.type === 'text')
-                              .map((p) => (p as { type: 'text'; text: string }).text)
-                              .join('')
-                            tts.play(msg.id, textContent)
-                          }
+                      msg.role === 'assistant' && extractTextFromMessage(msg).trim()
+                        ? () => tts.play(msg.id, extractTextFromMessage(msg))
                         : undefined
                     }
-                    onStop={msg.role === 'assistant' && msg.parts.some((p) => p.type === 'text' && (p as { type: 'text'; text: string }).text.trim()) ? tts.stop : undefined}
+                    onStop={msg.role === 'assistant' && extractTextFromMessage(msg).trim() ? tts.stop : undefined}
                     isPlayingAudio={tts.playingId === msg.id}
                     isStreaming={isSending && msg === messages[messages.length - 1] && msg.role === 'assistant'}
                     violations={difficultyViolations.get(msg.id)}
@@ -676,24 +694,52 @@ export function ChatSessionOverlay({
                 )}
 
                 {/* Inline X-ray */}
-                {xrayTokens && (
+                {(xrayTokens || xrayLoading) && (
                   <div className="ml-0 my-1.5 px-3 py-2 bg-bg-secondary border border-border rounded-lg">
-                    <div className="text-[11px] font-medium text-text-muted mb-1.5">X-ray</div>
-                    <div className="flex flex-wrap gap-1">
-                      {xrayTokens.map((token, i) => (
-                        <div
-                          key={i}
-                          className="inline-flex flex-col items-center gap-0.5 px-2 py-1.5 bg-bg-pure border border-border rounded-md"
-                        >
-                          <span className="text-[15px] font-jp-clean font-medium text-text-primary">{token.surface}</span>
-                          {token.reading && token.reading !== token.surface && (
-                            <span className="text-[11px] font-jp-clean text-text-muted">{token.reading}</span>
-                          )}
-                          <span className="text-[11px] text-text-secondary leading-tight text-center">{token.meaning}</span>
-                          <span className="text-[10px] text-text-placeholder">{token.pos}</span>
-                        </div>
-                      ))}
+                    <div className="text-[11px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
+                      <MagnifyingGlassIcon className="w-3 h-3" />
+                      X-ray
                     </div>
+                    {xrayLoading ? (
+                      <div className="flex items-center gap-2 py-2">
+                        <Spinner size={14} />
+                        <span className="text-[12px] text-text-muted">Breaking down sentence...</span>
+                      </div>
+                    ) : xrayTokens && (
+                      <div className="flex flex-wrap gap-1">
+                        {xrayTokens.map((token, i) => (
+                          <div
+                            key={i}
+                            className="inline-flex flex-col items-center gap-0.5 px-2 py-1.5 bg-bg-pure border border-border rounded-md"
+                          >
+                            <span className="text-[15px] font-jp-clean font-medium text-text-primary">{token.surface}</span>
+                            {token.reading && token.reading !== token.surface && (
+                              <span className="text-[11px] font-jp-clean text-text-muted">{token.reading}</span>
+                            )}
+                            <span className="text-[11px] text-text-secondary leading-tight text-center">{token.meaning}</span>
+                            <span className="text-[10px] text-text-placeholder">{token.pos}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Inline suggestion */}
+                {(suggestion || suggestionLoading) && (
+                  <div className="ml-0 my-1.5 px-3 py-2 bg-bg-secondary border border-border rounded-lg">
+                    <div className="text-[11px] font-medium text-text-muted mb-0.5 flex items-center gap-1">
+                      <LightBulbIcon className="w-3 h-3" />
+                      Suggestion
+                    </div>
+                    {suggestionLoading ? (
+                      <div className="flex items-center gap-2 py-1.5">
+                        <Spinner size={14} />
+                        <span className="text-[12px] text-text-muted">Thinking of a response...</span>
+                      </div>
+                    ) : suggestion && (
+                      <div className="text-[14px] text-text-secondary leading-[1.6] font-jp-clean whitespace-pre-wrap">{suggestion}</div>
+                    )}
                   </div>
                 )}
 
@@ -767,15 +813,29 @@ export function ChatSessionOverlay({
                     </button>
                     <button
                       onClick={handleXray}
+                      disabled={xrayLoading}
                       className={cn(
                         'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors',
-                        xrayTokens
+                        xrayTokens || xrayLoading
                           ? 'bg-bg-active border-border-strong text-text-primary font-medium'
                           : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
                       )}
                     >
+                      <MagnifyingGlassIcon className="w-3.5 h-3.5" />
                       X-ray
-                      {xrayLoading && <Spinner size={10} />}
+                    </button>
+                    <button
+                      onClick={handleSuggest}
+                      disabled={suggestionLoading}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors',
+                        suggestion || suggestionLoading
+                          ? 'bg-bg-active border-border-strong text-text-primary font-medium'
+                          : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
+                      )}
+                    >
+                      <LightBulbIcon className="w-3.5 h-3.5" />
+                      Suggest
                     </button>
                     <button
                       onClick={() => setActivePanel(p => p === 'feedback' ? null : 'feedback')}

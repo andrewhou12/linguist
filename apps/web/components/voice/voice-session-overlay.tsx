@@ -11,6 +11,8 @@ import { VoiceCentralOrb } from './voice-central-orb'
 import { VoiceStateRing } from './voice-state-ring'
 import { SessionNavBar } from '@/components/session/session-nav-bar'
 import { SessionPlanSidebar } from '@/components/session/session-plan-sidebar'
+import { ConversationFlowPanel } from '@/components/session/conversation-flow-panel'
+import { SessionNotesPanel } from '@/components/session/session-notes-panel'
 import { VoiceLiveSubtitles } from './voice-live-subtitles'
 import { VoiceTranscriptPanel } from './voice-transcript-panel'
 import { VoiceCorrectionsPanel } from './voice-corrections-panel'
@@ -105,6 +107,10 @@ function SessionOverlayInner({
   // ── X-ray state ──
   const [xrayTokens, setXrayTokens] = useState<Array<{ surface: string; reading: string; meaning: string; pos: string }> | null>(null)
   const [xrayLoading, setXrayLoading] = useState(false)
+
+  // ── Suggestion state ──
+  const [suggestion, setSuggestion] = useState<string | null>(null)
+  const [suggestionLoading, setSuggestionLoading] = useState(false)
 
   // ── Steering ──
   const [steeringMessages, setSteeringMessages] = useState<Array<{ text: string; time: string }>>(
@@ -371,6 +377,34 @@ function SessionOverlayInner({
     }
   }, [voice.transcript, xrayTokens])
 
+  // ── Suggestion handler (toggle) ──
+  const handleSuggest = useCallback(async () => {
+    if (suggestion) {
+      setSuggestion(null)
+      return
+    }
+    setSuggestionLoading(true)
+    try {
+      const recentHistory = voice.transcript.slice(-6).map(t => ({
+        role: t.role,
+        content: t.text,
+      }))
+      const res = await fetch('/api/conversation/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recentHistory }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSuggestion(data.suggestion)
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSuggestionLoading(false)
+    }
+  }, [suggestion, voice.transcript])
+
   // ── End session (with confirmation) ──
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const endingRef = useRef(false)
@@ -456,12 +490,13 @@ function SessionOverlayInner({
     }
   }, [voice.isTalking, hasPartial])
 
-  // Clear translation + xray when AI line changes (new response)
+  // Clear translation + xray + suggestion when AI line changes (new response)
   const exchangeAITimestamp = exchangeAILine?.timestamp
   useEffect(() => {
     setTranslation(null)
     setPrecachedTranslation(null)
     setXrayTokens(null)
+    setSuggestion(null)
   }, [exchangeAITimestamp])
 
   // Pre-cache translation when AI line finalizes
@@ -527,7 +562,16 @@ function SessionOverlayInner({
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] overflow-hidden bg-bg">
-      {/* Session Plan sidebar (left) */}
+      {/* Persistent flow panel (left) */}
+      <ConversationFlowPanel
+        plan={voice.sessionPlan || existingPlan || null}
+        currentSectionId={voice.sectionTracking?.currentSectionId}
+        completedSectionIds={voice.sectionTracking?.completedSectionIds}
+        duration={voice.duration}
+        onOpenFullPlan={() => setPlanOpen(true)}
+      />
+
+      {/* Full Session Plan sidebar overlay (left, on top of flow panel) */}
       <SessionPlanSidebar
         isOpen={planOpen}
         plan={voice.sessionPlan || existingPlan || null}
@@ -537,15 +581,15 @@ function SessionOverlayInner({
         steeringMessages={steeringMessages}
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
+        className="z-[15]"
       />
+
+      {/* Persistent session notes (right) */}
+      <SessionNotesPanel analysisResults={voice.analysisResults} />
 
       {/* Main layout */}
       <div
-        className={cn(
-          'relative z-[1] h-screen flex flex-col transition-[padding-left,padding-right] duration-[380ms] ease-[cubic-bezier(.76,0,.24,1)]',
-          planOpen ? 'pl-[290px]' : 'pl-0',
-          rightPanel ? 'pr-[308px]' : 'pr-0',
-        )}
+        className="relative z-[1] h-screen flex flex-col"
       >
         {/* Nav bar */}
         <SessionNavBar
@@ -562,10 +606,11 @@ function SessionOverlayInner({
           onToggleSubtitles={() => setShowSubtitles(p => !p)}
           onEnd={requestEnd}
           currentSectionLabel={currentSectionLabel}
+          inputMode="voice"
         />
 
         {/* Main stage */}
-        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden relative">
+        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden relative pl-[310px] pr-[310px]">
           {/* Starting overlay */}
           {isStarting && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg">
@@ -646,6 +691,9 @@ function SessionOverlayInner({
               xrayTokens={xrayTokens}
               xrayLoading={xrayLoading}
               onXray={handleXray}
+              onSuggest={handleSuggest}
+              suggestion={suggestion}
+              suggestionLoading={suggestionLoading}
             />
           </div>
 

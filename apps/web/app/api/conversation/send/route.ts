@@ -1,15 +1,13 @@
 import { streamText, type UIMessage, convertToModelMessages } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { withAuth } from '@/lib/api-helpers'
-import { prisma } from '@lingle/db'
 import { createConversationTools, createVoiceModeTools } from '@/lib/conversation-tools'
 import { buildVoiceSystemPrompt } from '@/lib/conversation-prompt'
+import { getSessionWithCache } from '@/lib/conversation-session-cache'
+import { persistTranscript } from '@/lib/conversation-transcript'
+import { truncateMessages, MAX_CONVERSATION_MESSAGES, applyCacheBreakpoint } from '@/lib/conversation-cache-control'
 import type { ScenarioMode } from '@/lib/experience-scenarios'
-import type { ConversationMessage, ConversationToolCall } from '@lingle/shared/types'
-import type { Prisma } from '@prisma/client'
-
-// Cache session data in-memory — systemPrompt/sessionPlan/mode never change mid-session
-const sessionCache = new Map<string, { systemPrompt: string; sessionPlan: unknown; mode: string | null }>()
+import type { ConversationToolCall } from '@lingle/shared/types'
 
 export const POST = withAuth(async (request, { userId }) => {
   const t0 = performance.now()
@@ -25,17 +23,7 @@ export const POST = withAuth(async (request, { userId }) => {
     })
   }
 
-  let session = sessionCache.get(sessionId)
-  const cacheHit = !!session
-  if (!session) {
-    const dbSession = await prisma.conversationSession.findUniqueOrThrow({
-      where: { id: sessionId },
-      select: { systemPrompt: true, sessionPlan: true, mode: true },
-    })
-    if (!dbSession.systemPrompt) throw new Error('Session has no system prompt')
-    session = { systemPrompt: dbSession.systemPrompt, sessionPlan: dbSession.sessionPlan, mode: dbSession.mode }
-    sessionCache.set(sessionId, session)
-  }
+  const { session, cacheHit } = await getSessionWithCache(sessionId)
   const tSession = performance.now()
 
   const sessionMode = (session.mode || 'conversation') as ScenarioMode
@@ -51,28 +39,19 @@ export const POST = withAuth(async (request, { userId }) => {
     : createConversationTools(userId, sessionId, sessionMode)
 
   // For voice mode, cap conversation history to keep latency low
-  const MAX_VOICE_MESSAGES = 20
-  const inputMessages = voiceMode && messages.length > MAX_VOICE_MESSAGES
-    ? messages.slice(-MAX_VOICE_MESSAGES)
-    : messages
-  const truncated = inputMessages.length < messages.length
+  const { messages: inputMessages, truncated } = truncateMessages(
+    messages,
+    voiceMode ? MAX_CONVERSATION_MESSAGES : undefined,
+  )
   const modelMessages = await convertToModelMessages(inputMessages, { tools })
 
   // Add cache breakpoint to the second-to-last message so that
   // system + tools + older turns are cached (must exceed Haiku's 2048 token minimum)
+  applyCacheBreakpoint(modelMessages)
   if (modelMessages.length >= 3) {
     const target = modelMessages[modelMessages.length - 2]
-    // Set at message level (fallback for last content part in Anthropic provider)
     const msgAny = target as { providerOptions?: Record<string, unknown> }
-    if (!msgAny.providerOptions) msgAny.providerOptions = {}
-    msgAny.providerOptions.anthropic = { cacheControl: { type: 'ephemeral' } }
-    // Also set directly on last content part for explicit cache control
     const content = target.content
-    if (Array.isArray(content) && content.length > 0) {
-      const lastPart = content[content.length - 1] as { providerOptions?: Record<string, unknown> }
-      if (!lastPart.providerOptions) lastPart.providerOptions = {}
-      lastPart.providerOptions.anthropic = { cacheControl: { type: 'ephemeral' } }
-    }
     console.log(`[send:cache-debug] breakpoint on msg[${modelMessages.length - 2}] role=${target.role} msgOpts:${JSON.stringify(msgAny.providerOptions)} contentType:${Array.isArray(content) ? 'array(' + content.length + ')' : typeof content}`)
   } else {
     console.log(`[send:cache-debug] no message breakpoint (modelMessages.length=${modelMessages.length}, need >= 3)`)
@@ -127,26 +106,10 @@ export const POST = withAuth(async (request, { userId }) => {
     onFinish: async ({ text, steps }) => {
       console.log('[send] onFinish text length:', text.length, 'steps:', steps.length, 'preview:', text.slice(0, 100))
       try {
-        // Re-fetch transcript to avoid stale reads on concurrent messages
-        const current = await prisma.conversationSession.findUniqueOrThrow({
-          where: { id: sessionId },
-          select: { transcript: true },
-        })
-        const transcript =
-          (current.transcript as unknown as ConversationMessage[]) ?? []
-
-        // Find the latest user message from the UI messages
+        // Extract user text from the latest user UI message
         const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
-        if (lastUserMsg) {
-          const textPart = lastUserMsg.parts.find((p) => p.type === 'text')
-          if (textPart && textPart.type === 'text') {
-            transcript.push({
-              role: 'user',
-              content: textPart.text,
-              timestamp: new Date().toISOString(),
-            })
-          }
-        }
+        const textPart = lastUserMsg?.parts.find((p) => p.type === 'text')
+        const userContent = textPart?.type === 'text' ? textPart.text : null
 
         // Collect tool calls from all steps
         const toolCalls: ConversationToolCall[] = []
@@ -156,20 +119,12 @@ export const POST = withAuth(async (request, { userId }) => {
           }
         }
 
-        // Add assistant response with tool call data
-        if (text || toolCalls.length > 0) {
-          transcript.push({
-            role: 'assistant',
-            content: text,
-            timestamp: new Date().toISOString(),
-            ...(toolCalls.length > 0 ? { toolCalls } : {}),
-          })
-        }
-
-        await prisma.conversationSession.update({
-          where: { id: sessionId },
-          data: { transcript: transcript as unknown as Prisma.InputJsonValue },
-        })
+        await persistTranscript(
+          sessionId,
+          userContent,
+          text || null,
+          toolCalls.length > 0 ? toolCalls : undefined,
+        )
       } catch (err) {
         console.error('[conversation/send] Failed to persist transcript:', err)
       }

@@ -37,8 +37,8 @@ export function VoiceLookupPanel({ isOpen, result, loading, onClose, onLookup }:
       <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border shrink-0">
         <div>
           <div className="text-[15px] font-semibold text-text-primary tracking-[-0.02em]">Look up</div>
-          <div className="text-[13px] text-text-muted mt-0.5">
-            {onLookup ? 'Type a word to look up' : 'Select text in subtitles'}
+          <div className="text-[13px] text-text-secondary mt-0.5">
+            {onLookup ? 'Type or highlight text in subtitles' : 'Highlight text in the subtitles to look it up'}
           </div>
         </div>
         <button
@@ -99,8 +99,10 @@ export function VoiceLookupPanel({ isOpen, result, loading, onClose, onLookup }:
             )}
           </div>
         ) : (
-          <div className="text-center py-10 px-4 text-text-muted text-[14px] leading-[1.7]">
-            {onLookup ? 'Type a word above to look it up.' : 'Select text in the subtitles to look it up.'}
+          <div className="text-center py-10 px-4 text-text-secondary text-[14px] leading-[1.7]">
+            {onLookup
+              ? 'Type a word above or highlight text in the subtitles to look it up.'
+              : 'Highlight text in the subtitles to look it up.'}
           </div>
         )}
       </div>

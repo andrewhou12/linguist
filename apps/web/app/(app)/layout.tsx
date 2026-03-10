@@ -167,7 +167,7 @@ function UsageBanner() {
                 : 'bg-accent-brand/10 text-accent-brand hover:bg-accent-brand/20'
             )}
           >
-            {isAtLimit ? 'Limit reached — upgrade to Pro' : 'Upgrade to Pro'}
+            {isAtLimit ? 'Limit reached — upgrade now' : 'Become an Early Adopter'}
           </Link>
         )}
       </div>
