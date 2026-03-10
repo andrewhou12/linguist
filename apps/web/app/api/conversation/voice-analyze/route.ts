@@ -18,11 +18,11 @@ const voiceAnalysisSchema = z.object({
     reading: z.string().optional().describe('Reading/pronunciation'),
     meaning: z.string().describe('English meaning'),
     partOfSpeech: z.string().optional().describe('Part of speech'),
-    exampleSentence: z.string().optional().describe('Example sentence'),
+    exampleSentence: z.string().optional().describe('Example sentence in target language'),
     notes: z.string().optional().describe('Usage notes'),
-  })).describe('Only words above learner level used by the assistant — 0-2 cards max'),
+  })).describe('Words from the ASSISTANT\'s message that are above or at the edge of the learner\'s level. 0-3 cards.'),
   grammarNotes: z.array(z.object({
-    pattern: z.string().describe('Grammar pattern'),
+    pattern: z.string().describe('Grammar pattern in target language'),
     meaning: z.string().describe('English meaning'),
     formation: z.string().describe('How to form it'),
     examples: z.array(z.object({
@@ -30,12 +30,13 @@ const voiceAnalysisSchema = z.object({
       english: z.string(),
     })).describe('1-2 examples'),
     level: z.string().optional().describe('Proficiency level'),
-  })).describe('Only if assistant used a notable grammar pattern — 0-1 notes max'),
+  })).describe('Grammar patterns from the ASSISTANT\'s message that are above or at the edge of the learner\'s level. 0-2 notes.'),
   naturalnessFeedback: z.array(z.object({
     original: z.string().describe('What the learner said (grammatically correct but unnatural)'),
     suggestion: z.string().describe('More natural way to say it'),
     explanation: z.string().describe('One sentence. Why the suggestion sounds more natural.'),
   })).describe('At most ONE naturalness suggestion per turn. Only flag clear cases. 0-1 items max.'),
+  takeaways: z.array(z.string()).describe('0-2 short bullet-point notes of notable things from this turn the learner should remember: key expressions, cultural context, usage tips, or "aha moments". Only include genuinely memorable insights, not routine exchanges. Most turns should have 0.'),
   sectionTracking: z.object({
     currentSectionId: z.string().describe('ID of the section currently being discussed'),
     completedSectionIds: z.array(z.string()).describe('IDs of sections that have been fully covered'),
@@ -104,8 +105,8 @@ Rules:
 - Only flag GENUINE grammar/vocabulary errors — not stylistic choices, casual speech, or natural variation.
 - IGNORE transcription artifacts: the learner's text comes from speech-to-text, so missing punctuation, wrong quote marks, spacing issues, or minor formatting differences are NOT errors. Never correct punctuation or formatting.
 ${spokenRule ? `- ${spokenRule}\n` : ''}- Keep explanations to ONE concise sentence. No multi-part explanations, no numbered lists.
-- Vocabulary cards: ONLY if the learner explicitly asked what a word means. Never proactively. 0-2 max.
-- Grammar notes: ONLY if the learner explicitly asked about a grammar point. Never proactively. 0-1 max.
+- Vocabulary cards: Scan the ASSISTANT's message for words that are above or at the edge of the learner's difficulty level (level ${profile?.difficultyLevel ?? 3}). These are words the learner likely doesn't know yet but encountered in context. Include 0-3 cards per turn. Skip basic words the learner clearly already knows. Focus on the most useful/memorable ones.
+- Grammar notes: Scan the ASSISTANT's message for grammar patterns above or at the edge of the learner's level. These are forms the learner may not have studied yet. Include 0-2 notes per turn. Skip patterns the learner has clearly been using correctly themselves.
 - Naturalness feedback: Only if the learner's sentence is grammatically correct but clearly textbook-ish. 0-1 items max.
 - If everything looks fine, return empty arrays. Most turns should have 0 corrections.
 - Be extremely selective. When in doubt, do NOT correct.
@@ -115,6 +116,6 @@ ${spokenRule ? `- ${spokenRule}\n` : ''}- Keep explanations to ONE concise sente
     return NextResponse.json(object)
   } catch (err) {
     console.error('[voice-analyze] Analysis failed:', err)
-    return NextResponse.json({ corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [], sectionTracking: undefined })
+    return NextResponse.json({ corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [], takeaways: [], sectionTracking: undefined })
   }
 }))

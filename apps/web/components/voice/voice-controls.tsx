@@ -48,6 +48,10 @@ export function VoiceControls({
   const startTimeRef = useRef<number>(0)
   const animRef = useRef<number>(0)
   const cancelledRef = useRef(false)
+  // Sync ref updated immediately on Space press — avoids stale closure where
+  // isTalking is still false when Escape is pressed before React re-renders.
+  const isTalkingRef = useRef(false)
+  isTalkingRef.current = isTalking
   const canTalk = voiceState === 'IDLE' || voiceState === 'SPEAKING' || voiceState === 'THINKING'
   const isLocked = !canTalk && !isTalking
 
@@ -83,13 +87,17 @@ export function VoiceControls({
 
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault()
-        if (canTalk) onTalkStart()
+        if (canTalk) {
+          isTalkingRef.current = true
+          onTalkStart()
+        }
       }
 
-      if (e.key === 'Escape' && isTalking) {
+      if (e.key === 'Escape' && isTalkingRef.current) {
         e.preventDefault()
         e.stopPropagation()
         cancelledRef.current = true
+        isTalkingRef.current = false
         onTalkCancel()
       }
     }
@@ -122,19 +130,19 @@ export function VoiceControls({
       id: 'lookup',
       label: 'Look up',
       badge: null,
-      icon: <MagnifyingGlassIcon className="w-3.5 h-3.5" />,
+      icon: <MagnifyingGlassIcon className="w-4 h-4" />,
     },
     {
       id: 'help',
       label: 'Stuck?',
       badge: null,
-      icon: <QuestionMarkCircleIcon className="w-3.5 h-3.5" />,
+      icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
     },
     {
       id: 'feedback',
       label: 'Feedback',
       badge: correctionsCount || null,
-      icon: <PencilSquareIcon className="w-3.5 h-3.5" />,
+      icon: <PencilSquareIcon className="w-4 h-4" />,
     },
   ]
 
@@ -148,27 +156,27 @@ export function VoiceControls({
       onDismiss={() => dismiss('hint_voice_spacebar')}
     >
     <div className={cn('flex flex-col items-center gap-3 px-6 pb-6 pt-3 shrink-0', className)}>
-      {/* Keyboard hints — uses app's standard text sizing */}
-      <div className="h-5 flex items-center gap-1.5 text-[11px] text-text-muted">
+      {/* Keyboard hints */}
+      <div className="h-5 flex items-center gap-1.5 text-[12px] text-text-secondary">
         {voiceState === 'IDLE' && !isTalking && (
           <>
-            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
+            <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
             <span>to talk</span>
           </>
         )}
         {isTalking && (
           <>
-            <span className="text-text-secondary">Release or</span>
-            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
+            <span>Release or</span>
+            <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
             <span>to send</span>
             <span className="mx-0.5 text-border-strong">&middot;</span>
-            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
+            <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
             <span>to cancel</span>
           </>
         )}
         {!isTalking && (voiceState === 'SPEAKING' || voiceState === 'THINKING') && (
           <>
-            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
+            <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
             <span>to interrupt</span>
           </>
         )}
@@ -220,13 +228,13 @@ export function VoiceControls({
         show={isDismissed('hint_voice_spacebar') && !isDismissed('hint_voice_feedback')}
         onDismiss={() => dismiss('hint_voice_feedback')}
       >
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         {canRetry && (
           <button
             onClick={onRetry}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[13px] font-sans cursor-pointer transition-colors bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong"
           >
-            <ArrowPathIcon className="w-3.5 h-3.5" />
+            <ArrowPathIcon className="w-4 h-4" />
             Retry
           </button>
         )}
@@ -237,7 +245,7 @@ export function VoiceControls({
               key={id}
               onClick={() => onTogglePanel(isActive ? null : id)}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors',
+                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[13px] font-sans cursor-pointer transition-colors',
                 isActive
                   ? 'bg-bg-active border-border-strong text-text-primary font-medium'
                   : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
@@ -248,7 +256,7 @@ export function VoiceControls({
               {badge != null && badge > 0 && (
                 <span
                   className={cn(
-                    'min-w-[16px] h-[16px] inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1',
+                    'min-w-[18px] h-[18px] inline-flex items-center justify-center rounded-full text-[11px] font-bold px-1',
                     isActive
                       ? 'bg-accent-warm/15 text-accent-warm'
                       : 'bg-warm-soft text-accent-warm',

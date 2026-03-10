@@ -232,6 +232,7 @@ function getFallbackPlan(mode: string, sessionFocus: string): SessionPlan {
 export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
   let prompt: string | undefined
   let mode: string | undefined
+  let inputMode: string | undefined
   try {
     const body = await request.json()
     if (body.prompt && typeof body.prompt === 'string') {
@@ -239,6 +240,9 @@ export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
     }
     if (body.mode && typeof body.mode === 'string') {
       mode = body.mode
+    }
+    if (body.inputMode && typeof body.inputMode === 'string') {
+      inputMode = body.inputMode
     }
   } catch {
     // No body or invalid JSON
@@ -312,6 +316,7 @@ Make the plan specific to the user's prompt and difficulty level.`
     data: {
       userId,
       mode: resolvedMode,
+      inputMode: inputMode || null,
       targetLanguage: profile.targetLanguage,
       transcript: [],
       targetsPlanned: {},

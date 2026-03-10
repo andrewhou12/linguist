@@ -34,6 +34,7 @@ export interface TurnAnalysisResult {
     suggestion: string
     explanation: string
   }>
+  takeaways?: string[]
   sectionTracking?: {
     currentSectionId: string
     completedSectionIds: string[]

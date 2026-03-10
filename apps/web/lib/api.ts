@@ -84,11 +84,11 @@ class LingleApiClient {
 
   // Conversation
   conversationList = () =>
-    this.request<{ id: string; timestamp: string; durationSeconds: number | null; mode: string; sessionFocus: string }[]>('/conversation/list')
-  conversationPlan = (prompt?: string, mode?: string) =>
+    this.request<{ id: string; timestamp: string; durationSeconds: number | null; mode: string; inputMode: string | null; sessionFocus: string }[]>('/conversation/list')
+  conversationPlan = (prompt?: string, mode?: string, inputMode?: string) =>
     this.request<{ _sessionId: string; sessionFocus: string; plan: SessionPlan; remainingSeconds?: number; userPlan?: string }>('/conversation/plan', {
       method: 'POST',
-      body: JSON.stringify({ ...(prompt ? { prompt } : {}), ...(mode ? { mode } : {}) }),
+      body: JSON.stringify({ ...(prompt ? { prompt } : {}), ...(mode ? { mode } : {}), ...(inputMode ? { inputMode } : {}) }),
     })
   conversationPlanUpdate = (sessionId: string, updates: Partial<SessionPlan>) =>
     this.request<{ plan: SessionPlan }>('/conversation/plan/update', {

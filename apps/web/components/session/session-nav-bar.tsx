@@ -22,6 +22,14 @@ interface SessionNavBarProps {
   currentSectionLabel?: string
   showSubtitlesToggle?: boolean
   rightSlot?: React.ReactNode
+  inputMode?: 'chat' | 'voice'
+}
+
+function formatModeLabel(mode: string | undefined, inputMode?: 'chat' | 'voice'): string {
+  const prefix = inputMode === 'voice' ? 'Voice' : inputMode === 'chat' ? 'Chat' : ''
+  const base = mode || 'session'
+  const capitalized = base.charAt(0).toUpperCase() + base.slice(1)
+  return prefix ? `${prefix} ${capitalized}` : capitalized
 }
 
 function formatDuration(seconds: number): string {
@@ -45,10 +53,10 @@ function SegmentBtn({
     <button
       onClick={onClick}
       className={cn(
-        'relative inline-flex items-center gap-1.5 px-3 py-[5px] rounded-md text-[12px] font-medium font-sans cursor-pointer transition-all duration-150',
+        'relative inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-[13px] font-medium font-sans cursor-pointer transition-all duration-150',
         active
-          ? 'bg-[var(--toggle-active-bg)] text-[var(--toggle-text-active)] shadow-[var(--toggle-active-shadow)]'
-          : 'bg-transparent text-[var(--toggle-text)] hover:text-[var(--toggle-text-active)]',
+          ? 'bg-bg-pure text-text-primary shadow-[0_1px_2px_rgba(0,0,0,.06)]'
+          : 'bg-transparent text-text-secondary hover:text-text-primary',
       )}
     >
       {icon}
@@ -70,22 +78,23 @@ export function SessionNavBar({
   currentSectionLabel,
   showSubtitlesToggle = true,
   rightSlot,
+  inputMode,
 }: SessionNavBarProps) {
   return (
     <nav className="flex items-center px-5 h-[54px] z-20 relative shrink-0">
       {/* Left -- Mode + timer */}
       <div className="flex-1 flex items-center gap-2.5">
-        <span className="px-2 py-0.5 rounded-md bg-[var(--toggle-bg)] text-[11px] font-medium text-text-muted capitalize">
-          {plan?.mode || 'session'}
+        <span className="px-2.5 py-1 rounded-md bg-bg-secondary text-[12px] font-medium text-text-secondary">
+          {formatModeLabel(plan?.mode, inputMode)}
         </span>
         <div className="w-px h-[14px] bg-border shrink-0" />
-        <span className="font-sans text-[12px] text-text-muted tabular-nums">
+        <span className="font-sans text-[13px] text-text-secondary tabular-nums">
           {formatDuration(duration)}
         </span>
         {currentSectionLabel && (
           <>
             <div className="w-px h-[14px] bg-border shrink-0" />
-            <span className="text-[12px] text-text-muted truncate max-w-[180px]">
+            <span className="text-[13px] text-text-secondary truncate max-w-[200px]">
               {currentSectionLabel}
             </span>
           </>
@@ -93,18 +102,18 @@ export function SessionNavBar({
       </div>
 
       {/* Center -- Segmented toggle */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-[3px] rounded-lg bg-[var(--toggle-bg)]">
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-[3px] rounded-lg bg-bg-secondary">
         <SegmentBtn
           active={isPlanOpen}
           onClick={onTogglePlan}
           label="Plan"
-          icon={<DocumentTextIcon className="w-3.5 h-3.5" />}
+          icon={<DocumentTextIcon className="w-4 h-4" />}
         />
         <SegmentBtn
           active={isTranscriptOpen}
           onClick={onToggleTranscript}
           label="Transcript"
-          icon={<ChatBubbleLeftIcon className="w-3.5 h-3.5" />}
+          icon={<ChatBubbleLeftIcon className="w-4 h-4" />}
         />
         {showSubtitlesToggle && (
           <SegmentBtn
@@ -112,7 +121,7 @@ export function SessionNavBar({
             onClick={onToggleSubtitles}
             label="Subtitles"
             icon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <rect x="2" y="7" width="20" height="14" rx="2" />
                 <line x1="6" y1="12" x2="10" y2="12" />
                 <line x1="6" y1="16" x2="14" y2="16" />
@@ -128,9 +137,9 @@ export function SessionNavBar({
         {rightSlot}
         <button
           onClick={onEnd}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warm-soft border border-warm-med text-[13px] font-medium text-accent-warm cursor-pointer transition-colors hover:bg-warm-med"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-bg-secondary border border-border text-[13px] font-medium text-text-secondary cursor-pointer transition-colors hover:bg-bg-hover hover:text-text-primary hover:border-border-strong"
         >
-          <StopIcon className="w-3.5 h-3.5" />
+          <StopIcon className="w-4 h-4" />
           End
         </button>
       </div>

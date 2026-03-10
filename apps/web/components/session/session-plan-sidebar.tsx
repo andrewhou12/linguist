@@ -60,7 +60,7 @@ function planToText(plan: SessionPlan): string {
 }
 
 export function SessionPlanSidebar({
-  isOpen, plan, onCollapse, onSteer, onPlanSave, steeringMessages, currentSectionId, completedSectionIds,
+  isOpen, plan, onCollapse, onSteer, onPlanSave, steeringMessages, currentSectionId, completedSectionIds, className,
 }: SessionPlanSidebarProps) {
   const [inputValue, setInputValue] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -117,6 +117,7 @@ export function SessionPlanSidebar({
         'fixed left-0 top-0 bottom-0 w-[340px] z-[10] flex flex-col overflow-hidden transition-transform duration-[380ms] ease-[cubic-bezier(.76,0,.24,1)]',
         'bg-bg-pure border-r border-border',
         isOpen ? 'translate-x-0' : '-translate-x-full',
+        className,
       )}
     >
       {/* Header */}

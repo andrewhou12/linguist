@@ -72,7 +72,7 @@ export function VoiceConversationView() {
               plan: session.sessionPlan as unknown as SessionPlan,
             })
           } else {
-            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
             setViewState({
               type: 'begin',
               prompt: '',
@@ -83,7 +83,7 @@ export function VoiceConversationView() {
         } catch (err) {
           console.error('Failed to load session:', err)
           try {
-            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
             setViewState({
               type: 'begin',
               prompt: '',
@@ -98,7 +98,7 @@ export function VoiceConversationView() {
       } else if (promptFromUrl) {
         // Auto-generate plan from URL prompt
         try {
-          const result = await api.conversationPlan(promptFromUrl, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+          const result = await api.conversationPlan(promptFromUrl, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
           setViewState({
             type: 'begin',
             prompt: promptFromUrl,
@@ -121,7 +121,7 @@ export function VoiceConversationView() {
     setViewState({ type: 'loading', prompt })
 
     try {
-      const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+      const result = await api.conversationPlan(prompt, mode as 'conversation' | 'tutor' | 'immersion' | 'reference', 'voice')
       setViewState({
         type: 'begin',
         prompt,

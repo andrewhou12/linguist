@@ -26,6 +26,7 @@ export const GET = withAuth(async (_request, { userId }) => {
         timestamp: s.timestamp.toISOString(),
         durationSeconds: s.durationSeconds,
         mode: s.mode ?? 'conversation',
+        inputMode: s.inputMode ?? null,
         sessionFocus: title,
       }
     })

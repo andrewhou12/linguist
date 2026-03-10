@@ -36,6 +36,7 @@ Word: ${word}
 ${context ? `Context sentence: ${context}` : ''}
 
 Provide the reading/pronunciation, meaning, part of speech, and a brief example sentence. Keep everything concise.`,
+      maxOutputTokens: 300,
     })
 
     return NextResponse.json(object)
