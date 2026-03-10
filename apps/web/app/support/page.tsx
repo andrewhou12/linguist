@@ -52,6 +52,15 @@ export default function SupportPage() {
             <div className={s['card-desc']}>Join the community. Ask questions, share feedback, or just say hi.</div>
           </a>
 
+          <a href="https://calendly.com/andrew-lingle/30min" target="_blank" rel="noopener noreferrer" className={s.card}>
+            <div className={s['card-icon']}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div className={s['card-title']}>Book a demo</div>
+            <div className={s['card-detail']}>15-minute call</div>
+            <div className={s['card-desc']}>We&rsquo;ll walk you through Lingle one-on-one and answer any questions.</div>
+          </a>
+
         </div>
       </main>
     </div>
