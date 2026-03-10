@@ -294,10 +294,10 @@ function PlanPageInner() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-[15px] font-semibold text-text-primary">Can&apos;t pay? Help us build Lingle instead.</h3>
+                <h3 className="text-[15px] font-semibold text-text-primary">Can&apos;t pay? No worries — help us build Lingle instead! :)</h3>
               </div>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
-                Get full unlimited access for free — no credit card needed. In exchange, we ask that you genuinely use Lingle every day, hop on a 30-minute call with us to share feedback, and show it to a few friends (with proof). We&apos;re building this for real learners, and your input is worth more than $5/mo to us.
+                We&apos;ll give you full unlimited access for free! No credit card, no catch. All we ask is that you please use Lingle regularly, hop on a quick 30-minute call with us to share your honest feedback, and show it to a few friends (with proof, please!). We&apos;re a tiny team trying to build something great for real learners — and honestly, your input is worth way more than $5/mo to us!
               </p>
               <a
                 href="https://calendly.com/andrew-lingle/30min"
