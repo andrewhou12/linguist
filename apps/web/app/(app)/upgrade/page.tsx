@@ -30,6 +30,40 @@ export default function PlanPage() {
   )
 }
 
+function FirstVisitWelcome({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="max-w-[580px] mx-auto py-6">
+      <div className="rounded-2xl border border-border bg-bg-pure p-8 shadow-sm">
+        <p className="text-[15px] text-text-secondary leading-[1.7] mb-5">
+          Hey — thanks for checking out Lingle. Before you see the pricing, I wanted to be upfront with you about where we are.
+        </p>
+        <p className="text-[15px] text-text-secondary leading-[1.7] mb-5">
+          Lingle is really early. It&apos;s just me and a tiny team, and we&apos;re building this because we genuinely think language learning can be so much better than what&apos;s out there. Most apps treat you like a number — we want to build something that actually <em>knows</em> you as a learner and grows with you.
+        </p>
+        <p className="text-[15px] text-text-secondary leading-[1.7] mb-5">
+          That&apos;s where early adopters come in. If you become one, you&apos;re not just subscribing — you&apos;re betting on us while we&apos;re still figuring things out. Things might break. Features might be rough around the edges. But we&apos;re shipping improvements every single week, and your feedback directly shapes what we build next.
+        </p>
+        <p className="text-[15px] text-text-secondary leading-[1.7] mb-5">
+          In return, you lock in the early adopter price forever. Not &quot;forever until we change our mind&quot; — actually forever. As the product gets better, your price stays the same. That&apos;s our promise to the people who believed in us early.
+        </p>
+        <p className="text-[15px] text-text-secondary leading-[1.7] mb-5">
+          More than anything, we want to build something that language learners actually want to use every day. So please — if something feels off, if you wish a feature worked differently, if you have an idea at 2am — tell us. We&apos;re extremely responsive and we genuinely want to hear it. This is your product as much as it is ours.
+        </p>
+        <p className="text-[15px] text-text-primary font-medium leading-[1.7]">
+          Whether you go free or early adopter, thank you for being here. It genuinely means a lot.
+        </p>
+        <p className="text-[14px] text-text-muted mt-2 mb-6">— Andrew & the Lingle team</p>
+        <button
+          onClick={onDismiss}
+          className="w-full py-2.5 px-4 rounded-lg bg-accent-brand text-white text-[14px] font-medium border-none cursor-pointer transition-colors hover:bg-accent-brand/90"
+        >
+          See the plans
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function PlanPageInner() {
   const searchParams = useSearchParams()
   const success = searchParams.get('success') === 'true'
@@ -37,10 +71,14 @@ function PlanPageInner() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [managingPortal, setManagingPortal] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
 
   useEffect(() => {
     api.usageGet().then(setUsage).catch(() => {})
     api.subscriptionGet().then(setSubscription).catch(() => {})
+    if (!localStorage.getItem('lingle:seen-plan-welcome')) {
+      setShowWelcome(true)
+    }
   }, [])
 
   const handleUpgrade = async () => {
@@ -69,6 +107,15 @@ function PlanPageInner() {
   const usedMinutes = usage ? Math.floor(usage.usedSeconds / 60) : 0
   const limitMinutes = usage && usage.limitSeconds !== -1 ? Math.floor(usage.limitSeconds / 60) : null
   const percentage = usage && limitMinutes ? Math.min(100, (usage.usedSeconds / usage.limitSeconds) * 100) : 0
+
+  if (showWelcome && !success && !isPro) {
+    return (
+      <FirstVisitWelcome onDismiss={() => {
+        localStorage.setItem('lingle:seen-plan-welcome', '1')
+        setShowWelcome(false)
+      }} />
+    )
+  }
 
   return (
     <div className="max-w-[780px] mx-auto pb-10">
@@ -229,14 +276,14 @@ function PlanPageInner() {
           <div className="mb-5">
             <h2 className="text-[18px] font-semibold text-text-primary mb-1">Early Adopter</h2>
             <p className="text-[13px] text-text-secondary mb-4">
-              Unlimited practice at a locked-in launch price.
+              We&apos;re shipping new features every week and improving Lingle as fast as we can. Lock in the launch price now — it&apos;s yours forever, even as the product gets better!
             </p>
             <div className="flex items-baseline gap-1">
               <span className="text-[36px] font-semibold text-text-primary leading-none">$5</span>
-              <span className="text-[14px] text-text-muted">per month</span>
+              <span className="text-[14px] text-text-muted">per month, forever</span>
             </div>
             <p className="text-[12px] text-text-muted mt-1">
-              <span className="line-through">$8/mo</span> — price locked for early supporters
+              <span className="line-through">$8/mo</span> — price will never increase for early adopters
             </p>
           </div>
 
