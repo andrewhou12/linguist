@@ -53,7 +53,7 @@ export function VoiceVocabPanel({ isOpen, words, onClose }: VoiceVocabPanelProps
               className="px-[11px] py-[9px] bg-bg-secondary border border-border rounded-[10px] animate-[voice-slide-in-right_0.3s_ease_both]"
               style={{ animationDelay: `${i * 50}ms` }}
             >
-              <div className="font-jp text-[15px]">{w.word}</div>
+              <div className="font-jp-clean text-[15px]">{w.word}</div>
               {w.reading && (
                 <div className="font-mono text-[9.5px] text-text-muted mt-px">{w.reading}</div>
               )}

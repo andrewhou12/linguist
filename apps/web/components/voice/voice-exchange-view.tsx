@@ -157,11 +157,11 @@ export function VoiceExchangeView({
             transition={{ duration: 0.3 }}
             className="flex gap-[9px] items-start"
           >
-            <div className="w-[27px] h-[27px] rounded-lg shrink-0 flex items-center justify-center text-[13px] font-jp bg-bg-hover border border-border">
+            <div className="w-[27px] h-[27px] rounded-lg shrink-0 flex items-center justify-center text-[13px] font-jp-clean bg-bg-hover border border-border">
               花
             </div>
             <div className="max-w-[90%] flex flex-col gap-[5px]">
-              <div className="px-[13px] py-[9px] text-[14px] leading-[1.72] rounded-xl rounded-bl-[3px] bg-[rgba(255,255,255,.9)] border border-border backdrop-blur-[8px] font-jp">
+              <div className="px-[13px] py-[9px] text-[14px] leading-[1.72] rounded-xl rounded-bl-[3px] bg-[rgba(255,255,255,.9)] border border-border backdrop-blur-[8px] font-jp-clean">
                 {showKaraoke ? (
                   <KaraokeText text={cleanAiText} highlightChars={highlightChars} />
                 ) : (
@@ -198,7 +198,7 @@ export function VoiceExchangeView({
               YOU
             </div>
             <div className="max-w-[90%] flex flex-col gap-[5px]">
-              <div className="px-[13px] py-[9px] text-[13.5px] leading-[1.72] rounded-xl rounded-br-[3px] bg-accent-brand text-white font-jp">
+              <div className="px-[13px] py-[9px] text-[13.5px] leading-[1.72] rounded-xl rounded-br-[3px] bg-accent-brand text-white font-jp-clean">
                 {userLine.text}
               </div>
               {correction && <CorrectionInline correction={correction} />}
@@ -220,7 +220,7 @@ export function VoiceExchangeView({
               YOU
             </div>
             <div className="max-w-[90%]">
-              <div className="px-[13px] py-[9px] text-[13.5px] leading-[1.72] rounded-xl rounded-br-[3px] bg-accent-brand/80 text-white/80 font-jp">
+              <div className="px-[13px] py-[9px] text-[13.5px] leading-[1.72] rounded-xl rounded-br-[3px] bg-accent-brand/80 text-white/80 font-jp-clean">
                 {partialText}
                 <span className="inline-block w-[2px] h-[0.88em] bg-white/60 ml-px animate-pulse align-text-bottom" />
               </div>

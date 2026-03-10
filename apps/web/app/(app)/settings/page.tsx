@@ -208,8 +208,9 @@ export default function SettingsPage() {
             </div>
             <span className="text-[13px] font-medium">TTS engine</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {([
+              { key: 'cartesia' as const, label: 'Cartesia', description: 'Fast, multilingual' },
               { key: 'rime' as const, label: 'Rime', description: 'Low-latency, optimized for Japanese' },
               { key: 'elevenlabs' as const, label: 'ElevenLabs', description: 'High-quality, natural sounding' },
             ]).map((option) => (

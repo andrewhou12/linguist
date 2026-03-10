@@ -20,15 +20,15 @@ interface SessionDetail {
 }
 
 interface SessionAnalysis {
-  overallRating: 'excellent' | 'good' | 'developing' | 'needs_work'
-  summary: string
-  targetLanguageUsage: { percentage: number; assessment: string }
-  vocabularyUsed: { word: string; reading?: string; meaning: string; usedWell: boolean }[]
-  grammarPoints: { pattern: string; example: string; correct: boolean; note?: string }[]
-  errors: { original: string; corrected: string; type: string; explanation: string }[]
-  strengths: string[]
-  suggestions: string[]
-  skillScores: Record<string, number>
+  overallRating?: 'excellent' | 'good' | 'developing' | 'needs_work'
+  summary?: string
+  targetLanguageUsage?: { percentage: number; assessment: string }
+  vocabularyUsed?: { word: string; reading?: string; meaning: string; usedWell: boolean }[]
+  grammarPoints?: { pattern: string; example: string; correct: boolean; note?: string }[]
+  errors?: { original: string; corrected: string; type: string; explanation: string }[]
+  strengths?: string[]
+  suggestions?: string[]
+  skillScores?: Record<string, number>
 }
 
 const RATING_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -74,6 +74,7 @@ export default function SessionDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [requiresPro, setRequiresPro] = useState(false)
+  const [insufficientData, setInsufficientData] = useState(false)
   const [sessionMeta, setSessionMeta] = useState<{ mode: string; sessionFocus: string } | null>(null)
 
   useEffect(() => {
@@ -88,18 +89,60 @@ export default function SessionDetailPage() {
       .catch(() => setDetail(null))
       .finally(() => setIsLoading(false))
 
-    // Fetch session analysis
+    // Fetch session analysis (streaming)
     setIsAnalyzing(true)
-    api.statsSessionAnalysis(sessionId)
-      .then((data) => {
-        if (data.status === 'ok' && data.analysis) {
-          setAnalysis(data.analysis)
-        } else if (data.status === 'requires_pro') {
-          setRequiresPro(true)
+    fetch('/api/stats/session-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') || ''
+
+        if (contentType.includes('application/json')) {
+          // Non-streaming response: cached, pro gate, insufficient data, or error
+          const data = await res.json()
+          if (data.status === 'ok' && data.analysis) {
+            setAnalysis(data.analysis)
+          } else if (data.status === 'requires_pro') {
+            setRequiresPro(true)
+          } else if (data.status === 'insufficient_data') {
+            setInsufficientData(true)
+          }
+          setIsAnalyzing(false)
+        } else if (contentType.includes('ndjson') && res.body) {
+          // Streaming NDJSON response — progressive partial objects
+          const reader = res.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop()!
+            for (const line of lines) {
+              if (line.trim()) {
+                try {
+                  const partial = JSON.parse(line) as SessionAnalysis
+                  setAnalysis(partial)
+                } catch { /* skip malformed lines */ }
+              }
+            }
+          }
+          // Handle any remaining buffer
+          if (buffer.trim()) {
+            try {
+              setAnalysis(JSON.parse(buffer) as SessionAnalysis)
+            } catch { /* ignore */ }
+          }
+          setIsAnalyzing(false)
+        } else {
+          setIsAnalyzing(false)
         }
       })
-      .catch(() => {})
-      .finally(() => setIsAnalyzing(false))
+      .catch(() => setIsAnalyzing(false))
   }, [sessionId])
 
   if (isLoading) {
@@ -131,7 +174,7 @@ export default function SessionDetailPage() {
   const messages = Array.isArray(detail.transcript)
     ? detail.transcript.filter((m) => m.role === 'user' || m.role === 'assistant')
     : []
-  const ratingStyle = analysis ? RATING_STYLES[analysis.overallRating] ?? RATING_STYLES.good : null
+  const ratingStyle = analysis?.overallRating ? RATING_STYLES[analysis.overallRating] ?? RATING_STYLES.good : null
 
   return (
     <div className="h-full -m-6 p-6 overflow-y-auto">
@@ -169,16 +212,18 @@ export default function SessionDetailPage() {
         </div>
 
         {/* Analysis summary banner */}
-        {analysis && !requiresPro && (
+        {analysis?.summary && !requiresPro && (
           <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-4">
             <p className="text-[14px] text-text-secondary leading-relaxed">{analysis.summary}</p>
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] text-text-muted">Target language:</span>
-                <span className="text-[13px] font-semibold text-text-primary">{analysis.targetLanguageUsage.percentage}%</span>
+            {analysis.targetLanguageUsage && (
+              <div className="flex items-center gap-4 mt-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] text-text-muted">Target language:</span>
+                  <span className="text-[13px] font-semibold text-text-primary">{analysis.targetLanguageUsage.percentage}%</span>
+                </div>
+                <span className="text-[12px] text-text-muted">{analysis.targetLanguageUsage.assessment}</span>
               </div>
-              <span className="text-[12px] text-text-muted">{analysis.targetLanguageUsage.assessment}</span>
-            </div>
+            )}
           </div>
         )}
 
@@ -206,13 +251,16 @@ export default function SessionDetailPage() {
 
           {/* Right: Analysis sidebar */}
           <div className="flex flex-col gap-3">
-            {isAnalyzing ? (
-              <>
-                <AnalysisSkeleton />
-                <AnalysisSkeleton />
-                <AnalysisSkeleton />
-              </>
-            ) : requiresPro ? (
+            {/* Loading state — no analysis yet */}
+            {isAnalyzing && !analysis && (
+              <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] px-5 py-8 text-center">
+                <Spinner size={20} />
+                <p className="text-[13px] text-text-secondary mt-3 font-medium">Analyzing your session...</p>
+                <p className="text-[11px] text-text-muted mt-1">Reviewing vocabulary, grammar, and errors</p>
+              </div>
+            )}
+
+            {requiresPro ? (
               <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] px-5 py-8 text-center">
                 <div className="w-10 h-10 rounded-full bg-bg-active border border-border flex items-center justify-center mx-auto mb-3">
                   <LockClosedIcon className="w-[18px] h-[18px] text-text-muted" />
@@ -230,21 +278,28 @@ export default function SessionDetailPage() {
                   Upgrade to Pro
                 </button>
               </div>
+            ) : insufficientData ? (
+              <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] px-5 py-8 text-center">
+                <p className="text-[13px] text-text-secondary font-medium">Not enough learner input</p>
+                <p className="text-[11px] text-text-muted mt-1">Try speaking or writing more in your next session to get a detailed analysis.</p>
+              </div>
             ) : analysis ? (
               <>
                 {/* Skill hexagon */}
-                <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
-                  <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-1">
-                    Session Skills
+                {analysis.skillScores && (
+                  <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
+                    <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-1">
+                      Session Skills
+                    </div>
+                    <SkillHexagon scores={analysis.skillScores} />
                   </div>
-                  <SkillHexagon scores={analysis.skillScores} />
-                </div>
+                )}
 
                 {/* Strengths */}
-                {analysis.strengths.length > 0 && (
+                {analysis.strengths && analysis.strengths.length > 0 && (
                   <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
                     <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-2">
-                      💪 Strengths
+                      Strengths
                     </div>
                     <div className="space-y-1.5">
                       {analysis.strengths.map((s, i) => (
@@ -258,10 +313,10 @@ export default function SessionDetailPage() {
                 )}
 
                 {/* Errors / Corrections */}
-                {analysis.errors.length > 0 && (
+                {analysis.errors && analysis.errors.length > 0 && (
                   <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
                     <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-2">
-                      ✏️ Corrections
+                      Corrections
                     </div>
                     <div className="space-y-2.5">
                       {analysis.errors.map((e, i) => (
@@ -284,10 +339,10 @@ export default function SessionDetailPage() {
                 )}
 
                 {/* Vocabulary */}
-                {analysis.vocabularyUsed.length > 0 && (
+                {analysis.vocabularyUsed && analysis.vocabularyUsed.length > 0 && (
                   <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
                     <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-2">
-                      📚 Vocabulary Used
+                      Vocabulary Used
                     </div>
                     <div className="space-y-1">
                       {analysis.vocabularyUsed.map((v, i) => (
@@ -303,10 +358,10 @@ export default function SessionDetailPage() {
                 )}
 
                 {/* Grammar Points */}
-                {analysis.grammarPoints.length > 0 && (
+                {analysis.grammarPoints && analysis.grammarPoints.length > 0 && (
                   <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
                     <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-2">
-                      📐 Grammar Points
+                      Grammar Points
                     </div>
                     <div className="space-y-2">
                       {analysis.grammarPoints.map((g, i) => (
@@ -324,10 +379,10 @@ export default function SessionDetailPage() {
                 )}
 
                 {/* Suggestions */}
-                {analysis.suggestions.length > 0 && (
+                {analysis.suggestions && analysis.suggestions.length > 0 && (
                   <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
                     <div className="text-[11px] font-semibold tracking-[0.07em] uppercase text-text-muted mb-2">
-                      💡 Suggestions
+                      Suggestions
                     </div>
                     <div className="space-y-1.5">
                       {analysis.suggestions.map((s, i) => (
@@ -339,25 +394,23 @@ export default function SessionDetailPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Still analyzing indicator */}
+                {isAnalyzing && (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <Spinner size={12} />
+                    <span className="text-[11px] text-text-muted">Still analyzing...</span>
+                  </div>
+                )}
               </>
-            ) : (
+            ) : !isAnalyzing ? (
               <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] px-4 py-6 text-center">
                 <div className="text-[13px] text-text-muted">Analysis unavailable for this session</div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function AnalysisSkeleton() {
-  return (
-    <div className="bg-bg-pure border border-border-subtle rounded-xl shadow-[0_1px_2px_rgba(0,0,0,.04)] p-3">
-      <div className="skeleton h-3 w-20 mb-3" />
-      <div className="skeleton h-3 w-full mb-2" />
-      <div className="skeleton h-3 w-3/4" />
     </div>
   )
 }

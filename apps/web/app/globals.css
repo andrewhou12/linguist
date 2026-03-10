@@ -26,6 +26,11 @@
   --color-accent-brand: var(--accent-brand);
   --color-accent-warm: var(--accent-warm);
 
+  /* Voice ring state colors */
+  --color-ring-user: var(--ring-user);
+  --color-ring-thinking: var(--ring-thinking);
+  --color-ring-ai: var(--ring-ai);
+
   /* Mastery tier colors */
   --color-tier-new: var(--tier-new);
   --color-tier-app: var(--tier-app);
@@ -71,6 +76,18 @@
   --text-placeholder: #b8b8b0;
   --accent-brand: #2f2f2f;
   --accent-warm: #c8572a;
+
+  /* Toggle / segmented control */
+  --toggle-bg: #f0efed;
+  --toggle-active-bg: #ffffff;
+  --toggle-active-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 1px rgba(0,0,0,.04);
+  --toggle-text: #8a8a87;
+  --toggle-text-active: #1a1a1a;
+
+  /* Voice ring state colors */
+  --ring-user: #6366f1;
+  --ring-thinking: #8b5cf6;
+  --ring-ai: #f59e0b;
 
   /* Mastery tiers */
   --tier-new: #e8862a;
@@ -310,7 +327,7 @@
 }
 .voice-float-char {
   position: absolute;
-  font-family: var(--font-jp);
+  font-family: var(--font-jp-clean);
   color: var(--text-primary);
   pointer-events: none;
   opacity: 0;
@@ -332,28 +349,26 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Voice plan sidebar typography */
+/* Voice plan sidebar — clean document style */
 .voice-plan-body h3 {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: .1em;
+  letter-spacing: .09em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 14px 0 5px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
+  margin: 24px 0 6px;
 }
 .voice-plan-body h3:first-child { margin-top: 0; }
 .voice-plan-body p {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
 }
 .voice-plan-body ul {
   list-style: none;
-  padding: 0;
-  margin: 0 0 8px;
+  padding: 0 0 0 12px;
+  margin: 2px 0 4px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -361,25 +376,55 @@
 .voice-plan-body ul li {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.55;
+  line-height: 1.65;
 }
 .voice-plan-body ul li::before {
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--border-strong);
+  content: '·';
+  font-weight: 700;
+  color: var(--border-strong);
   flex-shrink: 0;
-  margin-top: 6px;
+  line-height: 1.65;
+}
+.voice-plan-body ol {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 2px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  counter-reset: plan-counter;
+}
+.voice-plan-body ol li {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  counter-increment: plan-counter;
+}
+.voice-plan-body ol li::before {
+  content: counter(plan-counter) '.';
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 18px;
+}
+.voice-plan-body .plan-inline-list {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 4px;
+  padding-left: 12px;
 }
 .voice-plan-body strong { font-weight: 600; color: var(--text-primary); }
 .voice-plan-body em { font-style: italic; color: var(--text-muted); }
 .voice-plan-body code {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 11px;
   background: var(--bg-active);
   padding: 1px 5px;
   border-radius: 4px;
@@ -403,6 +448,46 @@
 .voice-correction-good { background: rgba(238,252,244,.97); border: 1px solid rgba(60,179,113,.3); }
 .voice-correction-ok { background: rgba(255,252,238,.97); border: 1px solid rgba(200,160,42,.3); }
 .voice-correction-bad { background: rgba(255,247,238,.97); border: 1px solid rgba(200,87,42,.3); }
+
+/* Voice correction toast — slides in from right */
+@keyframes voice-toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.voice-toast-in { animation: voice-toast-in 0.25s ease forwards; }
+
+/* Voice corner panel — slides up from bottom */
+@keyframes voice-panel-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.voice-panel-up { animation: voice-panel-up 0.2s ease forwards; }
+
+/* Voice grid background — matches mockup's subtle grid */
+.voice-grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Voice state ring animations */
+@keyframes voice-ring-idle-spin {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -377; }
+}
+@keyframes voice-ring-ai-spin {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -377; }
+}
+@keyframes voice-ring-user-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+@keyframes orb-breathe {
+  0%, 100% { r: 50; }
+  50% { r: 53; }
+}
 
 @layer base {
   * {

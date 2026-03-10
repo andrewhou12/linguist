@@ -1,5 +1,5 @@
 export type VoiceProviderType = 'soniox' | 'hume'
-export type TtsProviderType = 'elevenlabs' | 'rime'
+export type TtsProviderType = 'elevenlabs' | 'rime' | 'cartesia'
 
 const VOICE_STORAGE_KEY = 'lingle-voice-provider'
 const TTS_STORAGE_KEY = 'lingle-tts-provider'
@@ -21,9 +21,9 @@ export function setVoiceProvider(provider: VoiceProviderType): void {
 export function getTtsProvider(): TtsProviderType {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(TTS_STORAGE_KEY)
-    if (stored === 'elevenlabs' || stored === 'rime') return stored
+    if (stored === 'elevenlabs' || stored === 'rime' || stored === 'cartesia') return stored
   }
-  return 'rime'
+  return 'cartesia'
 }
 
 export function setTtsProvider(provider: TtsProviderType): void {

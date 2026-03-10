@@ -3,7 +3,7 @@ import { generateObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-helpers'
-import { withUsageCheck } from '@/lib/usage-guard'
+import { withUsageCheck, getUsageInfo } from '@/lib/usage-guard'
 import { prisma } from '@lingle/db'
 import { buildSystemPrompt } from '@/lib/experience-prompt'
 import { getDifficultyLevel } from '@/lib/difficulty-levels'
@@ -311,5 +311,7 @@ Make the plan specific to the user's prompt and difficulty level.`
     data: { totalSessions: { increment: 1 } },
   })
 
-  return NextResponse.json({ _sessionId: session.id, sessionFocus, plan })
+  const { remainingSeconds, plan: userPlan } = await getUsageInfo(userId)
+
+  return NextResponse.json({ _sessionId: session.id, sessionFocus, plan, remainingSeconds, userPlan })
 }))

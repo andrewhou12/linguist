@@ -1,6 +1,10 @@
 'use client'
 
-import { ChatBubbleLeftIcon, StopIcon, DocumentTextIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowLeftIcon,
+  DocumentTextIcon,
+  ChatBubbleLeftIcon,
+} from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
 import type { SessionPlan } from '@/lib/session-plan'
 import type { VoiceProviderType } from '@/lib/voice/voice-provider-config'
@@ -10,99 +14,110 @@ interface VoiceNavBarProps {
   duration: number
   transcriptCount: number
   isPlanOpen: boolean
+  isTranscriptOpen: boolean
+  isSubtitlesOn: boolean
   voiceProvider?: VoiceProviderType
   onTogglePlan: () => void
-  onOpenTranscript: () => void
+  onToggleTranscript: () => void
+  onToggleSubtitles: () => void
   onEnd: () => void
 }
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function getScenarioInfo(plan: SessionPlan | null): { icon: string; name: string; jp: string } {
-  if (!plan) return { icon: '💬', name: 'Voice Conversation', jp: '会話' }
-  if (plan.mode === 'conversation') {
-    return { icon: '💬', name: plan.topic?.slice(0, 30) || 'Conversation', jp: '会話練習' }
-  }
-  if (plan.mode === 'tutor') {
-    return { icon: '📚', name: plan.topic?.slice(0, 30) || 'Tutor Session', jp: 'レッスン' }
-  }
-  return { icon: '🎧', name: 'focus' in plan ? (plan as { focus: string }).focus.slice(0, 30) : 'Session', jp: '練習' }
+function SegmentBtn({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'relative inline-flex items-center gap-1.5 px-3 py-[5px] rounded-md text-[12px] font-medium font-sans cursor-pointer transition-all duration-150',
+        active
+          ? 'bg-[var(--toggle-active-bg)] text-[var(--toggle-text-active)] shadow-[var(--toggle-active-shadow)]'
+          : 'bg-transparent text-[var(--toggle-text)] hover:text-[var(--toggle-text-active)]',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  )
 }
 
 export function VoiceNavBar({
-  plan, duration, transcriptCount,
-  isPlanOpen, voiceProvider, onTogglePlan, onOpenTranscript, onEnd,
+  plan,
+  duration,
+  isPlanOpen,
+  isTranscriptOpen,
+  isSubtitlesOn,
+  onTogglePlan,
+  onToggleTranscript,
+  onToggleSubtitles,
+  onEnd,
 }: VoiceNavBarProps) {
-  const scenario = getScenarioInfo(plan)
-
   return (
-    <nav className="flex items-center justify-between px-5 h-[54px] bg-[rgba(255,255,255,.93)] backdrop-blur-[24px] saturate-150 border-b border-[rgba(228,224,217,.7)] z-20 relative shrink-0">
-      {/* Left */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onTogglePlan}
-          className={cn(
-            'inline-flex items-center gap-[5px] text-[12px] font-medium text-text-secondary bg-bg-secondary border-[1.5px] border-border rounded-[10px] px-2.5 py-[5px] cursor-pointer transition-all font-sans hover:bg-bg-hover hover:border-border-strong hover:text-text-primary',
-            isPlanOpen && 'bg-bg-active border-border-strong text-text-primary',
-          )}
-        >
-          <DocumentTextIcon className="w-[13px] h-[13px]" />
-          Session Plan
-          <ChevronDownIcon className={cn('w-2.5 h-2.5 transition-transform', isPlanOpen && 'rotate-180')} />
-        </button>
-
-        <div className="w-px h-[18px] bg-border shrink-0" />
-
-        <div className="flex items-center gap-1.5">
-          <span className="text-[14px]">{scenario.icon}</span>
-          <span className="text-[13px] font-medium text-text-primary">{scenario.name}</span>
-          <span className="font-jp text-[10px] text-text-muted tracking-[.12em]">{scenario.jp}</span>
-        </div>
-      </div>
-
-      {/* Center */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-        <div className="flex items-center gap-1.5 text-[11.5px] text-text-secondary bg-bg-secondary border border-border px-3 py-1 rounded-full">
-          <div className="w-[7px] h-[7px] rounded-full bg-green" />
-          {plan?.mode === 'tutor' ? 'Lesson' : 'Conversation'}
-        </div>
-        {voiceProvider && (
-          <span className="text-[9.5px] font-medium text-text-muted bg-bg-secondary border border-border px-2 py-0.5 rounded-full tracking-[.02em]">
-            {voiceProvider === 'hume' ? 'Hume EVI' : 'Soniox'}
-          </span>
-        )}
-      </div>
-
-      {/* Right */}
-      <div className="flex items-center gap-[7px]">
-        <button
-          onClick={onOpenTranscript}
-          className="inline-flex items-center gap-[5px] text-[12.5px] font-medium text-text-secondary bg-bg-secondary border-[1.5px] border-border rounded-[10px] px-2.5 py-[5px] cursor-pointer transition-all font-sans hover:bg-bg-hover hover:border-border-strong hover:text-text-primary"
-        >
-          <ChatBubbleLeftIcon className="w-[13px] h-[13px]" />
-          Transcript
-          {transcriptCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[15px] h-[15px] px-[3px] bg-accent-warm text-white text-[9px] font-bold rounded-[8px]">
-              {transcriptCount}
-            </span>
-          )}
-        </button>
-
-        <span className="font-mono text-[12.5px] text-text-muted tracking-[.04em] tabular-nums">
-          {formatDuration(duration)}
-        </span>
-
+    <nav className="flex items-center px-5 h-[54px] z-20 relative shrink-0">
+      {/* Left — End session */}
+      <div className="flex-1">
         <button
           onClick={onEnd}
-          className="inline-flex items-center gap-[5px] text-[12px] font-medium text-white bg-red border-none rounded-[10px] px-3 py-1.5 cursor-pointer transition-all shadow-[0_1px_3px_rgba(220,53,69,.3)] hover:brightness-90 hover:-translate-y-px"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-pure border border-border text-[13px] font-medium text-text-secondary cursor-pointer transition-colors hover:bg-bg-hover hover:border-border-strong hover:text-text-primary"
         >
-          <StopIcon className="w-[9px] h-[9px] fill-current" />
+          <ArrowLeftIcon className="w-3.5 h-3.5" />
           End
         </button>
+      </div>
+
+      {/* Center — Segmented toggle */}
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-[3px] rounded-lg bg-[var(--toggle-bg)]">
+        <SegmentBtn
+          active={isPlanOpen}
+          onClick={onTogglePlan}
+          label="Plan"
+          icon={<DocumentTextIcon className="w-3.5 h-3.5" />}
+        />
+        <SegmentBtn
+          active={isTranscriptOpen}
+          onClick={onToggleTranscript}
+          label="Transcript"
+          icon={<ChatBubbleLeftIcon className="w-3.5 h-3.5" />}
+        />
+        <SegmentBtn
+          active={isSubtitlesOn}
+          onClick={onToggleSubtitles}
+          label="Subtitles"
+          icon={
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" />
+              <line x1="6" y1="12" x2="10" y2="12" />
+              <line x1="6" y1="16" x2="14" y2="16" />
+              <line x1="12" y1="12" x2="18" y2="12" />
+            </svg>
+          }
+        />
+      </div>
+
+      {/* Right — Mode + timer */}
+      <div className="flex-1 flex justify-end items-center gap-2.5">
+        <span className="px-2 py-0.5 rounded-md bg-[var(--toggle-bg)] text-[11px] font-medium text-text-muted uppercase tracking-wide">
+          {plan?.mode || 'voice'}
+        </span>
+        <div className="w-px h-[14px] bg-border shrink-0" />
+        <span className="font-mono text-[12px] text-text-muted tabular-nums tracking-[.04em]">
+          {formatDuration(duration)}
+        </span>
       </div>
     </nav>
   )

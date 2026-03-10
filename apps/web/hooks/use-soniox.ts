@@ -59,6 +59,10 @@ export interface UseSonioxReturn {
   resume: () => void
   /** Force finalize current speech (for push-to-talk) */
   finalize: () => void
+  /** Immediately flush accumulated tokens as an utterance (skips finalize round-trip) */
+  immediateFlush: () => EnrichedUtterance | null
+  /** Pre-fetch API key so first start() is faster */
+  warmup: () => void
   /** Current partial (non-final) transcript text */
   partialText: string
   /** Whether Soniox is currently recording */
@@ -97,6 +101,10 @@ export function useSoniox(
   onUtteranceRef.current = onUtterance
   onEndpointRef.current = onEndpoint
 
+  // Pre-cached API key so first start() doesn't wait for fetch
+  const cachedKeyRef = useRef<string | null>(null)
+  const keyFetchPromiseRef = useRef<Promise<string> | null>(null)
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -104,6 +112,34 @@ export function useSoniox(
       recordingRef.current = null
       clientRef.current = null
     }
+  }, [])
+
+  // Fetch API key (returns cached if available)
+  const fetchApiKey = useCallback(async (): Promise<string> => {
+    if (cachedKeyRef.current) {
+      console.log('[soniox:opt] API key already cached')
+      return cachedKeyRef.current
+    }
+    if (keyFetchPromiseRef.current) {
+      console.log('[soniox:opt] API key fetch already in-flight, awaiting')
+      return keyFetchPromiseRef.current
+    }
+
+    const t = performance.now()
+    console.log('[soniox:opt] fetching API key...')
+    const promise = fetch('/api/voice/soniox-key', { method: 'POST' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `Failed to fetch Soniox API key (${res.status})`)
+        }
+        const data = await res.json()
+        cachedKeyRef.current = data.api_key
+        console.log(`[soniox:opt] API key fetched ${(performance.now() - t).toFixed(0)}ms`)
+        return data.api_key as string
+      })
+    keyFetchPromiseRef.current = promise
+    return promise
   }, [])
 
   const start = useCallback(async () => {
@@ -121,15 +157,7 @@ export function useSoniox(
       // Create client if needed
       if (!clientRef.current) {
         clientRef.current = new SonioxClient({
-          api_key: async () => {
-            const res = await fetch('/api/voice/soniox-key', { method: 'POST' })
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}))
-              throw new Error(body.error || `Failed to fetch Soniox API key (${res.status})`)
-            }
-            const data = await res.json()
-            return data.api_key
-          },
+          api_key: fetchApiKey,
           permissions: new BrowserPermissionResolver(),
         })
       }
@@ -153,7 +181,7 @@ export function useSoniox(
         source: new MicrophoneSource({
           constraints: {
             echoCancellation: true,
-            noiseSuppression: true,
+            noiseSuppression: false, // Disabled — gates speech onsets after pauses, clipping first syllable
             autoGainControl: true,
             channelCount: 1,
           },
@@ -198,6 +226,14 @@ export function useSoniox(
             end_ms: token.end_ms,
             language: token.language,
           })
+        }
+
+        // Log final tokens for diagnostics (helps debug pause-related transcription issues)
+        const finalTokens = result.tokens.filter((t) => t.is_final)
+        if (finalTokens.length > 0) {
+          const text = finalTokens.map((t) => t.text).join('')
+          const conf = finalTokens.map((t) => (t.confidence ?? 1).toFixed(2)).join(',')
+          console.log(`[soniox:tokens] final: "${text}" conf:[${conf}] accumulated:${tokenAccRef.current.length}`)
         }
 
         // Update partial text from non-final tokens
@@ -281,12 +317,36 @@ export function useSoniox(
     recordingRef.current?.finalize()
   }, [])
 
+  const immediateFlush = useCallback((): EnrichedUtterance | null => {
+    const buf = utteranceBufferRef.current
+    if (!buf) return null
+
+    const utterance = buf.markEndpoint()
+    if (!utterance || !utterance.text.trim()) return null
+
+    const enriched: EnrichedUtterance = {
+      text: utterance.text,
+      tokens: tokenAccRef.current,
+    }
+    tokenAccRef.current = []
+    setPartialText('')
+    return enriched
+  }, [])
+
+  // Pre-fetch API key so first start() doesn't wait for the round-trip
+  const warmup = useCallback(() => {
+    console.log('[soniox:opt] warmup called — pre-fetching API key')
+    fetchApiKey().catch(() => {})
+  }, [fetchApiKey])
+
   return {
     start,
     stop,
     pause,
     resume,
     finalize,
+    immediateFlush,
+    warmup,
     partialText,
     isRecording,
     state,

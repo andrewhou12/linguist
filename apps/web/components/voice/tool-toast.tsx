@@ -11,10 +11,12 @@ interface ToolToastProps {
   /** Auto-dismiss after this many ms (default: 8000). 0 = no auto-dismiss. */
   duration?: number
   onDismiss: (id: string) => void
+  /** Called when the toast body is clicked (not the X button) */
+  onClick?: () => void
 }
 
-export function ToolToast({ id, children, duration = 8000, onDismiss }: ToolToastProps) {
-  const [isPinned, setIsPinned] = useState(false)
+export function ToolToast({ id, children, duration = 8000, onDismiss, onClick }: ToolToastProps) {
+  const [isPinned, setIsPinned] = useState(duration === 0)
   const [progress, setProgress] = useState(100)
 
   useEffect(() => {
@@ -34,10 +36,14 @@ export function ToolToast({ id, children, duration = 8000, onDismiss }: ToolToas
     return () => clearInterval(interval)
   }, [id, duration, isPinned, onDismiss])
 
-  const handlePin = useCallback(() => {
-    setIsPinned(true)
-    setProgress(100)
-  }, [])
+  const handleClick = useCallback(() => {
+    if (onClick) {
+      onClick()
+    } else {
+      setIsPinned(true)
+      setProgress(100)
+    }
+  }, [onClick])
 
   return (
     <motion.div
@@ -47,7 +53,7 @@ export function ToolToast({ id, children, duration = 8000, onDismiss }: ToolToas
       exit={{ x: 300, opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       className="relative bg-bg-pure border border-border rounded-xl shadow-lg overflow-hidden max-w-[300px] cursor-pointer"
-      onClick={handlePin}
+      onClick={handleClick}
     >
       <div className="p-3">
         {children}
@@ -78,11 +84,17 @@ export function ToolToast({ id, children, duration = 8000, onDismiss }: ToolToas
 }
 
 // Toast container that manages active toasts
+interface ToastItem {
+  id: string
+  content: React.ReactNode
+  /** Override auto-dismiss duration. 0 = manual dismiss only. */
+  duration?: number
+  /** Called when toast body is clicked */
+  onClick?: () => void
+}
+
 interface ToolToastContainerProps {
-  toasts: Array<{
-    id: string
-    content: React.ReactNode
-  }>
+  toasts: ToastItem[]
   onDismiss: (id: string) => void
   className?: string
 }
@@ -92,7 +104,13 @@ export function ToolToastContainer({ toasts, onDismiss, className }: ToolToastCo
     <div className={cn('fixed bottom-24 right-6 z-50 flex flex-col-reverse gap-2', className)}>
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
-          <ToolToast key={toast.id} id={toast.id} onDismiss={onDismiss}>
+          <ToolToast
+            key={toast.id}
+            id={toast.id}
+            duration={toast.duration}
+            onDismiss={onDismiss}
+            onClick={toast.onClick}
+          >
             {toast.content}
           </ToolToast>
         ))}

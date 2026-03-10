@@ -47,6 +47,7 @@ export interface FSMDeps {
     pause: () => void
     resume: () => void
     finalize: () => void
+    immediateFlush: () => EnrichedUtterance | null
   }
   tts: {
     reset: () => void
@@ -73,6 +74,10 @@ export class VoiceSessionFSM {
   private _sonioxStarted = false
   private _turnCounter = 0
   private _deps: FSMDeps
+  private _utteranceTime = 0
+  private _firstTokenLogged = false
+  private _firstMessageReceived = false
+  private _sendInFlight = false
 
   constructor(deps: FSMDeps) {
     this._deps = deps
@@ -83,6 +88,7 @@ export class VoiceSessionFSM {
   get isMuted() { return this._isMuted }
   get autoEndpoint() { return this._autoEndpoint }
   get sonioxStarted() { return this._sonioxStarted }
+  get firstMessageReceived() { return this._firstMessageReceived }
 
   updateDeps(deps: Partial<FSMDeps>) {
     Object.assign(this._deps, deps)
@@ -104,7 +110,7 @@ export class VoiceSessionFSM {
         if (this._state === 'LISTENING' || this._state === 'INTERRUPTED') this.transition('THINKING')
         break
       case 'LLM_STREAMING':
-        if (this._state === 'THINKING') this.transition('SPEAKING')
+        if (this._state === 'THINKING' || this._state === 'IDLE') this.transition('SPEAKING')
         break
       case 'TTS_STARTED':
         if (this._state === 'THINKING') this.transition('SPEAKING')
@@ -150,25 +156,39 @@ export class VoiceSessionFSM {
     const text = utterance.text.trim()
     if (!text) return
 
+    // Guard: prevent duplicate sends
+    if (this._state === 'THINKING' || this._state === 'SPEAKING' || this._sendInFlight) {
+      console.log(`[voice] handleUtterance: ignoring duplicate (state=${this._state} sendInFlight=${this._sendInFlight}) text:"${text.slice(0, 40)}"`)
+      return
+    }
+    this._sendInFlight = true
+
+    this._utteranceTime = performance.now()
+    this._firstTokenLogged = false
+    console.log(`[voice:timing] utterance received: "${text.slice(0, 50)}"`)
+
     const { signals, annotation } = this._deps.computeSignals(utterance)
     void signals // signals stored elsewhere if needed
 
     this._deps.onTranscriptUpdate((prev) => [...prev, { role: 'user', text, isFinal: true, timestamp: Date.now() }])
     this.dispatch('ENDPOINT_FIRED')
 
-    if (this._state === 'INTERRUPTED' || this._state === 'SPEAKING') {
-      this._deps.tts.interrupt()
-    }
+    this._deps.tts.interrupt()
 
     const llmText = annotation ? `${text}\n\n${annotation}` : text
     this._deps.tts.reset()
     this._deps.sendMessage(llmText)
+    console.log(`[voice:timing] LLM request sent +${(performance.now() - this._utteranceTime).toFixed(0)}ms`)
     this.dispatch('LLM_STREAMING')
     this._deps.soniox.pause()
   }
 
   // Called when LLM streaming starts (text arrives)
   onStreamingText(text: string) {
+    if (this._firstTokenLogged === false && text.length > 0) {
+      this._firstTokenLogged = true
+      console.log(`[voice:timing] LLM first token +${(performance.now() - this._utteranceTime).toFixed(0)}ms`)
+    }
     this._deps.tts.feedText(text)
     this._deps.onTranscriptUpdate((prev) => {
       const last = prev[prev.length - 1]
@@ -182,6 +202,10 @@ export class VoiceSessionFSM {
 
   // Called when LLM streaming ends
   onStreamingEnd(assistantText: string | null, userText: string | null) {
+    this._sendInFlight = false
+    if (!this._firstMessageReceived) {
+      this._firstMessageReceived = true
+    }
     if (assistantText) {
       this._deps.tts.flushText(assistantText)
       this._deps.onTranscriptUpdate((prev) => {
@@ -232,7 +256,7 @@ export class VoiceSessionFSM {
 
   // Push-to-talk: start recording
   async startTalking() {
-    if (!this._isActive) return
+    if (!this._isActive || !this._firstMessageReceived) return
 
     // Interrupt if AI is speaking
     if (this._state === 'SPEAKING' || this._state === 'THINKING') {
@@ -251,14 +275,27 @@ export class VoiceSessionFSM {
     this.dispatch('SPEECH_DETECTED')
   }
 
-  // Push-to-talk: stop recording and finalize immediately
+  // Push-to-talk: stop recording and dispatch immediately
   stopTalking() {
+    const t = performance.now()
     this._deps.onTalkingChange(false)
+
+    // Grab accumulated tokens immediately — no finalize round-trip needed
+    const utterance = this._deps.soniox.immediateFlush()
     this._deps.soniox.pause()
-    this._deps.soniox.resume()
-    setTimeout(() => {
-      this._deps.soniox.finalize()
-    }, 50)
+
+    if (utterance) {
+      console.log(`[voice:timing] PTT release → immediateFlush ${(performance.now() - t).toFixed(0)}ms text:"${utterance.text.slice(0, 40)}"`)
+      this.handleUtterance(utterance)
+    } else {
+      console.log(`[voice:timing] PTT release → immediateFlush EMPTY, falling back to finalize`)
+      // Fallback: if immediateFlush got nothing (e.g. trailing audio not yet final),
+      // finalize so the 'finalized' event fires and flushes remaining tokens
+      this._deps.soniox.resume()
+      setTimeout(() => {
+        this._deps.soniox.finalize()
+      }, 50)
+    }
   }
 
   // Cancel current recording
@@ -274,6 +311,7 @@ export class VoiceSessionFSM {
     this._autoEndpoint = autoEndpoint
     this._sonioxStarted = false
     this._turnCounter = 0
+    this._firstMessageReceived = false
     this._deps.tts.reset()
 
     if (autoEndpoint) {
@@ -285,6 +323,7 @@ export class VoiceSessionFSM {
 
   async endSession() {
     this._isActive = false
+    this._sendInFlight = false
     try { this._deps.tts.interrupt() } catch {}
     try { await this._deps.soniox.stop() } catch {}
     this._sonioxStarted = false

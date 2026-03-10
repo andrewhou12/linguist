@@ -29,6 +29,8 @@ export interface UseVoiceTTSReturn {
   currentSentence: string | null
   /** Progress (0-1) within the currently-playing sentence */
   currentProgress: number
+  /** Pre-create AudioContext (call on session start to avoid first-play delay) */
+  warmup: () => void
 }
 
 interface QueueItem {
@@ -71,37 +73,57 @@ export function useVoiceTTS(
     return playerRef.current
   }, [])
 
+  // Pre-create AudioContext on first user interaction to avoid 15-45ms delay on first play
+  const warmedUpRef = useRef(false)
+  const warmup = useCallback(() => {
+    if (warmedUpRef.current) {
+      console.log('[tts:opt] warmup already done')
+      return
+    }
+    warmedUpRef.current = true
+    console.log('[tts:opt] warming up AudioContext...')
+    getPlayer().warmup()
+  }, [getPlayer])
+
   const fetchStreamingAudio = useCallback(
     (sentence: string): Promise<ReadableStream<Uint8Array> | null> => {
+      const t = performance.now()
       return fetch('/api/tts/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: sentence, speed: speedRef.current, ttsProvider: getTtsProvider() }),
         signal: abortRef.current.signal,
       })
-        .then((res) => (res.ok && res.body ? res.body : null))
+        .then((res) => {
+          console.log(`[tts:timing] fetch responded ${(performance.now() - t).toFixed(0)}ms ok:${res.ok} "${sentence.slice(0, 30)}"`)
+          return res.ok && res.body ? res.body : null
+        })
         .catch(() => null)
     },
     [],
   )
+
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval>>(0 as unknown as ReturnType<typeof setInterval>)
 
   const stopProgressTracking = useCallback(() => {
     if (progressAnimRef.current) {
       cancelAnimationFrame(progressAnimRef.current)
       progressAnimRef.current = 0
     }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current)
+      progressIntervalRef.current = 0 as unknown as ReturnType<typeof setInterval>
+    }
   }, [])
-
   const startProgressTracking = useCallback(() => {
     stopProgressTracking()
-    const tick = () => {
+    // 10Hz is plenty smooth for a progress bar — avoids 60Hz React re-renders
+    progressIntervalRef.current = setInterval(() => {
       const player = playerRef.current
       if (player && player.isPlaying) {
         setCurrentProgress(player.progress)
       }
-      progressAnimRef.current = requestAnimationFrame(tick)
-    }
-    progressAnimRef.current = requestAnimationFrame(tick)
+    }, 100)
   }, [stopProgressTracking])
 
   const cleanup = useCallback(() => {
@@ -130,6 +152,14 @@ export function useVoiceTTS(
     }
   }, [cleanup])
 
+  // Pre-fetch the next queued sentence that doesn't have a streamPromise yet
+  const prefetchNext = useCallback(() => {
+    const next = queueRef.current.find((item) => !item.streamPromise)
+    if (next) {
+      next.streamPromise = fetchStreamingAudio(next.sentence)
+    }
+  }, [fetchStreamingAudio])
+
   const playNext = useCallback(async () => {
     const gen = generationRef.current
 
@@ -155,19 +185,26 @@ export function useVoiceTTS(
     }
 
     try {
+      const tPlay = performance.now()
       // Fetch this sentence's stream (use pre-fetched if available, otherwise fetch now)
       const stream = item.streamPromise
         ? await item.streamPromise
         : await fetchStreamingAudio(item.sentence)
 
+      console.log(`[tts:timing] stream ready ${(performance.now() - tPlay).toFixed(0)}ms "${item.sentence.slice(0, 30)}"`)
+
       if (gen !== generationRef.current) return
       if (!stream) {
         // Skip failed fetches — still mark sentence as spoken
+        console.log(`[tts:timing] SKIP (no stream) "${item.sentence.slice(0, 30)}"`)
         spokenSentencesRef.current = [...spokenSentencesRef.current, item.sentence]
         setSpokenSentences(spokenSentencesRef.current)
         playNext()
         return
       }
+
+      // Pre-fetch the next sentence while this one plays (max 1 in-flight)
+      prefetchNext()
 
       const player = getPlayer()
       player.playbackRate = speedRef.current
@@ -177,10 +214,12 @@ export function useVoiceTTS(
       setCurrentProgress(0)
       startProgressTracking()
 
+      console.log(`[tts:timing] PLAY START +${(performance.now() - tPlay).toFixed(0)}ms "${item.sentence.slice(0, 30)}"`)
       // Play streams PCM chunks progressively — resolves when all audio finishes
       await player.play(stream)
 
       if (gen === generationRef.current) {
+        console.log(`[tts:timing] PLAY END ${(performance.now() - tPlay).toFixed(0)}ms "${item.sentence.slice(0, 30)}"`)
         stopProgressTracking()
         // Mark sentence as fully spoken
         spokenSentencesRef.current = [...spokenSentencesRef.current, item.sentence]
@@ -199,18 +238,23 @@ export function useVoiceTTS(
         onPlaybackEndRef.current?.()
       }
     }
-  }, [getPlayer, fetchStreamingAudio, startProgressTracking, stopProgressTracking])
+  }, [getPlayer, fetchStreamingAudio, prefetchNext, startProgressTracking, stopProgressTracking])
 
   const enqueueSentence = useCallback(
     (sentence: string) => {
       if (stoppedRef.current) return
       const clean = stripRubyAnnotations(sentence)
-      if (!clean.trim()) return
+      if (!clean.trim() || /^[。！？.!?\s…─—、,]+$/.test(clean.trim())) return
 
-      // Queue the sentence text — streaming audio is fetched just-in-time in playNext()
-      queueRef.current.push({ sentence: clean })
+      const isFirst = !playingRef.current
+      console.log(`[tts:timing] enqueue sentence isFirst:${isFirst} queue:${queueRef.current.length} "${clean.slice(0, 30)}"`)
+      // Only pre-fetch if this is the first sentence (need lowest latency) or nothing is playing
+      queueRef.current.push({
+        sentence: clean,
+        streamPromise: isFirst ? fetchStreamingAudio(clean) : undefined,
+      })
 
-      if (!playingRef.current) {
+      if (isFirst) {
         playingRef.current = true
         setIsPlaying(true)
         setIsDone(false)
@@ -218,7 +262,7 @@ export function useVoiceTTS(
         playNext()
       }
     },
-    [playNext],
+    [playNext, fetchStreamingAudio],
   )
 
   const feedText = useCallback(
@@ -254,6 +298,8 @@ export function useVoiceTTS(
   const reset = useCallback(() => {
     cleanup()
     trackerRef.current = createSentenceBoundaryTracker()
+    // Enable eager clause-level flushing for first sentence of each turn
+    trackerRef.current.setEagerMode(true)
     stoppedRef.current = false
     abortRef.current = new AbortController()
     spokenSentencesRef.current = []
@@ -285,5 +331,6 @@ export function useVoiceTTS(
     spokenSentences,
     currentSentence,
     currentProgress,
+    warmup,
   }
 }

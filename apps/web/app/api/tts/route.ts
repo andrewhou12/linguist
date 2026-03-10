@@ -8,12 +8,14 @@ const PAUSE_MARKER_REGEX = /<\d+>/g
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'urE3OJfJRxJuk9kAMN0Y'
-const TTS_PROVIDER_DEFAULT = process.env.TTS_PROVIDER || 'elevenlabs'
+const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY
+const CARTESIA_VOICE_JA = process.env.CARTESIA_VOICE_JA
+const TTS_PROVIDER_DEFAULT = process.env.TTS_PROVIDER || 'cartesia'
 
 export const POST = withAuth(async (request) => {
   const body = await request.json()
   const { text, voice: voiceParam, speed, ttsProvider: ttsProviderParam } = body
-  const ttsProvider = ttsProviderParam === 'rime' || ttsProviderParam === 'elevenlabs' ? ttsProviderParam : TTS_PROVIDER_DEFAULT
+  const ttsProvider = ttsProviderParam === 'rime' || ttsProviderParam === 'elevenlabs' || ttsProviderParam === 'cartesia' ? ttsProviderParam : TTS_PROVIDER_DEFAULT
   if (!text || typeof text !== 'string') {
     return NextResponse.json({ error: 'text is required' }, { status: 400 })
   }
@@ -34,6 +36,9 @@ export const POST = withAuth(async (request) => {
 
   if (ttsProvider === 'rime') {
     return synthesizeWithRime(spoken, speed)
+  }
+  if (ttsProvider === 'cartesia') {
+    return synthesizeWithCartesia(spoken)
   }
   return synthesizeWithElevenLabs(spoken, voiceParam)
 })
@@ -62,6 +67,48 @@ async function synthesizeWithRime(text: string, speed?: number): Promise<Respons
       { status: 500 },
     )
   }
+}
+
+async function synthesizeWithCartesia(text: string): Promise<Response> {
+  if (!CARTESIA_API_KEY) {
+    return NextResponse.json({ error: 'CARTESIA_API_KEY not configured' }, { status: 500 })
+  }
+  if (!CARTESIA_VOICE_JA) {
+    return NextResponse.json({ error: 'CARTESIA_VOICE_JA not configured' }, { status: 500 })
+  }
+
+  const response = await fetch('https://api.cartesia.ai/tts/bytes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cartesia-Version': '2024-06-10',
+      'X-API-Key': CARTESIA_API_KEY,
+    },
+    body: JSON.stringify({
+      model_id: 'sonic-multilingual',
+      transcript: text,
+      voice: { mode: 'id', id: CARTESIA_VOICE_JA },
+      language: 'ja',
+      output_format: {
+        container: 'raw',
+        encoding: 'pcm_s16le',
+        sample_rate: 24000,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error')
+    console.error('Cartesia TTS error:', response.status, errorText)
+    return NextResponse.json({ error: 'TTS generation failed' }, { status: response.status })
+  }
+
+  return new Response(response.body, {
+    headers: {
+      'Content-Type': 'audio/pcm',
+      'Content-Length': response.headers.get('Content-Length') || '',
+    },
+  })
 }
 
 async function synthesizeWithElevenLabs(text: string, voiceParam?: string): Promise<Response> {

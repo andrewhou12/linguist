@@ -48,9 +48,19 @@ export class PCMStreamPlayer {
     }
   }
 
+  /** Pre-create AudioContext so first play() has no init delay (15-45ms saving) */
+  warmup() {
+    const t = performance.now()
+    const created = !this.ctx || this.ctx.state === 'closed'
+    this.ensureContext()
+    console.log(`[pcm-player:opt] warmup ${created ? 'CREATED' : 'already-exists'} AudioContext ${(performance.now() - t).toFixed(1)}ms`)
+  }
+
   private ensureContext(): AudioContext {
     if (!this.ctx || this.ctx.state === 'closed') {
+      const t = performance.now()
       this.ctx = new AudioContext({ sampleRate: this.sampleRate })
+      console.log(`[pcm-player:opt] AudioContext created ${(performance.now() - t).toFixed(1)}ms`)
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume()
@@ -113,7 +123,7 @@ export class PCMStreamPlayer {
       if (this.residualBuffer && this.residualBuffer.length >= 2 && this._playing) {
         const len = this.residualBuffer.length - (this.residualBuffer.length % 2)
         if (len >= 2) {
-          this.scheduleChunk(ctx, this.residualBuffer.slice(0, len))
+          this.scheduleChunk(ctx, this.residualBuffer.slice(0, len), true)
         }
         this.residualBuffer = null
       }
@@ -135,7 +145,10 @@ export class PCMStreamPlayer {
     }
   }
 
-  private scheduleChunk(ctx: AudioContext, data: Uint8Array) {
+  // Fade-out last ~2.7ms (64 samples at 24kHz) to prevent end-of-sentence pops
+  private static readonly FADE_OUT_SAMPLES = 64
+
+  private scheduleChunk(ctx: AudioContext, data: Uint8Array, isLast = false) {
     if (!this._playing) return
 
     const numSamples = data.length / 2
@@ -144,6 +157,14 @@ export class PCMStreamPlayer {
 
     for (let i = 0; i < numSamples; i++) {
       float32[i] = view.getInt16(i * 2, true) / 32768.0
+    }
+
+    // Apply fade-out on the last chunk to prevent clicks from non-zero final samples
+    if (isLast && numSamples > PCMStreamPlayer.FADE_OUT_SAMPLES) {
+      const fadeStart = numSamples - PCMStreamPlayer.FADE_OUT_SAMPLES
+      for (let i = 0; i < PCMStreamPlayer.FADE_OUT_SAMPLES; i++) {
+        float32[fadeStart + i] *= 1 - i / PCMStreamPlayer.FADE_OUT_SAMPLES
+      }
     }
 
     const buffer = ctx.createBuffer(1, numSamples, this.sampleRate)

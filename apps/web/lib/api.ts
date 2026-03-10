@@ -86,7 +86,7 @@ class LingleApiClient {
   conversationList = () =>
     this.request<{ id: string; timestamp: string; durationSeconds: number | null; mode: string; sessionFocus: string }[]>('/conversation/list')
   conversationPlan = (prompt?: string, mode?: string) =>
-    this.request<{ _sessionId: string; sessionFocus: string; plan: SessionPlan }>('/conversation/plan', {
+    this.request<{ _sessionId: string; sessionFocus: string; plan: SessionPlan; remainingSeconds?: number; userPlan?: string }>('/conversation/plan', {
       method: 'POST',
       body: JSON.stringify({ ...(prompt ? { prompt } : {}), ...(mode ? { mode } : {}) }),
     })

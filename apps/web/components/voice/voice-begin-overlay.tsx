@@ -140,7 +140,7 @@ export function VoiceBeginOverlay({ plan, mode, prompt, defaultProvider, onBegin
           {/* Character card */}
           {character && (
             <div className="flex items-center gap-[11px] bg-bg-secondary border border-border rounded-2xl px-3.5 py-[11px] mb-3.5">
-              <div className="w-9 h-9 rounded-[10px] bg-accent-brand flex items-center justify-center font-jp text-[16px] text-white shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-accent-brand flex items-center justify-center font-jp-clean text-[16px] text-white shrink-0">
                 {character.avatar}
               </div>
               <div>

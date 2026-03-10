@@ -2,18 +2,23 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-helpers'
 import { parseMessage } from '@/lib/message-parser'
 import { getRimeWs } from '@/lib/rime-ws'
+import { parseCartesiaSSE } from '@/lib/cartesia-sse'
 
 const RUBY_REGEX = /\{([^}|]+)\|[^}]+\}/g
 const PAUSE_MARKER_REGEX = /<\d+>/g
-const TTS_PROVIDER_DEFAULT = process.env.TTS_PROVIDER || 'elevenlabs'
+const TTS_PROVIDER_DEFAULT = process.env.TTS_PROVIDER || 'cartesia'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'urE3OJfJRxJuk9kAMN0Y'
 
+const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY
+const CARTESIA_VOICE_JA = process.env.CARTESIA_VOICE_JA
+
 export const POST = withAuth(async (request) => {
+  const t0 = performance.now()
   const body = await request.json()
   const { text, speed, ttsProvider: ttsProviderParam } = body
-  const ttsProvider = ttsProviderParam === 'rime' || ttsProviderParam === 'elevenlabs' ? ttsProviderParam : TTS_PROVIDER_DEFAULT
+  const ttsProvider = ttsProviderParam === 'rime' || ttsProviderParam === 'elevenlabs' || ttsProviderParam === 'cartesia' ? ttsProviderParam : TTS_PROVIDER_DEFAULT
   if (!text || typeof text !== 'string') {
     return NextResponse.json({ error: 'text is required' }, { status: 400 })
   }
@@ -38,6 +43,54 @@ export const POST = withAuth(async (request) => {
       const { readable } = rime.synthesizeStream(spoken, speed)
 
       return new Response(readable, {
+        headers: {
+          'Content-Type': 'audio/pcm',
+          'X-Sample-Rate': '24000',
+          'Cache-Control': 'no-cache',
+        },
+      })
+    }
+
+    if (ttsProvider === 'cartesia') {
+      if (!CARTESIA_API_KEY) {
+        return NextResponse.json({ error: 'CARTESIA_API_KEY not configured' }, { status: 500 })
+      }
+      if (!CARTESIA_VOICE_JA) {
+        return NextResponse.json({ error: 'CARTESIA_VOICE_JA not configured' }, { status: 500 })
+      }
+
+      const tFetch = performance.now()
+      const response = await fetch('https://api.cartesia.ai/tts/sse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cartesia-Version': '2024-06-10',
+          'X-API-Key': CARTESIA_API_KEY,
+        },
+        body: JSON.stringify({
+          model_id: 'sonic-multilingual',
+          transcript: spoken,
+          voice: { mode: 'id', id: CARTESIA_VOICE_JA },
+          language: 'ja',
+          output_format: {
+            container: 'raw',
+            encoding: 'pcm_s16le',
+            sample_rate: 24000,
+          },
+        }),
+      })
+      const ttfa = performance.now() - tFetch
+      console.log(`[tts:timing] cartesia TTFA:${ttfa.toFixed(0)}ms total-from-request:${(performance.now() - t0).toFixed(0)}ms text:"${spoken.slice(0, 40)}"`)
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        console.error('Cartesia TTS error:', response.status, errorText)
+        return NextResponse.json({ error: 'TTS generation failed' }, { status: response.status })
+      }
+
+      const pcmStream = parseCartesiaSSE(response)
+
+      return new Response(pcmStream, {
         headers: {
           'Content-Type': 'audio/pcm',
           'X-Sample-Rate': '24000',
