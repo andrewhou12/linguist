@@ -1,33 +1,58 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { ArrowPathIcon, BookOpenIcon } from '@heroicons/react/24/outline'
+import { useEffect, useRef } from 'react'
+import {
+  MagnifyingGlassIcon,
+  QuestionMarkCircleIcon,
+  PencilSquareIcon,
+  ArrowPathIcon,
+} from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
+import { useOnboarding } from '@/hooks/use-onboarding'
+import { CoachMark } from '@/components/onboarding/coach-mark'
 import type { VoiceState } from '@/hooks/use-voice-conversation'
+
+export type ActivePanel = 'transcript' | 'feedback' | 'help' | 'lookup' | null
 
 interface VoiceControlsProps {
   voiceState: VoiceState
   isTalking: boolean
   onTalkStart: () => void
   onTalkEnd: () => void
-  vocabCount: number
-  onOpenVocab: () => void
-  onReplay: () => void
+  onTalkCancel: () => void
+  correctionsCount: number
+  activePanel: ActivePanel
+  onTogglePanel: (panel: ActivePanel) => void
+  onRetry?: () => void
+  canRetry?: boolean
   className?: string
 }
 
-const CIRC = 2 * Math.PI * 33 // ring circumference for r=33
-const SPEAK_DUR = 15000 // max ring fill duration
+const CIRC = 2 * Math.PI * 33
+const SPEAK_DUR = 15000
 
 export function VoiceControls({
-  voiceState, isTalking, onTalkStart, onTalkEnd,
-  vocabCount, onOpenVocab, onReplay, className,
+  voiceState,
+  isTalking,
+  onTalkStart,
+  onTalkEnd,
+  onTalkCancel,
+  correctionsCount,
+  activePanel,
+  onTogglePanel,
+  onRetry,
+  canRetry,
+  className,
 }: VoiceControlsProps) {
   const ringRef = useRef<SVGCircleElement>(null)
   const startTimeRef = useRef<number>(0)
   const animRef = useRef<number>(0)
-  const canTalk = voiceState === 'IDLE' || voiceState === 'SPEAKING'
+  const cancelledRef = useRef(false)
+  const canTalk = voiceState === 'IDLE' || voiceState === 'SPEAKING' || voiceState === 'THINKING'
   const isLocked = !canTalk && !isTalking
+
+  // ── Onboarding hints ──
+  const { isDismissed, dismiss } = useOnboarding()
 
   // Ring fill animation while holding
   useEffect(() => {
@@ -50,20 +75,33 @@ export function VoiceControls({
     return () => cancelAnimationFrame(animRef.current)
   }, [isTalking])
 
-  // Spacebar push-to-talk
+  // Spacebar push-to-talk + Escape to cancel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat) return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
-      e.preventDefault()
-      if (canTalk) onTalkStart()
+
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault()
+        if (canTalk) onTalkStart()
+      }
+
+      if (e.key === 'Escape' && isTalking) {
+        e.preventDefault()
+        e.stopPropagation()
+        cancelledRef.current = true
+        onTalkCancel()
+      }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
       e.preventDefault()
+      if (cancelledRef.current) {
+        cancelledRef.current = false
+        return
+      }
       onTalkEnd()
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -72,113 +110,159 @@ export function VoiceControls({
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [canTalk, onTalkStart, onTalkEnd])
+  }, [canTalk, isTalking, onTalkStart, onTalkEnd, onTalkCancel])
 
-  const statusLabel = voiceState === 'SPEAKING' ? 'AI is speaking...'
-    : voiceState === 'THINKING' ? 'AI is thinking...'
-    : isTalking ? 'Release when done'
-    : 'Hold mic to speak'
-
-  const holdHint = voiceState === 'IDLE' ? 'Hold mic button and speak naturally'
-    : voiceState === 'THINKING' || voiceState === 'SPEAKING' ? ''
-    : isTalking ? 'Release when done'
-    : 'Hold mic to speak'
+  const chips: Array<{
+    id: ActivePanel & string
+    label: string
+    badge: number | null
+    icon: React.ReactNode
+  }> = [
+    {
+      id: 'lookup',
+      label: 'Look up',
+      badge: null,
+      icon: <MagnifyingGlassIcon className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'help',
+      label: 'Stuck?',
+      badge: null,
+      icon: <QuestionMarkCircleIcon className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'feedback',
+      label: 'Feedback',
+      badge: correctionsCount || null,
+      icon: <PencilSquareIcon className="w-3.5 h-3.5" />,
+    },
+  ]
 
   return (
-    <div className={cn('flex flex-col items-center gap-2.5 px-6 py-3 bg-[rgba(255,255,255,.9)] backdrop-blur-[20px] border-t border-[rgba(228,224,217,.55)]', className)}>
-      <div className="flex items-center justify-center gap-4">
-        {/* Replay */}
-        <button
-          onClick={onReplay}
-          className="flex flex-col items-center gap-[3px] bg-transparent border-none cursor-pointer p-1 rounded-[10px] transition-all hover:bg-bg-hover group"
-          title="Replay last line"
-        >
-          <div className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center bg-bg-secondary border-[1.5px] border-border transition-all group-hover:bg-bg-hover group-hover:border-border-strong">
-            <ArrowPathIcon className="w-4 h-4 text-text-secondary" />
-          </div>
-          <span className="text-[10px] text-text-muted">Replay</span>
-        </button>
-
-        {/* Main speak button */}
-        <button
-          onMouseDown={canTalk ? onTalkStart : undefined}
-          onMouseUp={onTalkEnd}
-          onMouseLeave={isTalking ? onTalkEnd : undefined}
-          onTouchStart={canTalk ? (e) => { e.preventDefault(); onTalkStart() } : undefined}
-          onTouchEnd={(e) => { e.preventDefault(); onTalkEnd() }}
-          className={cn(
-            'flex flex-col items-center gap-1 bg-transparent border-none cursor-pointer p-1 select-none',
-            isLocked && 'pointer-events-none',
-          )}
-        >
-          <div className="relative w-[72px] h-[72px] flex items-center justify-center">
-            {/* SVG ring */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 72 72">
-              <circle cx="36" cy="36" r="33" fill="none" stroke="var(--border)" strokeWidth="1.5" />
-              <circle
-                ref={ringRef}
-                cx="36" cy="36" r="33"
-                fill="none" stroke="var(--accent-warm)" strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeDasharray={CIRC}
-                strokeDashoffset={CIRC}
-                className={cn('transition-none', !isTalking && 'opacity-0', isTalking && 'opacity-100')}
-              />
-            </svg>
-
-            {/* Core button */}
-            <div className={cn(
-              'w-[56px] h-[56px] rounded-[17px] flex items-center justify-center transition-all',
-              isTalking
-                ? 'bg-accent-warm shadow-[0_4px_20px_rgba(200,87,42,.45),0_0_0_10px_rgba(200,87,42,.1)]'
-                : 'bg-accent-brand shadow-[0_3px_10px_rgba(47,47,47,.22)] hover:bg-[#111] hover:scale-105 hover:shadow-[0_6px_20px_rgba(47,47,47,.3)]',
-              isLocked && 'opacity-30',
-            )}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-            </div>
-          </div>
-          <span className={cn(
-            'text-[10.5px] tracking-[.02em] mt-0.5 transition-colors',
-            isTalking ? 'text-accent-warm' : 'text-text-muted',
-          )}>
-            {isTalking ? 'Release when done' : 'Hold to speak'}
-          </span>
-        </button>
-
-        {/* Vocab */}
-        <button
-          onClick={onOpenVocab}
-          className="flex flex-col items-center gap-[3px] bg-transparent border-none cursor-pointer p-1 rounded-[10px] transition-all hover:bg-bg-hover group"
-          title="Vocabulary"
-        >
-          <div className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center bg-bg-secondary border-[1.5px] border-border transition-all group-hover:bg-bg-hover group-hover:border-border-strong relative">
-            <BookOpenIcon className="w-4 h-4 text-text-secondary" />
-            {vocabCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-accent-warm text-white text-[8px] font-bold rounded-[7px] flex items-center justify-center px-[3px]">
-                {vocabCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] text-text-muted">
-            Vocab {vocabCount > 0 && <span className="text-accent-warm font-semibold">{vocabCount}</span>}
-          </span>
-        </button>
+    <CoachMark
+      hintId="hint_voice_spacebar"
+      content="Hold spacebar or press the mic button to speak. Release to send."
+      side="top"
+      autoDismissMs={10000}
+      show={voiceState === 'IDLE' && !isDismissed('hint_voice_spacebar')}
+      onDismiss={() => dismiss('hint_voice_spacebar')}
+    >
+    <div className={cn('flex flex-col items-center gap-3 px-6 pb-6 pt-3 shrink-0', className)}>
+      {/* Keyboard hints — uses app's standard text sizing */}
+      <div className="h-5 flex items-center gap-1.5 text-[11px] text-text-muted">
+        {voiceState === 'IDLE' && !isTalking && (
+          <>
+            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
+            <span>to talk</span>
+          </>
+        )}
+        {isTalking && (
+          <>
+            <span className="text-text-secondary">Release or</span>
+            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
+            <span>to send</span>
+            <span className="mx-0.5 text-border-strong">&middot;</span>
+            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
+            <span>to cancel</span>
+          </>
+        )}
+        {!isTalking && (voiceState === 'SPEAKING' || voiceState === 'THINKING') && (
+          <>
+            <kbd className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Esc</kbd>
+            <span>to interrupt</span>
+          </>
+        )}
       </div>
 
-      {/* Hold hint */}
-      <div className="h-[18px] flex items-center justify-center">
-        <span className={cn(
-          'text-[11px] text-text-muted tracking-[.04em] italic transition-opacity',
-          (!holdHint || voiceState === 'THINKING' || voiceState === 'SPEAKING') && 'opacity-0',
-        )}>
-          {holdHint}
-        </span>
+      {/* PTT button — matches primary CTA pattern */}
+      <button
+        onMouseDown={canTalk ? onTalkStart : undefined}
+        onMouseUp={onTalkEnd}
+        onMouseLeave={isTalking ? onTalkEnd : undefined}
+        onTouchStart={canTalk ? (e) => { e.preventDefault(); onTalkStart() } : undefined}
+        onTouchEnd={(e) => { e.preventDefault(); onTalkEnd() }}
+        className={cn(
+          'relative w-16 h-16 rounded-full cursor-pointer flex items-center justify-center select-none transition-all active:scale-[0.94]',
+          isTalking
+            ? 'bg-accent-warm shadow-[0_4px_20px_rgba(200,87,42,.35)]'
+            : 'bg-accent-brand shadow-[0_3px_10px_rgba(47,47,47,.22)] hover:bg-[#111] hover:scale-105 hover:shadow-[0_6px_20px_rgba(47,47,47,.3)]',
+          isLocked && 'opacity-30 pointer-events-none',
+        )}
+      >
+        {/* Ring progress */}
+        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="33" fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="1.5" />
+          <circle
+            ref={ringRef}
+            cx="36" cy="36" r="33"
+            fill="none" stroke="white" strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeDasharray={CIRC}
+            strokeDashoffset={CIRC}
+            className={cn('transition-none', !isTalking && 'opacity-0', isTalking && 'opacity-60')}
+          />
+        </svg>
+
+        {/* Mic icon */}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.7" strokeLinecap="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </button>
+
+      {/* Chip buttons — matches suggestion chip pattern from the app */}
+      <CoachMark
+        hintId="hint_voice_feedback"
+        content="Look up words, ask for help, or check your feedback here."
+        side="top"
+        show={isDismissed('hint_voice_spacebar') && !isDismissed('hint_voice_feedback')}
+        onDismiss={() => dismiss('hint_voice_feedback')}
+      >
+      <div className="flex gap-1.5">
+        {canRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong"
+          >
+            <ArrowPathIcon className="w-3.5 h-3.5" />
+            Retry
+          </button>
+        )}
+        {chips.map(({ id, label, badge, icon }) => {
+          const isActive = activePanel === id
+          return (
+            <button
+              key={id}
+              onClick={() => onTogglePanel(isActive ? null : id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-sans cursor-pointer transition-colors',
+                isActive
+                  ? 'bg-bg-active border-border-strong text-text-primary font-medium'
+                  : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
+              )}
+            >
+              {icon}
+              {label}
+              {badge != null && badge > 0 && (
+                <span
+                  className={cn(
+                    'min-w-[16px] h-[16px] inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1',
+                    isActive
+                      ? 'bg-accent-warm/15 text-accent-warm'
+                      : 'bg-warm-soft text-accent-warm',
+                  )}
+                >
+                  {badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
+      </CoachMark>
     </div>
+    </CoachMark>
   )
 }

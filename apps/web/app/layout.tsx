@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { Fraunces, Noto_Serif_JP } from 'next/font/google'
+import { Fraunces } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 
@@ -12,16 +12,9 @@ const fraunces = Fraunces({
   display: 'swap',
 })
 
-const notoSerifJP = Noto_Serif_JP({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-noto-serif-jp',
-})
-
 export const metadata: Metadata = {
   title: 'Lingle — Modern Language Learning',
-  description: 'The first Japanese learning system with a live model of exactly what you know.',
+  description: 'The first language learning system with a live model of exactly what you know.',
   icons: {
     icon: '/icon.svg',
   },
@@ -35,9 +28,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable} ${notoSerifJP.variable}`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <TooltipProvider>
           {children}

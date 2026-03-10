@@ -1,14 +1,13 @@
 'use client'
 
 import { useRef, useEffect, useCallback } from 'react'
+import { cn } from '@/lib/utils'
 import type { VoiceState } from '@/hooks/use-voice-conversation'
 
 interface VoiceCentralOrbProps {
   state: VoiceState
   size?: number
   className?: string
-  /** Emit floating characters when AI speaks */
-  onFloatChars?: (text: string) => void
 }
 
 const VOICE_TO_ORB: Record<VoiceState, string> = {
@@ -19,185 +18,260 @@ const VOICE_TO_ORB: Record<VoiceState, string> = {
   INTERRUPTED: 'listening',
 }
 
-interface OrbConfig {
-  r: number
-  amp: number
-  spd: number
-  bars: boolean
-  think: boolean
-  rip: boolean
-}
+const BAR_COUNT = 11
+const BAR_WIDTH = 2
+const BAR_GAP = 4
+const BASE_R = 50
 
-const CFGS: Record<string, OrbConfig> = {
-  idle:          { r: 80, amp: 3,  spd: .010, bars: false, think: false, rip: false },
-  speaking:      { r: 87, amp: 7,  spd: .019, bars: false, think: false, rip: true },
-  listening:     { r: 83, amp: 5,  spd: .015, bars: true,  think: false, rip: false },
-  user_speaking: { r: 92, amp: 15, spd: .027, bars: true,  think: false, rip: false },
-  thinking:      { r: 78, amp: 2,  spd: .007, bars: false, think: true,  rip: false },
-}
-
-function lerp(a: number, b: number, t: number) { return a + (b - a) * t }
-
-export function VoiceCentralOrb({ state, size = 272, className }: VoiceCentralOrbProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const orbRef = useRef({
-    r: 80, tR: 80, amp: 3, tA: 3, spd: .011, tS: .011,
-    phase: 0, thinkRot: 0,
-    bars: new Array(44).fill(0) as number[],
-    barT: new Array(44).fill(0) as number[],
-    ripples: [] as Array<{ r: number; a: number }>,
-    ripT: 0, barTimer: 0,
-    showBars: false, showThink: false, showRip: false,
-    orbState: 'idle',
-  })
+export function VoiceCentralOrb({ state, size = 220, className }: VoiceCentralOrbProps) {
+  const orbState = VOICE_TO_ORB[state] || 'idle'
+  const barsRef = useRef<SVGGElement>(null)
+  const glowRef = useRef<SVGCircleElement>(null)
+  const orbRef = useRef<SVGCircleElement>(null)
+  const thinkArcsRef = useRef<SVGGElement>(null)
+  const ripplesRef = useRef<SVGGElement>(null)
   const animRef = useRef<number>(0)
+  const stateRef = useRef(orbState)
+  const rippleDataRef = useRef<Array<{ r: number; a: number }>>([])
+  const ripTimerRef = useRef(0)
+  const thinkRotRef = useRef(0)
 
-  const setOrbState = useCallback((s: string) => {
-    const c = CFGS[s] || CFGS.idle
-    const orb = orbRef.current
-    orb.tR = c.r; orb.tA = c.amp; orb.tS = c.spd
-    orb.showBars = c.bars; orb.showThink = c.think; orb.showRip = c.rip
-    orb.orbState = s
-  }, [])
+  stateRef.current = orbState
 
-  // Sync voice state to orb state
-  useEffect(() => {
-    const mapped = VOICE_TO_ORB[state] || 'idle'
-    setOrbState(mapped)
-  }, [state, setOrbState])
+  // Bar heights driven by rAF
+  const barHeightsRef = useRef(new Array(BAR_COUNT).fill(0))
+  const barTargetsRef = useRef(new Array(BAR_COUNT).fill(0))
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const CW = canvas.width, CH = canvas.height
-    const CX = CW / 2, CY = CH / 2
-
-    function draw(ts: number) {
-      const orb = orbRef.current
-      ctx!.clearRect(0, 0, CW, CH)
-
-      orb.r = lerp(orb.r, orb.tR, .07)
-      orb.amp = lerp(orb.amp, orb.tA, .06)
-      orb.spd = lerp(orb.spd, orb.tS, .05)
-      orb.phase += orb.spd
-      orb.thinkRot += .024
+    const tick = (ts: number) => {
+      const st = stateRef.current
       const t = ts / 1000
+      const showBars = st === 'listening' || st === 'speaking'
 
-      // Ripples
-      orb.ripples = orb.ripples.filter(r => r.a > .004)
-      orb.ripples.forEach(r => {
-        r.r += 1.5; r.a *= .966
-        ctx!.beginPath()
-        ctx!.arc(CX, CY, r.r, 0, Math.PI * 2)
-        ctx!.strokeStyle = `rgba(47,47,47,${r.a * .2})`
-        ctx!.lineWidth = 1
-        ctx!.stroke()
-      })
-      if (orb.showRip) {
-        orb.ripT++
-        if (orb.ripT % 52 === 0) orb.ripples.push({ r: orb.r + 5, a: .38 })
+      // Update bar targets
+      if (showBars) {
+        for (let i = 0; i < BAR_COUNT; i++) {
+          const x = (i / BAR_COUNT) * Math.PI * 2
+          barTargetsRef.current[i] = 4 + Math.abs(
+            Math.sin(x * 2.4 + t * 3.3) * 12 +
+            Math.sin(x * 5.1 - t * 2.1) * 6 +
+            Math.sin(x * 1.3 + t * 4.6) * 4,
+          ) * 0.4
+        }
+      } else {
+        barTargetsRef.current.fill(0)
+      }
+
+      // Lerp bars
+      for (let i = 0; i < BAR_COUNT; i++) {
+        barHeightsRef.current[i] += (barTargetsRef.current[i] - barHeightsRef.current[i]) * 0.18
+      }
+
+      // Apply bar heights to DOM
+      if (barsRef.current) {
+        const rects = barsRef.current.querySelectorAll('rect')
+        const totalW = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP
+        const startX = 110 - totalW / 2
+        rects.forEach((rect, i) => {
+          const h = barHeightsRef.current[i]
+          const x = startX + i * (BAR_WIDTH + BAR_GAP)
+          rect.setAttribute('x', String(x))
+          rect.setAttribute('y', String(110 - h / 2))
+          rect.setAttribute('height', String(h))
+          rect.setAttribute('opacity', showBars ? String(0.25 + (h / 30) * 0.45) : '0')
+        })
+      }
+
+      // Amplitude for orb radius
+      const amp = showBars
+        ? barHeightsRef.current.reduce((a, b) => a + b, 0) / BAR_COUNT
+        : 0
+      const dynamicR = BASE_R + amp * 0.12
+
+      // Update orb radius (breathing handled by CSS when idle)
+      if (orbRef.current && st !== 'idle') {
+        orbRef.current.setAttribute('r', String(dynamicR))
+      }
+
+      // Glow
+      if (glowRef.current) {
+        const glowR = dynamicR + 12
+        glowRef.current.setAttribute('r', String(glowR))
+        glowRef.current.setAttribute('opacity', st === 'idle' ? '0.06' : '0.1')
       }
 
       // Thinking arcs
-      if (orb.showThink) {
-        for (let i = 0; i < 3; i++) {
-          const a = orb.thinkRot + i * (Math.PI * 2 / 3)
-          ctx!.beginPath()
-          ctx!.arc(CX, CY, orb.r + 18, a, a + .84)
-          ctx!.strokeStyle = `rgba(47,47,47,${.07 + i * .055})`
-          ctx!.lineWidth = 2
-          ctx!.lineCap = 'round'
-          ctx!.stroke()
+      if (thinkArcsRef.current) {
+        if (st === 'thinking') {
+          thinkRotRef.current += 1.4
+          thinkArcsRef.current.setAttribute('transform', `rotate(${thinkRotRef.current} 110 110)`)
+          thinkArcsRef.current.style.opacity = '1'
+        } else {
+          thinkArcsRef.current.style.opacity = '0'
         }
       }
 
-      // Frequency bars
-      if (orb.showBars) {
-        orb.barTimer++
-        if (orb.barTimer % 3 === 0) {
-          const iv = orb.orbState === 'user_speaking' ? 1.8 : 1.0
-          for (let i = 0; i < 44; i++) {
-            const a = (i / 44) * Math.PI * 2
-            orb.barT[i] = iv * (6 + Math.abs(
-              Math.sin(a * 2.4 + t * 3.3) * 12 +
-              Math.sin(a * 5.1 - t * 2.1) * 6 +
-              Math.sin(a * 1.3 + t * 4.6) * 4
-            ) * .52)
+      // Ripples (speaking)
+      if (ripplesRef.current) {
+        ripTimerRef.current++
+        if (st === 'speaking' && ripTimerRef.current % 55 === 0) {
+          rippleDataRef.current.push({ r: dynamicR + 5, a: 0.3 })
+        }
+        rippleDataRef.current = rippleDataRef.current.filter(r => r.a > 0.005)
+        rippleDataRef.current.forEach(r => { r.r += 1.2; r.a *= 0.97 })
+
+        const circles = ripplesRef.current.children
+        for (let i = 0; i < 4; i++) {
+          const el = circles[i] as SVGCircleElement
+          if (!el) continue
+          const d = rippleDataRef.current[i]
+          if (d) {
+            el.setAttribute('r', String(d.r))
+            el.setAttribute('opacity', String(d.a * 0.25))
+            el.style.display = ''
+          } else {
+            el.style.display = 'none'
           }
         }
-        const bc = orb.orbState === 'user_speaking' ? '200,87,42' : '47,47,47'
-        for (let i = 0; i < 44; i++) {
-          orb.bars[i] = lerp(orb.bars[i], orb.barT[i], .19)
-          const a = (i / 44) * Math.PI * 2 - Math.PI / 2
-          const r0 = orb.r + 3, r1 = r0 + orb.bars[i]
-          ctx!.beginPath()
-          ctx!.moveTo(CX + r0 * Math.cos(a), CY + r0 * Math.sin(a))
-          ctx!.lineTo(CX + r1 * Math.cos(a), CY + r1 * Math.sin(a))
-          ctx!.strokeStyle = `rgba(${bc},${.17 + (orb.bars[i] / 36) * .53})`
-          ctx!.lineWidth = 2.5
-          ctx!.lineCap = 'round'
-          ctx!.stroke()
-        }
       }
 
-      // Main orb shape
-      ctx!.beginPath()
-      const N = 160, ph = orb.phase, am = orb.amp
-      for (let i = 0; i <= N; i++) {
-        const a = (i / N) * Math.PI * 2
-        const p = Math.sin(a * 3 + ph * 1.1) * am * .5 +
-                  Math.sin(a * 5 - ph * .8) * am * .25 +
-                  Math.sin(a * 7 + ph * 1.4) * am * .14 +
-                  Math.sin(a * 2 - ph * .5) * am * .18 +
-                  Math.sin(a * 11 + ph * 1.9) * am * .07
-        const rr = orb.r + p
-        if (i === 0) ctx!.moveTo(CX + rr * Math.cos(a), CY + rr * Math.sin(a))
-        else ctx!.lineTo(CX + rr * Math.cos(a), CY + rr * Math.sin(a))
-      }
-      ctx!.closePath()
-
-      const g = ctx!.createRadialGradient(CX - orb.r * .18, CY - orb.r * .2, 0, CX, CY, orb.r + am + 4)
-      if (orb.orbState === 'user_speaking') {
-        g.addColorStop(0, 'rgba(255,252,248,.97)')
-        g.addColorStop(.5, 'rgba(252,244,236,.93)')
-        g.addColorStop(1, 'rgba(238,222,208,.86)')
-      } else {
-        g.addColorStop(0, 'rgba(255,255,255,.97)')
-        g.addColorStop(.6, 'rgba(248,247,245,.93)')
-        g.addColorStop(1, 'rgba(235,233,230,.86)')
-      }
-      ctx!.fillStyle = g
-      ctx!.fill()
-      ctx!.strokeStyle = orb.orbState === 'user_speaking'
-        ? 'rgba(200,87,42,.18)' : 'rgba(185,182,178,.2)'
-      ctx!.lineWidth = 1.5
-      ctx!.stroke()
-
-      // Highlight
-      ctx!.beginPath()
-      ctx!.arc(CX - orb.r * .22, CY - orb.r * .26, orb.r * .38, 0, Math.PI * 2)
-      const hg = ctx!.createRadialGradient(
-        CX - orb.r * .22, CY - orb.r * .26, 0,
-        CX - orb.r * .22, CY - orb.r * .26, orb.r * .38,
-      )
-      hg.addColorStop(0, 'rgba(255,255,255,.2)')
-      hg.addColorStop(1, 'rgba(255,255,255,0)')
-      ctx!.fillStyle = hg
-      ctx!.fill()
-
-      animRef.current = requestAnimationFrame(draw)
+      animRef.current = requestAnimationFrame(tick)
     }
 
-    animRef.current = requestAnimationFrame(draw)
+    animRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(animRef.current)
-  }, [size])
+  }, [])
+
+  const isUser = orbState === 'listening'
+  const gradId = 'orb-grad'
+  const glowId = 'orb-glow-blur'
+  const clipId = 'orb-clip'
 
   return (
     <div className={className} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <canvas ref={canvasRef} width={size} height={size} style={{ display: 'block' }} />
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 220 220"
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        <defs>
+          {/* Radial gradient for orb fill */}
+          <radialGradient id={gradId} cx="42%" cy="38%" r="58%">
+            {isUser ? (
+              <>
+                <stop offset="0%" stopColor="rgba(255,252,248,.97)" />
+                <stop offset="50%" stopColor="rgba(252,244,236,.93)" />
+                <stop offset="100%" stopColor="rgba(238,222,208,.86)" />
+              </>
+            ) : (
+              <>
+                <stop offset="0%" stopColor="rgba(255,255,255,.97)" />
+                <stop offset="60%" stopColor="rgba(248,247,245,.93)" />
+                <stop offset="100%" stopColor="rgba(235,233,230,.86)" />
+              </>
+            )}
+          </radialGradient>
+
+          {/* Glow filter */}
+          <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="14" />
+          </filter>
+
+          {/* Clip path for wave bars */}
+          <clipPath id={clipId}>
+            <circle cx="110" cy="110" r={BASE_R} />
+          </clipPath>
+        </defs>
+
+        {/* Glow circle behind orb */}
+        <circle
+          ref={glowRef}
+          cx="110"
+          cy="110"
+          r={BASE_R + 12}
+          fill={isUser ? 'rgba(200,87,42,.08)' : 'rgba(180,178,175,.1)'}
+          filter={`url(#${glowId})`}
+          opacity="0.06"
+        />
+
+        {/* Ripple circles (speaking) */}
+        <g ref={ripplesRef}>
+          {[0, 1, 2, 3].map(i => (
+            <circle
+              key={i}
+              cx="110"
+              cy="110"
+              r={BASE_R}
+              fill="none"
+              stroke="rgba(47,47,47,.2)"
+              strokeWidth="1"
+              opacity="0"
+              style={{ display: 'none' }}
+            />
+          ))}
+        </g>
+
+        {/* Thinking arcs */}
+        <g ref={thinkArcsRef} style={{ opacity: 0, transition: 'opacity 0.3s' }}>
+          {[0, 1, 2].map(i => {
+            const startAngle = i * 120
+            const endAngle = startAngle + 50
+            const r = BASE_R + 14
+            const x1 = 110 + r * Math.cos((startAngle * Math.PI) / 180)
+            const y1 = 110 + r * Math.sin((startAngle * Math.PI) / 180)
+            const x2 = 110 + r * Math.cos((endAngle * Math.PI) / 180)
+            const y2 = 110 + r * Math.sin((endAngle * Math.PI) / 180)
+            return (
+              <path
+                key={i}
+                d={`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`}
+                fill="none"
+                stroke={`rgba(47,47,47,${0.08 + i * 0.05})`}
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            )
+          })}
+        </g>
+
+        {/* Main orb circle */}
+        <circle
+          ref={orbRef}
+          cx="110"
+          cy="110"
+          r={BASE_R}
+          fill={`url(#${gradId})`}
+          stroke={isUser ? 'rgba(200,87,42,.18)' : 'rgba(185,182,178,.2)'}
+          strokeWidth="1.5"
+          className={cn(orbState === 'idle' && 'animate-[orb-breathe_3.8s_ease-in-out_infinite]')}
+        />
+
+        {/* Wave bars (clipped to orb) */}
+        <g ref={barsRef} clipPath={`url(#${clipId})`}>
+          {Array.from({ length: BAR_COUNT }).map((_, i) => (
+            <rect
+              key={i}
+              x="0"
+              y="110"
+              width={BAR_WIDTH}
+              height="0"
+              rx="1"
+              fill={isUser ? 'rgba(200,87,42,.5)' : 'rgba(47,47,47,.4)'}
+              opacity="0"
+            />
+          ))}
+        </g>
+
+        {/* Highlight ellipse at upper-left */}
+        <ellipse
+          cx={110 - BASE_R * 0.22}
+          cy={110 - BASE_R * 0.26}
+          rx={BASE_R * 0.32}
+          ry={BASE_R * 0.24}
+          fill="rgba(255,255,255,.18)"
+        />
+      </svg>
     </div>
   )
 }

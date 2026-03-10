@@ -3,7 +3,7 @@ import { generateObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-helpers'
-import { withUsageCheck } from '@/lib/usage-guard'
+import { withUsageCheck, getUsageInfo } from '@/lib/usage-guard'
 import { prisma } from '@lingle/db'
 import { buildSystemPrompt } from '@/lib/experience-prompt'
 import { getDifficultyLevel } from '@/lib/difficulty-levels'
@@ -11,24 +11,32 @@ import { normalizePlan, type SessionPlan } from '@/lib/session-plan'
 import type { ScenarioMode } from '@/lib/experience-scenarios'
 import type { Prisma } from '@prisma/client'
 import { MODE_TOOLS } from '@/lib/conversation-tools'
+import { getLanguageById } from '@/lib/languages'
 
 // --- Per-mode Zod schemas ---
 
-const conversationPlanSchema = z.object({
-  topic: z.string().describe('What the conversation is about — e.g. "Recommending restaurants to a friend visiting Tokyo"'),
-  persona: z.object({
-    name: z.string().optional().describe('Optional character name'),
-    relationship: z.string().describe('Relationship to the learner — e.g. "close friend", "coworker", "shopkeeper"'),
-    personality: z.string().describe('Personality traits — e.g. "cheerful and talkative", "reserved but warm"'),
-  }),
-  register: z.string().describe('"casual", "polite", "keigo", or "mixed"'),
-  tone: z.string().describe('"lighthearted", "serious", "playful debate", etc.'),
-  setting: z.string().optional().describe('Where the conversation takes place — e.g. "izakaya after work", "LINE messages"'),
-  speakers: z.number().optional().describe('Number of speakers — default 2, 3+ means AI plays multiple roles'),
-  culturalContext: z.string().optional().describe('Relevant cultural context — e.g. "end-of-year party season"'),
-  dynamic: z.string().optional().describe('Conversation dynamic — e.g. "AI leads", "learner is asking for advice"'),
-  tension: z.string().optional().describe('Conversational tension or challenge — e.g. "politely decline an invitation"'),
-})
+function buildConversationPlanSchema(registerOptions: string) {
+  return z.object({
+    topic: z.string().describe('What the conversation is about — e.g. "Recommending restaurants to a friend visiting Tokyo"'),
+    persona: z.object({
+      name: z.string().optional().describe('Optional character name'),
+      relationship: z.string().describe('Relationship to the learner — e.g. "close friend", "coworker", "shopkeeper"'),
+      personality: z.string().describe('Personality traits — e.g. "cheerful and talkative", "reserved but warm"'),
+    }),
+    register: z.string().describe(registerOptions),
+    tone: z.string().describe('"lighthearted", "serious", "playful debate", etc.'),
+    setting: z.string().optional().describe('Where the conversation takes place — e.g. "izakaya after work", "LINE messages"'),
+    speakers: z.number().optional().describe('Number of speakers — default 2, 3+ means AI plays multiple roles'),
+    culturalContext: z.string().optional().describe('Relevant cultural context — e.g. "end-of-year party season"'),
+    dynamic: z.string().optional().describe('Conversation dynamic — e.g. "AI leads", "learner is asking for advice"'),
+    tension: z.string().optional().describe('Conversational tension or challenge — e.g. "politely decline an invitation"'),
+    sections: z.array(z.object({
+      id: z.string().describe('Short kebab-case ID — e.g. "greeting", "topic-1", "wrap-up"'),
+      label: z.string().describe('Short display label — e.g. "Greeting", "Weekend plans"'),
+      description: z.string().describe('1-sentence description of what happens in this section'),
+    })).describe('3-6 ordered conversation sections forming a skeleton/roadmap. Always start with a greeting/opener and end with a natural wrap-up.'),
+  })
+}
 
 const tutorPlanSchema = z.object({
   topic: z.string().describe('What the lesson covers — e.g. "te-form: formation and common uses"'),
@@ -63,7 +71,7 @@ const immersionPlanSchema = z.object({
   ...planBaseFields,
   contentType: z
     .string()
-    .describe('Content type: dialogue, reading, news, jlpt, or custom'),
+    .describe('Content type: dialogue, reading, news, proficiency-exam, or custom'),
   contentSpec: z
     .string()
     .describe('Specific description of the content to generate'),
@@ -86,7 +94,7 @@ const referencePlanSchema = z.object({
     .describe('2-4 related topics the learner might want to explore next'),
 })
 
-function getPlanSchema(mode: string) {
+function getPlanSchema(mode: string, registerOptions: string) {
   switch (mode) {
     case 'tutor':
       return tutorPlanSchema
@@ -95,11 +103,11 @@ function getPlanSchema(mode: string) {
     case 'reference':
       return referencePlanSchema
     default:
-      return conversationPlanSchema
+      return buildConversationPlanSchema(registerOptions)
   }
 }
 
-function getModeSpecificPlanningInstructions(mode: string, targetLanguage: string): string {
+function getModeSpecificPlanningInstructions(mode: string, targetLanguage: string, registerOptions?: string): string {
   switch (mode) {
     case 'tutor':
       return `This is a TUTOR session. Generate a structured lesson plan:
@@ -118,7 +126,7 @@ function getModeSpecificPlanningInstructions(mode: string, targetLanguage: strin
 
     case 'immersion':
       return `This is an IMMERSION session. Generate a content-focused plan:
-- contentType: one of "dialogue", "reading", "news", "jlpt", or "custom"
+- contentType: one of "dialogue", "reading", "news", "proficiency-exam", or "custom"
 - contentSpec: describe the specific content you'll generate (topic, length, style)
 - comprehensionQuestions: 2-4 questions to test understanding after presenting content
 - targetVocabulary: key vocabulary the content will feature (in ${targetLanguage})`
@@ -133,15 +141,26 @@ function getModeSpecificPlanningInstructions(mode: string, targetLanguage: strin
       return `This is a CONVERSATION session. Generate a scene card — pure context for a natural conversation:
 - topic: what the conversation is about (be specific and engaging)
 - persona: { relationship, personality } — who the AI is playing. Add a name if it fits.
-- register: "casual", "polite", "keigo", or "mixed" — match the situation
+- register: ${registerOptions || '"casual", "polite", or "mixed"'} — match the situation
 - tone: the emotional quality — "lighthearted", "serious", "playful debate", etc.
 - setting: where the conversation takes place (optional, include if it adds flavor)
 - culturalContext: relevant cultural context (optional)
 - dynamic: who leads, what's the conversational flow (optional)
 - tension: a conversational challenge or tension point (optional — e.g. "politely decline an invitation")
+- sections: Generate 3-6 ordered sections forming a conversation skeleton/roadmap. The first section should always be a greeting/opener. The last section should be a natural wrap-up. Middle sections are topics to explore. Each section has a short id (kebab-case), a label, and a 1-sentence description.
 
-IMPORTANT: This is a scene card, NOT a lesson plan. No learning objectives, no milestones, no grammar targets. The learning is implicit through natural conversation. Make the scene specific and interesting — the learner should want to talk.
-If the user prompt is generic like "Free conversation", create an engaging scene anyway.`
+IMPORTANT: This is a scene card, NOT a lesson plan. No learning objectives, no milestones, no grammar targets. The learning is implicit through natural conversation.
+
+If the user provided a specific topic or scenario, make the scene card match it — specific and interesting.
+
+If the user prompt is empty, generic, or just "Free conversation":
+- Do NOT invent elaborate scenarios, fictional locations, or detailed backstories
+- Set the topic to something simple and natural like "Casual chat" or "日常会話"
+- Use a simple persona: { relationship: "friend", personality: "friendly and relaxed" }
+- Register: "casual", tone: "lighthearted"
+- Leave setting, culturalContext, dynamic, and tension EMPTY (omit them)
+- Still generate sections: greeting, casual chat, and wrap-up (3 minimum)
+- The learner wants to just talk freely — don't impose a scene on them`
   }
 }
 
@@ -201,6 +220,11 @@ function getFallbackPlan(mode: string, sessionFocus: string): SessionPlan {
         },
         register: 'polite',
         tone: 'lighthearted',
+        sections: [
+          { id: 'greeting', label: 'Greeting', description: 'Warm greeting and set the scene' },
+          { id: 'main-topic', label: 'Main Topic', description: 'Explore the main conversation topic' },
+          { id: 'wrap-up', label: 'Wrap-up', description: 'Wind down and say goodbye naturally' },
+        ],
       }, 'conversation')
   }
 }
@@ -224,9 +248,11 @@ export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
 
   const sessionFocus = prompt || 'Free conversation'
   const resolvedMode = mode || 'conversation'
-  const level = getDifficultyLevel(profile.difficultyLevel)
+  const level = getDifficultyLevel(profile.difficultyLevel, profile.targetLanguage)
 
   const availableTools = MODE_TOOLS[resolvedMode as ScenarioMode] ?? MODE_TOOLS.conversation
+  const langConfig = getLanguageById(profile.targetLanguage)
+  const registerOpts = langConfig?.registerOptions || '"casual", "polite", or "mixed"'
 
   const systemPrompt = buildSystemPrompt({
     userPrompt: sessionFocus,
@@ -238,7 +264,7 @@ export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
   })
 
   // Generate structured session plan via Haiku with mode-specific schema
-  const schema = getPlanSchema(resolvedMode)
+  const schema = getPlanSchema(resolvedMode, registerOpts)
   let plan: SessionPlan
   try {
     const planPrompt = resolvedMode === 'conversation' || resolvedMode === 'tutor'
@@ -250,7 +276,7 @@ Difficulty: ${level.label}
 Target language: ${profile.targetLanguage}
 Native language: ${profile.nativeLanguage}
 
-${getModeSpecificPlanningInstructions(resolvedMode, profile.targetLanguage)}
+${getModeSpecificPlanningInstructions(resolvedMode, profile.targetLanguage, registerOpts)}
 
 Generate the plan as JSON. Make it specific to the user's prompt and difficulty level.`
       : `You are a session planner for a language learning app.
@@ -267,7 +293,7 @@ Generate a session plan as JSON:
 - approach: 1-2 sentences on teaching strategy for this session
 - milestones: 3-5 ordered checkpoints to hit during the session (all start as not completed)
 
-${getModeSpecificPlanningInstructions(resolvedMode, profile.targetLanguage)}
+${getModeSpecificPlanningInstructions(resolvedMode, profile.targetLanguage, registerOpts)}
 
 Make the plan specific to the user's prompt and difficulty level.`
 
@@ -302,5 +328,7 @@ Make the plan specific to the user's prompt and difficulty level.`
     data: { totalSessions: { increment: 1 } },
   })
 
-  return NextResponse.json({ _sessionId: session.id, sessionFocus, plan })
+  const { remainingSeconds, plan: userPlan } = await getUsageInfo(userId)
+
+  return NextResponse.json({ _sessionId: session.id, sessionFocus, plan, remainingSeconds, userPlan })
 }))

@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MODE_PLACEHOLDERS } from '@/lib/experience-scenarios'
+import { getModePlaceholders } from '@/lib/experience-scenarios'
 import { api } from '@/lib/api'
+import type { LearnerProfile, UsageInfo } from '@lingle/shared/types'
 import type { SessionPlan } from '@/lib/session-plan'
 import { VoiceCentralOrb } from './voice-central-orb'
-import { VoiceBeginOverlay } from './voice-begin-overlay'
+import { BeginOverlay } from '@/components/session/begin-overlay'
 import { VoiceSessionOverlay } from './voice-session-overlay'
+import { SessionDebrief } from '@/components/session/session-debrief'
+import { LoadingScreen } from '@/components/session/loading-screen'
+import type { SessionEndData } from '@/lib/session-types'
 import { Spinner } from '@/components/spinner'
 
 const MODE_DEFAULTS: Record<string, string> = {
@@ -23,21 +27,93 @@ type ViewState =
   | { type: 'loading'; prompt: string }
   | { type: 'begin'; prompt: string; sessionId: string; plan: SessionPlan }
   | { type: 'active'; prompt: string; sessionId: string; plan: SessionPlan; steeringNotes: string[] }
-  | { type: 'active-direct'; prompt: string; mode: string; sessionId?: string }
+  | { type: 'debrief'; data: SessionEndData }
 
 export function VoiceConversationView() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const mode = searchParams.get('mode') || 'conversation'
   const existingSessionId = searchParams.get('sessionId')
+  const promptFromUrl = searchParams.get('prompt')
 
   const [promptInput, setPromptInput] = useState('')
   const [viewState, setViewState] = useState<ViewState>(
-    existingSessionId
-      ? { type: 'active-direct', prompt: '', mode, sessionId: existingSessionId }
+    existingSessionId || promptFromUrl
+      ? { type: 'loading', prompt: promptFromUrl || '' }
       : { type: 'prompt' }
   )
   const [error, setError] = useState<string | null>(null)
+  const [profile, setProfile] = useState<LearnerProfile | null>(null)
+  const [usage, setUsage] = useState<UsageInfo | null>(null)
+  const initRef = useRef(false)
+
+  // Fetch learner profile and usage info once
+  useEffect(() => {
+    api.profileGet().then(setProfile).catch(() => {})
+    api.usageGet().then(setUsage).catch(() => {})
+  }, [])
+
+  // If we have an existing sessionId or a prompt from URL, auto-start planning
+  useEffect(() => {
+    if (initRef.current) return
+    if (!existingSessionId && !promptFromUrl) return
+    initRef.current = true
+
+    async function autoStart() {
+      if (existingSessionId) {
+        // Load existing session
+        try {
+          const session = await api.conversationGet(existingSessionId!)
+          if (session.sessionPlan) {
+            setViewState({
+              type: 'begin',
+              prompt: '',
+              sessionId: existingSessionId!,
+              plan: session.sessionPlan as unknown as SessionPlan,
+            })
+          } else {
+            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+            setViewState({
+              type: 'begin',
+              prompt: '',
+              sessionId: result._sessionId,
+              plan: result.plan,
+            })
+          }
+        } catch (err) {
+          console.error('Failed to load session:', err)
+          try {
+            const result = await api.conversationPlan(undefined, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+            setViewState({
+              type: 'begin',
+              prompt: '',
+              sessionId: result._sessionId,
+              plan: result.plan,
+            })
+          } catch {
+            setError('Failed to load session')
+            setViewState({ type: 'prompt' })
+          }
+        }
+      } else if (promptFromUrl) {
+        // Auto-generate plan from URL prompt
+        try {
+          const result = await api.conversationPlan(promptFromUrl, mode as 'conversation' | 'tutor' | 'immersion' | 'reference')
+          setViewState({
+            type: 'begin',
+            prompt: promptFromUrl,
+            sessionId: result._sessionId,
+            plan: result.plan,
+          })
+        } catch (err) {
+          console.error('Failed to generate plan:', err)
+          setError(err instanceof Error ? err.message : 'Failed to generate session plan')
+          setViewState({ type: 'prompt' })
+        }
+      }
+    }
+    autoStart()
+  }, [existingSessionId, promptFromUrl, mode])
 
   const handleStartVoice = useCallback(async () => {
     const prompt = promptInput.trim() || MODE_DEFAULTS[mode] || MODE_DEFAULTS.conversation
@@ -70,11 +146,26 @@ export function VoiceConversationView() {
     })
   }, [viewState])
 
-  const handleEnd = useCallback(() => {
-    setViewState({ type: 'prompt' })
-    setPromptInput('')
+  const handleEnd = useCallback((data: SessionEndData) => {
+    setViewState({ type: 'debrief', data })
+  }, [])
+
+  const handleDebriefDone = useCallback(() => {
     router.push('/conversation')
   }, [router])
+
+  // Debrief — session summary
+  if (viewState.type === 'debrief') {
+    return (
+      <SessionDebrief
+        duration={viewState.data.duration}
+        transcript={viewState.data.transcript}
+        analysisResults={viewState.data.analysisResults}
+        plan={usage?.plan}
+        onDone={handleDebriefDone}
+      />
+    )
+  }
 
   // Active session — with pre-generated plan
   if (viewState.type === 'active') {
@@ -90,46 +181,23 @@ export function VoiceConversationView() {
     )
   }
 
-  // Active session — direct (resume or legacy)
-  if (viewState.type === 'active-direct') {
-    return (
-      <VoiceSessionOverlay
-        prompt={viewState.prompt}
-        mode={viewState.mode}
-        sessionId={viewState.sessionId}
-        onEnd={handleEnd}
-      />
-    )
-  }
-
   // Begin conversation overlay — already uses fixed positioning via framer-motion
   if (viewState.type === 'begin') {
     return (
-      <VoiceBeginOverlay
+      <BeginOverlay
         plan={viewState.plan}
         mode={mode}
         prompt={viewState.prompt}
+        profile={profile}
         onBegin={handleBegin}
-        onBack={() => setViewState({ type: 'prompt' })}
+        onBack={() => router.push('/conversation')}
       />
     )
   }
 
-  // Loading state — portal to body
+  // Loading state — reuse shared loading screen with step indicators
   if (viewState.type === 'loading') {
-    return createPortal(
-      <div className="fixed inset-0 z-[99999] bg-bg flex flex-col items-center justify-center gap-6">
-        <VoiceCentralOrb state="THINKING" size={200} />
-        <div className="flex items-center gap-2.5">
-          <Spinner size={16} />
-          <span className="text-[14px] text-text-muted">Generating session plan...</span>
-        </div>
-        <p className="text-[12px] text-text-placeholder max-w-[300px] text-center">
-          The AI is crafting a personalized conversation plan based on your request.
-        </p>
-      </div>,
-      document.body,
-    )
+    return <LoadingScreen />
   }
 
   // Prompt input screen — portal to body
@@ -152,7 +220,7 @@ export function VoiceConversationView() {
               handleStartVoice()
             }
           }}
-          placeholder={MODE_PLACEHOLDERS[mode as keyof typeof MODE_PLACEHOLDERS] || MODE_PLACEHOLDERS.conversation}
+          placeholder={getModePlaceholders(profile?.targetLanguage || 'Japanese')[mode as 'conversation' | 'tutor' | 'immersion' | 'reference'] || getModePlaceholders(profile?.targetLanguage || 'Japanese').conversation}
           rows={2}
           className="w-full resize-none rounded-xl border border-border bg-bg-secondary px-4 py-3 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-brand transition-colors"
         />
@@ -165,7 +233,7 @@ export function VoiceConversationView() {
       <button
         onClick={handleStartVoice}
         disabled={false}
-        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent-brand text-white text-[15px] font-medium border-none cursor-pointer transition-colors hover:opacity-90 disabled:opacity-50"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent-brand text-white text-[15px] font-medium border-none cursor-pointer transition-all duration-150 hover:scale-[1.03] hover:shadow-md active:scale-[0.97] disabled:opacity-50"
       >
         Start Conversation
       </button>

@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useRef, useState, useEffect } from 'react'
+import type { EnrichedToken } from '@/lib/voice/turn-signals'
+
 // Inline type declarations to avoid bundler resolving @soniox/client at build time.
 // The actual module is dynamically imported in start().
 interface Recording {
@@ -16,12 +18,21 @@ interface Recording {
 type RecordingState = 'recording' | 'paused' | 'stopped' | 'error' | 'canceled'
 
 interface RealtimeResult {
-  tokens: { text: string; is_final: boolean }[]
+  tokens: { text: string; is_final: boolean; confidence?: number; start_ms?: number; end_ms?: number; language?: string }[]
 }
 
-export interface RealtimeUtterance {
+export interface EnrichedUtterance {
   text: string
-  tokens: { text: string; is_final: boolean }[]
+  tokens: EnrichedToken[]
+}
+
+/** @deprecated Use EnrichedUtterance instead */
+export type RealtimeUtterance = EnrichedUtterance
+
+export interface SonioxContext {
+  general?: { key: string; value: string }[]
+  terms?: string[]
+  text?: string
 }
 
 export interface UseSonioxOptions {
@@ -31,6 +42,10 @@ export interface UseSonioxOptions {
   maxEndpointDelayMs?: number
   /** ISO 639-1 language code for STT (default: 'ja') */
   languageCode?: string
+  /** ISO 639-1 native language code — enables bilingual detection when set */
+  nativeLanguageCode?: string
+  /** Domain/vocabulary context to bias recognition */
+  context?: SonioxContext
 }
 
 export interface UseSonioxReturn {
@@ -44,6 +59,10 @@ export interface UseSonioxReturn {
   resume: () => void
   /** Force finalize current speech (for push-to-talk) */
   finalize: () => void
+  /** Immediately flush accumulated tokens as an utterance (skips finalize round-trip) */
+  immediateFlush: () => EnrichedUtterance | null
+  /** Pre-fetch API key so first start() is faster */
+  warmup: () => void
   /** Current partial (non-final) transcript text */
   partialText: string
   /** Whether Soniox is currently recording */
@@ -56,10 +75,16 @@ export interface UseSonioxReturn {
 
 export function useSoniox(
   options: UseSonioxOptions,
-  onUtterance: (utterance: RealtimeUtterance) => void,
+  onUtterance: (utterance: EnrichedUtterance) => void,
   onEndpoint?: () => void,
 ): UseSonioxReturn {
-  const { endpointDetection = false, maxEndpointDelayMs = 1500, languageCode = 'ja' } = options
+  const {
+    endpointDetection = false,
+    maxEndpointDelayMs = 1500,
+    languageCode = 'ja',
+    nativeLanguageCode,
+    context,
+  } = options
 
   const [partialText, setPartialText] = useState('')
   const [isRecording, setIsRecording] = useState(false)
@@ -70,10 +95,15 @@ export function useSoniox(
   const clientRef = useRef<any>(null)
   const recordingRef = useRef<Recording | null>(null)
   const utteranceBufferRef = useRef<any>(null)
+  const tokenAccRef = useRef<EnrichedToken[]>([])
   const onUtteranceRef = useRef(onUtterance)
   const onEndpointRef = useRef(onEndpoint)
   onUtteranceRef.current = onUtterance
   onEndpointRef.current = onEndpoint
+
+  // Pre-cached API key so first start() doesn't wait for fetch
+  const cachedKeyRef = useRef<string | null>(null)
+  const keyFetchPromiseRef = useRef<Promise<string> | null>(null)
 
   // Cleanup on unmount
   useEffect(() => {
@@ -82,6 +112,34 @@ export function useSoniox(
       recordingRef.current = null
       clientRef.current = null
     }
+  }, [])
+
+  // Fetch API key (returns cached if available)
+  const fetchApiKey = useCallback(async (): Promise<string> => {
+    if (cachedKeyRef.current) {
+      console.log('[soniox:opt] API key already cached')
+      return cachedKeyRef.current
+    }
+    if (keyFetchPromiseRef.current) {
+      console.log('[soniox:opt] API key fetch already in-flight, awaiting')
+      return keyFetchPromiseRef.current
+    }
+
+    const t = performance.now()
+    console.log('[soniox:opt] fetching API key...')
+    const promise = fetch('/api/voice/soniox-key', { method: 'POST' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `Failed to fetch Soniox API key (${res.status})`)
+        }
+        const data = await res.json()
+        cachedKeyRef.current = data.api_key
+        console.log(`[soniox:opt] API key fetched ${(performance.now() - t).toFixed(0)}ms`)
+        return data.api_key as string
+      })
+    keyFetchPromiseRef.current = promise
+    return promise
   }, [])
 
   const start = useCallback(async () => {
@@ -99,37 +157,46 @@ export function useSoniox(
       // Create client if needed
       if (!clientRef.current) {
         clientRef.current = new SonioxClient({
-          api_key: async () => {
-            const res = await fetch('/api/voice/soniox-key', { method: 'POST' })
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}))
-              throw new Error(body.error || `Failed to fetch Soniox API key (${res.status})`)
-            }
-            const data = await res.json()
-            return data.api_key
-          },
+          api_key: fetchApiKey,
           permissions: new BrowserPermissionResolver(),
         })
       }
 
       // Create utterance buffer for accumulating tokens into utterances
       utteranceBufferRef.current = new RealtimeUtteranceBuffer()
+      tokenAccRef.current = []
 
-      const recording = clientRef.current.realtime.record({
+      // Bilingual mode: detect both target and native language
+      const isBilingual = !!nativeLanguageCode && nativeLanguageCode !== languageCode
+      const languageHints = isBilingual ? [languageCode, nativeLanguageCode] : [languageCode]
+
+      const recordingConfig: Record<string, unknown> = {
         model: 'stt-rt-v4',
-        language_hints: [languageCode],
-        language_hints_strict: true,
+        language_hints: languageHints,
+        language_hints_strict: !isBilingual,
         enable_endpoint_detection: endpointDetection,
         ...(endpointDetection ? { max_endpoint_delay_ms: maxEndpointDelayMs } : {}),
+        ...(isBilingual ? { enable_language_identification: true } : {}),
+        ...(context ? { context } : {}),
         source: new MicrophoneSource({
           constraints: {
             echoCancellation: true,
-            noiseSuppression: true,
+            noiseSuppression: false, // Disabled — gates speech onsets after pauses, clipping first syllable
             autoGainControl: true,
             channelCount: 1,
           },
         }),
+      }
+
+      console.log('[soniox] recording config:', {
+        languageHints,
+        strict: !isBilingual,
+        bilingual: isBilingual,
+        hasContext: !!context,
+        contextTerms: context?.terms?.length ?? 0,
       })
+
+      const recording = clientRef.current.realtime.record(recordingConfig)
 
       recordingRef.current = recording
 
@@ -149,6 +216,26 @@ export function useSoniox(
         // Feed result to utterance buffer
         buf.addResult(result)
 
+        // Accumulate enriched tokens
+        for (const token of result.tokens) {
+          tokenAccRef.current.push({
+            text: token.text,
+            is_final: token.is_final,
+            confidence: token.confidence ?? 1,
+            start_ms: token.start_ms,
+            end_ms: token.end_ms,
+            language: token.language,
+          })
+        }
+
+        // Log final tokens for diagnostics (helps debug pause-related transcription issues)
+        const finalTokens = result.tokens.filter((t) => t.is_final)
+        if (finalTokens.length > 0) {
+          const text = finalTokens.map((t) => t.text).join('')
+          const conf = finalTokens.map((t) => (t.confidence ?? 1).toFixed(2)).join(',')
+          console.log(`[soniox:tokens] final: "${text}" conf:[${conf}] accumulated:${tokenAccRef.current.length}`)
+        }
+
         // Update partial text from non-final tokens
         const nonFinal = result.tokens
           .filter((t) => !t.is_final)
@@ -157,29 +244,32 @@ export function useSoniox(
         setPartialText(nonFinal)
       })
 
-      recording.on('endpoint', () => {
+      const flushUtterance = () => {
         const buf = utteranceBufferRef.current
         if (!buf) return
 
-        // Flush accumulated tokens into an utterance
         const utterance = buf.markEndpoint()
         if (utterance && utterance.text.trim()) {
+          // Emit enriched utterance with accumulated tokens
+          const enriched: EnrichedUtterance = {
+            text: utterance.text,
+            tokens: tokenAccRef.current,
+          }
+          console.log('[soniox] enriched utterance:', enriched.text, 'tokens:', enriched.tokens.length)
           setPartialText('')
-          onUtteranceRef.current(utterance)
+          onUtteranceRef.current(enriched)
         }
+        // Reset token accumulator for next utterance
+        tokenAccRef.current = []
+      }
+
+      recording.on('endpoint', () => {
+        flushUtterance()
         onEndpointRef.current?.()
       })
 
       recording.on('finalized', () => {
-        const buf = utteranceBufferRef.current
-        if (!buf) return
-
-        // On finalization (manual), flush as utterance
-        const utterance = buf.markEndpoint()
-        if (utterance && utterance.text.trim()) {
-          setPartialText('')
-          onUtteranceRef.current(utterance)
-        }
+        flushUtterance()
       })
 
       recording.on('error', (err: Error) => {
@@ -191,7 +281,7 @@ export function useSoniox(
       console.error('[soniox] start error:', err)
       setError(err instanceof Error ? err.message : 'Failed to start recording')
     }
-  }, [endpointDetection, maxEndpointDelayMs, languageCode])
+  }, [endpointDetection, maxEndpointDelayMs, languageCode, nativeLanguageCode, context])
 
   const stop = useCallback(async () => {
     const recording = recordingRef.current
@@ -203,6 +293,7 @@ export function useSoniox(
     }
     recordingRef.current = null
     utteranceBufferRef.current = null
+    tokenAccRef.current = []
     setIsRecording(false)
     setPartialText('')
     setState('idle')
@@ -226,12 +317,36 @@ export function useSoniox(
     recordingRef.current?.finalize()
   }, [])
 
+  const immediateFlush = useCallback((): EnrichedUtterance | null => {
+    const buf = utteranceBufferRef.current
+    if (!buf) return null
+
+    const utterance = buf.markEndpoint()
+    if (!utterance || !utterance.text.trim()) return null
+
+    const enriched: EnrichedUtterance = {
+      text: utterance.text,
+      tokens: tokenAccRef.current,
+    }
+    tokenAccRef.current = []
+    setPartialText('')
+    return enriched
+  }, [])
+
+  // Pre-fetch API key so first start() doesn't wait for the round-trip
+  const warmup = useCallback(() => {
+    console.log('[soniox:opt] warmup called — pre-fetching API key')
+    fetchApiKey().catch(() => {})
+  }, [fetchApiKey])
+
   return {
     start,
     stop,
     pause,
     resume,
     finalize,
+    immediateFlush,
+    warmup,
     partialText,
     isRecording,
     state,

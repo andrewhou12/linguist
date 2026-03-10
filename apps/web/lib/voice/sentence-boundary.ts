@@ -1,6 +1,9 @@
 const SENTENCE_ENDINGS = /[。！？.!?\n]/
 const JP_QUOTE_END = /」\s/
+const CLAUSE_BOUNDARIES = /[、,]/
 const MAX_FLUSH_LENGTH = 120
+// Minimum chars before we'll flush on a clause boundary (avoid tiny fragments)
+const MIN_CLAUSE_FLUSH = 8
 
 export interface SentenceBoundaryTracker {
   /** Feed new text (full accumulated text). Returns newly completed sentences. */
@@ -9,10 +12,14 @@ export interface SentenceBoundaryTracker {
   flush(fullText: string): string | null
   /** Reset the tracker. */
   reset(): void
+  /** Enable eager clause-level flushing for the first sentence (lower latency to first audio) */
+  setEagerMode(eager: boolean): void
 }
 
 export function createSentenceBoundaryTracker(): SentenceBoundaryTracker {
   let cursor = 0
+  let eagerMode = false
+  let eagerFlushed = false
 
   return {
     feed(fullText: string): string[] {
@@ -28,8 +35,19 @@ export function createSentenceBoundaryTracker(): SentenceBoundaryTracker {
           const sentence = newText.slice(searchStart, i + 1).trim()
           if (sentence) {
             sentences.push(sentence)
+            if (eagerMode) eagerFlushed = true
           }
           searchStart = i + 1
+        }
+        // Eager mode: flush on first clause boundary (、,) to get TTS started sooner
+        else if (eagerMode && !eagerFlushed && CLAUSE_BOUNDARIES.test(char)) {
+          const clause = newText.slice(searchStart, i + 1).trim()
+          if (clause && clause.length >= MIN_CLAUSE_FLUSH) {
+            console.log(`[sentence:opt] EAGER clause flush (${clause.length} chars): "${clause.slice(0, 40)}"`)
+            sentences.push(clause)
+            searchStart = i + 1
+            eagerFlushed = true
+          }
         }
       }
 
@@ -65,6 +83,11 @@ export function createSentenceBoundaryTracker(): SentenceBoundaryTracker {
 
     reset() {
       cursor = 0
+      eagerFlushed = false
+    },
+
+    setEagerMode(eager: boolean) {
+      eagerMode = eager
     },
   }
 }

@@ -61,7 +61,7 @@ export function VoiceFallbackInput({ isOpen, onClose, onSend, disabled }: VoiceF
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
-              className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-primary placeholder:text-text-placeholder font-jp"
+              className="flex-1 bg-transparent border-none outline-none text-[14px] text-text-primary placeholder:text-text-placeholder font-jp-clean"
               disabled={disabled}
             />
             <button

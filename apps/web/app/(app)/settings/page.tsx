@@ -22,7 +22,6 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<LearnerProfile | null>(() => api.peekCache<LearnerProfile>('/profile') ?? null)
   const [isLoading, setIsLoading] = useState(() => !api.peekCache('/profile'))
   const [isSaving, setIsSaving] = useState(false)
-
   useEffect(() => {
     setIsLoading(true)
     api.profileGet().then((p) => {
@@ -82,7 +81,7 @@ export default function SettingsPage() {
         <h1 className="text-[28px] font-bold">Settings</h1>
       </div>
 
-      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
+      <span className="text-[11px] font-medium text-text-muted block mb-3">
         Language
       </span>
 
@@ -94,7 +93,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
+      <span className="text-[11px] font-medium text-text-muted block mb-3">
         Difficulty
       </span>
 
@@ -135,11 +134,11 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wide block mb-3">
+      <span className="text-[11px] font-medium text-text-muted block mb-3">
         Daily Goal
       </span>
 
-      <div className="rounded-xl border border-border bg-bg">
+      <div className="rounded-xl border border-border bg-bg mb-6">
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-md bg-bg-secondary shrink-0 text-text-secondary flex items-center justify-center">
@@ -166,6 +165,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
     </div>
   )
 }

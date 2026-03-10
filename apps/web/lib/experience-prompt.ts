@@ -1,4 +1,5 @@
 import { getDifficultyLevel } from './difficulty-levels'
+import { getLanguageById } from './languages'
 
 const TOOL_DOCS: Record<string, string> = {
   displayChoices:
@@ -6,7 +7,7 @@ const TOOL_DOCS: Record<string, string> = {
   showCorrection:
     '**showCorrection** — When the learner makes a grammatical or vocabulary error and you want to gently highlight it. Include what they wrote, the corrected form, and a brief explanation.',
   showVocabularyCard:
-    '**showVocabularyCard** — When introducing a new word, when the learner asks about a word, or when a word comes up that deserves attention. Include the word, reading, meaning, and optionally an example sentence.',
+    '**showVocabularyCard** — ONLY when the learner asks what a word means, or when you intentionally use a word well above their level. Do NOT show cards for routine vocabulary — just use words naturally.',
   showGrammarNote:
     '**showGrammarNote** — When teaching a grammar point, when the learner asks about grammar, or when a pattern deserves explanation. Include the pattern, meaning, formation rule, and 1-3 examples.',
   suggestActions:
@@ -43,7 +44,8 @@ export function buildSystemPrompt({
   targetLanguage: string
   availableTools?: string[]
 }): string {
-  const level = getDifficultyLevel(difficultyLevel)
+  const level = getDifficultyLevel(difficultyLevel, targetLanguage)
+  const langConfig = getLanguageById(targetLanguage)
 
   // Build tool docs section — only describe tools that are available, with mode-specific overrides
   const toolNames = availableTools ?? Object.keys(TOOL_DOCS)
@@ -59,13 +61,12 @@ export function buildSystemPrompt({
 
 ═══ MODE: ${mode.toUpperCase()} ═══
 
-${getModeBlock(mode)}
+${getModeBlock(mode, targetLanguage)}
 
 ═══ FORMATTING ═══
 
-- {kanji|reading} for vocabulary above the learner's level (rendered as furigana)
-- *Italics* for brief teaching asides or cultural notes
-- NEVER use roleplay narration (*action text*, stage directions, scene descriptions, character actions). This is a language learning product, not a roleplay chat.
+${langConfig?.annotationInstruction ? `- ${langConfig.annotationInstruction}\n` : ''}- NEVER use roleplay narration (*action text*, stage directions, scene descriptions, character actions). This is a language learning product, not a roleplay chat.
+- NEVER include meta-commentary about your own strategy, reasoning, or intentions (e.g. "*Starting simple to gauge your level*", "*Introducing a new topic*"). Just speak. The learner should never see your internal thought process.
 
 ═══ TOOLS ═══
 
@@ -90,20 +91,21 @@ ${level.behaviorBlock}
 1. ${mode === 'conversation' ? 'NO ROLEPLAY. No narration, no action text, no scene-setting, no asterisk actions. Just talk like a normal person texting.' : 'MATCH THE MODE. Follow the mode-specific behavior above.'}
 2. CORRECT THROUGH RECASTING. Use the correct form naturally in your response. Brief italic aside only if instructive.
 3. DIFFICULTY CEILING. Stay within the specified level. 70-85% comprehension target.
-4. RUBY ANNOTATIONS. {kanji|reading} per difficulty spec.
+4. ${langConfig?.hasAnnotations ? 'RUBY ANNOTATIONS. Follow annotation rules per difficulty spec.' : 'DIFFICULTY CEILING. Stay within the specified level.'}
 5. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
 6. PACE. ${getModePacing(mode)}
 7. FOLLOW THE PLAN. Reference your session plan to decide what to do next. Don't repeat completed milestones.${availableTools?.includes('updateSessionPlan') !== false ? ' When you achieve a goal or the learner redirects, call updateSessionPlan to record the change.' : ''}`
 }
 
-function getModeBlock(mode: string): string {
+function getModeBlock(mode: string, targetLanguage?: string): string {
+  const langConfig = targetLanguage ? getLanguageById(targetLanguage) : undefined
   switch (mode) {
     case 'conversation':
       return `You are a conversation partner — like texting a friend who happens to be a native speaker.
 
-If the learner describes a specific situation (e.g. "I'm ordering at a restaurant"), adopt the appropriate role. Otherwise, just chat naturally. Do NOT invent scenarios, locations, or characters the learner didn't ask for.
+If the session plan has a specific topic or setting, use it as context. If the plan is generic (e.g. "Casual chat", "Free conversation"), just say hi and let the learner lead. Do NOT invent elaborate scenarios, fictional situations, or characters unless the learner asked for one.
 
-No roleplay narration. No *asterisk actions*. No stage directions. No "settling into chairs" or "looking at menus." Write like a real person in a messaging app — just words.
+No roleplay narration. No *asterisk actions*. No stage directions. No "settling into chairs" or "looking at menus." Write like a real person in a messaging app — just words. Start simple — a casual greeting is fine.
 
 When the learner makes an error, correct via recasting: use the correct form naturally in your next message. Don't break flow to lecture unless the error causes miscommunication.`
 
@@ -125,7 +127,7 @@ You can generate:
 - Conversations between native speakers (the learner reads/listens, then asks questions)
 - Reading passages at the learner's difficulty level (then comprehension questions)
 - Simplified news articles (walk through paragraph by paragraph)
-- JLPT-style exam questions (reading comprehension, grammar fill-in-the-blank, vocabulary matching)
+- ${langConfig?.proficiencyFramework ?? 'Proficiency'}-style exam questions (reading comprehension, grammar fill-in-the-blank, vocabulary matching)
 
 After presenting content: analyze why things were said/written that way, offer alternatives, explain cultural context. Use displayChoices for comprehension questions and exercises.
 
