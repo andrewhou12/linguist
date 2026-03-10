@@ -19,6 +19,7 @@ const PRO_FEATURES = [
   'Voice mode',
   'Session replay & analysis',
   'Priority support',
+  'Locked-in early adopter pricing',
 ]
 
 export default function PlanPage() {
@@ -73,7 +74,7 @@ function PlanPageInner() {
     <div className="max-w-[780px] mx-auto pb-10">
       {success && (
         <div className="mb-6 p-4 rounded-xl bg-green-soft border border-green text-center">
-          <p className="text-[15px] font-medium text-text-primary">You're now on Pro! Enjoy unlimited practice.</p>
+          <p className="text-[15px] font-medium text-text-primary">Welcome aboard! You're now an Early Adopter. Enjoy unlimited practice.</p>
         </div>
       )}
 
@@ -100,7 +101,7 @@ function PlanPageInner() {
             </div>
             <div>
               <div className="text-[15px] font-semibold text-text-primary">
-                {isPro ? "You're on Pro" : "You're on Free"}
+                {isPro ? "You're an Early Adopter" : "You're on Free"}
               </div>
               <div className="text-[13px] text-text-muted">
                 {isPro ? 'Unlimited practice' : 'Upgrade anytime'}
@@ -121,7 +122,7 @@ function PlanPageInner() {
               disabled={loading}
               className="px-4 py-1.5 rounded-lg bg-accent-brand text-white text-[13px] font-medium border-none cursor-pointer transition-colors hover:bg-accent-brand/90 disabled:opacity-50"
             >
-              {loading ? 'Loading...' : 'Upgrade to Pro'}
+              {loading ? 'Loading...' : 'Become an Early Adopter'}
             </button>
           )}
         </div>
@@ -214,26 +215,29 @@ function PlanPageInner() {
           </div>
         </div>
 
-        {/* Pro tier */}
+        {/* Early Adopter tier */}
         <div className={cn(
           'rounded-xl border-2 p-6 relative',
           isPro ? 'border-green bg-green-soft' : 'border-accent-brand bg-bg-pure'
         )}>
           {!isPro && (
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-brand text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1 rounded-full">
-              Recommended
+              Limited time
             </div>
           )}
 
           <div className="mb-5">
-            <h2 className="text-[18px] font-semibold text-text-primary mb-1">Pro</h2>
+            <h2 className="text-[18px] font-semibold text-text-primary mb-1">Early Adopter</h2>
             <p className="text-[13px] text-text-secondary mb-4">
-              Unlimited practice for serious learners.
+              Unlimited practice at a locked-in launch price.
             </p>
             <div className="flex items-baseline gap-1">
-              <span className="text-[36px] font-semibold text-text-primary leading-none">$8</span>
+              <span className="text-[36px] font-semibold text-text-primary leading-none">$5</span>
               <span className="text-[14px] text-text-muted">per month</span>
             </div>
+            <p className="text-[12px] text-text-muted mt-1">
+              <span className="line-through">$8/mo</span> — price locked for early supporters
+            </p>
           </div>
 
           {isPro ? (
@@ -250,7 +254,7 @@ function PlanPageInner() {
               disabled={loading}
               className="w-full py-2 px-4 rounded-lg bg-accent-brand text-white text-[14px] font-medium border-none cursor-pointer transition-colors hover:bg-accent-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Loading...' : 'Upgrade to Pro'}
+              {loading ? 'Loading...' : 'Become an Early Adopter'}
             </button>
           )}
 
@@ -275,6 +279,43 @@ function PlanPageInner() {
           )}
         </div>
       </div>
+
+      {/* Community tier — full width below */}
+      {!isPro && (
+        <div className="mt-4 rounded-xl border border-dashed border-border bg-bg-pure p-6">
+          <div className="flex items-start gap-5">
+            <div className="w-10 h-10 rounded-[10px] bg-bg-active border border-border flex items-center justify-center shrink-0 mt-0.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-[15px] font-semibold text-text-primary">Can&apos;t pay? Help us build Lingle instead.</h3>
+              </div>
+              <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
+                Get full unlimited access for free — no credit card needed. In exchange, we ask that you genuinely use Lingle every day, hop on a 30-minute call with us to share feedback, and show it to a few friends (with proof). We&apos;re building this for real learners, and your input is worth more than $5/mo to us.
+              </p>
+              <a
+                href="https://calendly.com/andrew-lingle/30min"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-border bg-bg-pure text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-hover"
+              >
+                Book a call
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

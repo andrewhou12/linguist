@@ -25,10 +25,12 @@ export const POST = withAuth(async (_request, { userId }) => {
     })
   }
 
+  const priceId = process.env.STRIPE_EARLY_ADOPTER_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID!
+
   const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
-    line_items: [{ price: process.env.STRIPE_PRO_PRICE_ID!, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade?success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
     metadata: { userId },

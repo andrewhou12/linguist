@@ -10,6 +10,7 @@
         "DATABASE_URL",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
+        "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
         "OPENAI_API_KEY",
         "SONIOX_API_KEY"
       ]

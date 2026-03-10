@@ -36,7 +36,7 @@ export function UsageLimitModal({ open, onClose, usedMinutes, limitMinutes }: Us
         </h2>
         <p className="text-[14px] text-text-secondary mb-6 leading-relaxed">
           You&apos;ve used all {limitMinutes} minutes of free conversation today.
-          Upgrade to Pro for unlimited practice time.
+          Become an Early Adopter for unlimited practice time.
         </p>
 
         <div className="flex flex-col gap-2.5">
@@ -44,7 +44,7 @@ export function UsageLimitModal({ open, onClose, usedMinutes, limitMinutes }: Us
             onClick={() => router.push('/upgrade')}
             className="w-full py-2.5 px-4 rounded-lg bg-accent-brand text-white text-[14px] font-medium transition-colors hover:bg-accent-brand/90 cursor-pointer border-none"
           >
-            Upgrade to Pro
+            Become an Early Adopter — $5/mo
           </button>
           <button
             onClick={onClose}

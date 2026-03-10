@@ -109,7 +109,49 @@ export function SessionNotesPanel({ analysisResults }: SessionNotesPanelProps) {
     return items
   }, [analysisResults])
 
-  const totalItems = takeaways.length + vocab.length + corrections.length + grammar.length
+  const registerMismatches = useMemo(() => {
+    const seen = new Set<string>()
+    const items: Array<{ original: string; suggestion: string; expected: string; explanation: string }> = []
+    for (const result of Object.values(analysisResults)) {
+      for (const r of result.registerMismatches || []) {
+        if (!seen.has(r.original)) {
+          seen.add(r.original)
+          items.push(r)
+        }
+      }
+    }
+    return items
+  }, [analysisResults])
+
+  const l1Interference = useMemo(() => {
+    const seen = new Set<string>()
+    const items: Array<{ original: string; issue: string; suggestion: string }> = []
+    for (const result of Object.values(analysisResults)) {
+      for (const l of result.l1Interference || []) {
+        if (!seen.has(l.original)) {
+          seen.add(l.original)
+          items.push(l)
+        }
+      }
+    }
+    return items
+  }, [analysisResults])
+
+  const alternatives = useMemo(() => {
+    const seen = new Set<string>()
+    const items: Array<{ original: string; alternative: string; explanation: string }> = []
+    for (const result of Object.values(analysisResults)) {
+      for (const a of result.alternativeExpressions || []) {
+        if (!seen.has(a.original)) {
+          seen.add(a.original)
+          items.push(a)
+        }
+      }
+    }
+    return items
+  }, [analysisResults])
+
+  const totalItems = takeaways.length + vocab.length + corrections.length + grammar.length + registerMismatches.length + l1Interference.length + alternatives.length
 
   return (
     <div className="fixed right-6 top-[72px] bottom-6 z-[9] w-[280px] flex flex-col bg-bg-pure border border-border-subtle rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)] overflow-hidden">
@@ -171,6 +213,54 @@ export function SessionNotesPanel({ analysisResults }: SessionNotesPanelProps) {
                       <span className={cn('text-text-primary font-medium', fontClean)}>{c.corrected}</span>
                     </div>
                     <div className="text-[12px] text-text-secondary mt-1">{c.explanation}</div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+
+            {/* Register Mismatches */}
+            <CollapsibleSection title="Register" count={registerMismatches.length} accentClass="bg-warm-soft text-accent-warm">
+              <div className="flex flex-col gap-2.5">
+                {registerMismatches.map((r, i) => (
+                  <div key={i} className="text-[13px] leading-[1.5]">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-text-secondary', fontClean)}>{r.original}</span>
+                      <span className="text-text-secondary">&rarr;</span>
+                      <span className={cn('text-text-primary font-medium', fontClean)}>{r.suggestion}</span>
+                    </div>
+                    <div className="text-[12px] text-text-secondary mt-1">{r.explanation}</div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+
+            {/* L1 Interference */}
+            <CollapsibleSection title="L1 Interference" count={l1Interference.length} accentClass="bg-warm-soft text-accent-warm">
+              <div className="flex flex-col gap-2.5">
+                {l1Interference.map((l, i) => (
+                  <div key={i} className="text-[13px] leading-[1.5]">
+                    <div className={cn('text-text-secondary', fontClean)}>{l.original}</div>
+                    <div className="text-[12px] text-text-secondary mt-1">{l.issue}</div>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-[12px] text-text-secondary">&rarr;</span>
+                      <span className={cn('text-[13px] text-text-primary font-medium', fontClean)}>{l.suggestion}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+
+            {/* Alternative Expressions */}
+            <CollapsibleSection title="Better Ways to Say It" count={alternatives.length} accentClass="bg-blue-soft text-accent-brand">
+              <div className="flex flex-col gap-2.5">
+                {alternatives.map((a, i) => (
+                  <div key={i} className="text-[13px] leading-[1.5]">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-text-secondary', fontClean)}>{a.original}</span>
+                      <span className="text-text-secondary">&rarr;</span>
+                      <span className={cn('text-text-primary font-medium', fontClean)}>{a.alternative}</span>
+                    </div>
+                    <div className="text-[12px] text-text-secondary mt-1">{a.explanation}</div>
                   </div>
                 ))}
               </div>

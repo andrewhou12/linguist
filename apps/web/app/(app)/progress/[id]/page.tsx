@@ -229,16 +229,16 @@ export default function SessionDetailPage() {
               <LockClosedIcon className="w-[18px] h-[18px] text-text-muted" />
             </div>
             <h3 className="text-[15px] font-semibold text-text-primary mb-1.5">
-              Upgrade to Pro
+              Become an Early Adopter
             </h3>
             <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
-              Get detailed analysis, suggestions, and breakdown for every session.
+              Get detailed analysis, suggestions, and breakdown for every session — $5/mo.
             </p>
             <button
               onClick={() => router.push('/upgrade')}
               className="px-5 py-2 rounded-lg bg-accent-brand text-white text-[13px] font-medium border-none cursor-pointer transition-colors hover:bg-accent-brand/90"
             >
-              Upgrade to Pro
+              Become an Early Adopter
             </button>
           </div>
         )}

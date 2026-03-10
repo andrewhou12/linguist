@@ -36,6 +36,22 @@ const voiceAnalysisSchema = z.object({
     suggestion: z.string().describe('More natural way to say it'),
     explanation: z.string().describe('One sentence. Why the suggestion sounds more natural.'),
   })).describe('At most ONE naturalness suggestion per turn. Only flag clear cases. 0-1 items max.'),
+  registerMismatches: z.array(z.object({
+    original: z.string().describe('What the learner said'),
+    suggestion: z.string().describe('The same idea in the correct register'),
+    expected: z.string().describe('"casual", "polite", or "formal" — the register the conversation calls for'),
+    explanation: z.string().describe('One sentence. Why this register is wrong for the context.'),
+  })).describe('Flag when the learner uses the wrong formality level for the conversation context. 0-1 items max.'),
+  l1Interference: z.array(z.object({
+    original: z.string().describe('What the learner said'),
+    issue: z.string().describe('One sentence describing the native-language pattern bleeding through'),
+    suggestion: z.string().describe('The natural target-language way to express it'),
+  })).describe('Flag when sentence structure, word choice, or phrasing mirrors the learner\'s native language instead of natural target-language patterns. 0-1 items max.'),
+  alternativeExpressions: z.array(z.object({
+    original: z.string().describe('What the learner said (which was correct)'),
+    alternative: z.string().describe('A more idiomatic, common, or nuanced way to say it'),
+    explanation: z.string().describe('One sentence. What makes the alternative better or different — collocation, nuance, or register.'),
+  })).describe('When the learner\'s phrasing is correct but there\'s a notably better or more idiomatic alternative. Includes collocation improvements. 0-1 items max.'),
   takeaways: z.array(z.string()).describe('0-2 short bullet-point notes of notable things from this turn the learner should remember: key expressions, cultural context, usage tips, or "aha moments". Only include genuinely memorable insights, not routine exchanges. Most turns should have 0.'),
   sectionTracking: z.object({
     currentSectionId: z.string().describe('ID of the section currently being discussed'),
@@ -67,12 +83,14 @@ export const POST = withAuth(withUsageCheck(async (request, { userId: _userId })
     ? `Recent conversation context:\n${recentHistory.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n')}\n\n`
     : ''
 
-  // Extract sections from session plan for tracking
+  // Extract sections and register from session plan
   const sessionPlan = session.sessionPlan as Record<string, unknown> | null
   const sections = sessionPlan?.sections as Array<{ id: string; label: string; description: string }> | undefined
   const sectionsBlock = sections?.length
     ? `\nConversation sections to track:\n${sections.map(s => `- ${s.id}: ${s.label} — ${s.description}`).join('\n')}\n`
     : ''
+  const register = (sessionPlan?.register as string) || ''
+  const registerBlock = register ? `- Expected register: ${register}\n` : ''
 
   const SPOKEN_LANGUAGE_RULES: Record<string, string> = {
     Japanese: 'IGNORE particle omission natural in casual spoken Japanese (e.g. dropping は, を, が). IGNORE casual contractions (e.g. ている→てる, ではない→じゃない). IGNORE sentence-final particles and filler words (えっと, あの, まあ).',
@@ -100,7 +118,7 @@ Learner info:
 - Target language: ${profile?.targetLanguage ?? session.targetLanguage}
 - Native language: ${profile?.nativeLanguage ?? 'English'}
 - Difficulty level: ${profile?.difficultyLevel ?? 3}
-${sectionsBlock}
+${registerBlock}${sectionsBlock}
 Rules:
 - Only flag GENUINE grammar/vocabulary errors — not stylistic choices, casual speech, or natural variation.
 - IGNORE transcription artifacts: the learner's text comes from speech-to-text, so missing punctuation, wrong quote marks, spacing issues, or minor formatting differences are NOT errors. Never correct punctuation or formatting.
@@ -108,14 +126,16 @@ ${spokenRule ? `- ${spokenRule}\n` : ''}- Keep explanations to ONE concise sente
 - Vocabulary cards: Scan the ASSISTANT's message for words that are above or at the edge of the learner's difficulty level (level ${profile?.difficultyLevel ?? 3}). These are words the learner likely doesn't know yet but encountered in context. Include 0-3 cards per turn. Skip basic words the learner clearly already knows. Focus on the most useful/memorable ones.
 - Grammar notes: Scan the ASSISTANT's message for grammar patterns above or at the edge of the learner's level. These are forms the learner may not have studied yet. Include 0-2 notes per turn. Skip patterns the learner has clearly been using correctly themselves.
 - Naturalness feedback: Only if the learner's sentence is grammatically correct but clearly textbook-ish. 0-1 items max.
-- If everything looks fine, return empty arrays. Most turns should have 0 corrections.
-- Be extremely selective. When in doubt, do NOT correct.
+- Register mismatches: If the expected register is specified above, check if the learner used the wrong formality level. e.g. using です/ます in a casual conversation, or casual forms in a polite/formal setting. 0-1 items max. Only flag clear mismatches, not borderline cases.
+- L1 interference: Check if the learner's sentence structure, word order, or phrasing mirrors ${profile?.nativeLanguage ?? 'English'} patterns instead of natural ${profile?.targetLanguage ?? session.targetLanguage}. Common examples: direct translation of idioms, wrong word order calqued from the native language, using words in ways that only make sense from the native language perspective. 0-1 items max. Only flag when it's clearly L1 influence, not just a generic error.
+- Alternative expressions: If the learner said something correct but there's a notably more idiomatic, natural, or commonly-used alternative (including better collocations), suggest it. This expands their active repertoire. 0-1 items max. Only suggest when the alternative is genuinely better, not just different.
+- Be extremely selective overall. Each feedback type is 0-1 items max. A typical turn should have feedback in only 1-2 categories, not all of them. Don't overwhelm the learner.
 - sectionTracking: If conversation sections are provided above, identify which section is currently active based on the conversation context, and which sections have been fully covered. Only include this field if sections are provided.`,
     })
 
     return NextResponse.json(object)
   } catch (err) {
     console.error('[voice-analyze] Analysis failed:', err)
-    return NextResponse.json({ corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [], takeaways: [], sectionTracking: undefined })
+    return NextResponse.json({ corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [], registerMismatches: [], l1Interference: [], alternativeExpressions: [], takeaways: [], sectionTracking: undefined })
   }
 }))
