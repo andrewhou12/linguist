@@ -201,7 +201,7 @@
 
 /* ── LANGUAGE PILLS ── */
 .lang-pills {
-  display: flex; gap: 7px; justify-content: center; flex-wrap: wrap;
+  display: flex; gap: 7px; justify-content: center; flex-wrap: nowrap;
   margin-bottom: 14px;
   animation: introUp .7s cubic-bezier(.16,1,.3,1) 1.35s both;
 }
@@ -266,6 +266,12 @@
 }
 .mode-btn-active .mode-btn-icon { transform: scale(1.1); }
 .mode-btn-label { letter-spacing: -.015em; }
+.mode-btn-soon {
+  font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-muted); background: var(--bg-hover);
+  border: 1px solid var(--border-subtle); border-radius: 100px;
+  padding: 2px 6px; line-height: 1;
+}
 
 /* ── PROMPT BOX ── */
 .prompt-wrap {
@@ -352,15 +358,60 @@
 .stars { color: var(--text-secondary); letter-spacing: -.5px; font-size: 13px; }
 
 /* ══════════════════════════════════════════
+   WHAT IS LINGLE
+   ══════════════════════════════════════════ */
+.what-section {
+  padding: 64px 24px; position: relative; z-index: 1;
+  background: #fff;
+}
+.what-inner { max-width: 720px; margin: 0 auto; }
+.what-label {
+  font-size: 11.5px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; display: block;
+}
+.what-headline {
+  font-size: clamp(34px, 4vw, 52px); font-weight: 700;
+  letter-spacing: -.04em; line-height: 1.08; color: var(--text-primary);
+  margin-bottom: 0;
+}
+.what-headline-em { font-family: var(--font-serif); font-style: italic; font-weight: 300; }
+.what-lead {
+  font-size: 16px; color: var(--text-secondary); line-height: 1.72;
+  margin-top: 18px; max-width: 56ch;
+}
+.what-grid { display: flex; flex-direction: column; gap: 12px; margin: 40px 0; }
+.what-card {
+  padding: 24px 28px; border: 1px solid var(--border-strong);
+  border-radius: 16px; display: flex; align-items: flex-start; gap: 20px;
+  transition: transform .2s, box-shadow .2s;
+}
+.what-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+.what-card-num {
+  font-family: var(--font-serif); font-size: 28px; font-weight: 300;
+  font-style: italic; color: var(--border-strong); line-height: 1;
+  flex-shrink: 0; width: 24px; margin-top: -2px;
+}
+.what-card-title {
+  font-size: 16px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.what-card-body {
+  font-size: 14.5px; color: var(--text-secondary); line-height: 1.65;
+}
+
+/* ══════════════════════════════════════════
    STEPS SECTION — How it works
    ══════════════════════════════════════════ */
 .steps-section {
-  padding: 100px 24px; position: relative; z-index: 1;
+  padding: 64px 24px; position: relative; z-index: 1;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);
 }
 .steps-inner { max-width: 1100px; margin: 0 auto; }
-.steps-header { margin-bottom: 64px; }
+.steps-header { margin-bottom: 40px; }
 .steps-header-label {
   font-size: 11.5px; font-weight: 600; letter-spacing: .12em;
   text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; display: block;
@@ -529,12 +580,16 @@
 /* ══════════════════════════════════════════
    BENTO SECTION — Four ways to practice
    ══════════════════════════════════════════ */
-.bento-section { padding: 80px 24px 80px; position: relative; z-index: 1; }
+.bento-section { padding: 64px 24px; position: relative; z-index: 1; }
 .bento-inner { max-width: 1100px; margin: 0 auto; }
-.bento-header { margin-bottom: 52px; }
+.bento-header { margin-bottom: 36px; }
 .bento-heading {
   font-size: clamp(32px, 4vw, 52px); font-weight: 700;
   letter-spacing: -.04em; line-height: 1.1; color: var(--text-primary);
+}
+.bento-heading-dim {
+  font-size: clamp(16px, 1.8vw, 20px); font-weight: 400;
+  color: var(--text-muted); margin-top: 10px; letter-spacing: -.01em;
 }
 
 .bento-grid {
@@ -550,6 +605,16 @@
   transition: transform .2s, box-shadow .2s;
 }
 .bento-card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,0,0,.11); border-color: var(--border-strong); }
+.bento-card-soon { opacity: 0.7; filter: saturate(0.4); position: relative; }
+.bento-card-soon:hover { opacity: 0.8; }
+.bento-soon-badge {
+  position: absolute; top: 14px; right: 14px; z-index: 10;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-muted); background: rgba(255,255,255,.9);
+  border: 1px solid var(--border-strong); border-radius: 100px;
+  padding: 4px 10px; line-height: 1;
+  backdrop-filter: blur(8px);
+}
 .bento-card-main { grid-row: span 1; min-height: unset; }
 .bento-card-light { min-height: unset; }
 
@@ -844,7 +909,7 @@
 /* ══════════════════════════════════════════
    ADAPT SECTION — Difficulty levels
    ══════════════════════════════════════════ */
-.adapt-section { padding: 120px 24px; position: relative; z-index: 1; }
+.adapt-section { padding: 64px 24px; position: relative; z-index: 1; }
 .adapt-inner {
   max-width: 1100px; margin: 0 auto;
   display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
@@ -889,7 +954,7 @@
   content: ''; position: absolute; inset: 0;
   background: radial-gradient(ellipse 60% 60% at 30% 50%, rgba(255,255,255,.03) 0%, transparent 70%);
 }
-.cs-inner { max-width: 1100px; margin: 0 auto; padding: 100px 24px; position: relative; z-index: 1; }
+.cs-inner { max-width: 1100px; margin: 0 auto; padding: 64px 24px; position: relative; z-index: 1; }
 .cs-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
 .cs-big {
   font-size: clamp(38px, 5vw, 62px); font-weight: 800;
@@ -980,7 +1045,7 @@
    FINAL CTA
    ══════════════════════════════════════════ */
 .final-cta {
-  padding: 100px 24px 120px; position: relative; z-index: 1;
+  padding: 64px 24px 72px; position: relative; z-index: 1;
   background: var(--bg-secondary); border-top: 1px solid var(--border-subtle);
 }
 .final-cta-inner {

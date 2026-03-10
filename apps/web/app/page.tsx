@@ -85,7 +85,7 @@ function WordCycle() {
   return (
     <span className={s['word-cycle-wrap']} ref={wrapRef}>
       <span className={s['word-cycle-inner']} ref={innerRef}>
-        {['conversation partner', 'personal tutor', 'debate opponent', 'interview coach', 'travel companion', 'listening guide', 'conversation partner'].map((word, i) => (
+        {['conversation partner', 'personal tutor', 'debate opponent', 'interview coach', 'travel companion', 'conversation partner'].map((word, i) => (
           <span key={i} className={s['cycle-word']}>{word}</span>
         ))}
       </span>
@@ -190,10 +190,10 @@ function ModeSwitcher({ activeMode, onModeChange }: { activeMode: string, onMode
   }, [activeMode, positionPill])
 
   const modes = [
-    { key: 'conversation', icon: '🗣️', label: 'Conversation' },
-    { key: 'lesson', icon: '📖', label: 'Lesson' },
-    { key: 'immersion', icon: '🎧', label: 'Immersion' },
-    { key: 'reference', icon: '📚', label: 'Reference' },
+    { key: 'conversation', icon: '🗣️', label: 'Conversation', comingSoon: false },
+    { key: 'lesson', icon: '📖', label: 'Lesson', comingSoon: true },
+    { key: 'immersion', icon: '🎧', label: 'Immersion', comingSoon: true },
+    { key: 'reference', icon: '📚', label: 'Reference', comingSoon: true },
   ]
 
   return (
@@ -210,6 +210,7 @@ function ModeSwitcher({ activeMode, onModeChange }: { activeMode: string, onMode
         >
           <span className={s['mode-btn-icon']}>{m.icon}</span>
           <span className={s['mode-btn-label']}>{m.label}</span>
+          {m.comingSoon && <span className={s['mode-btn-soon']}>Soon</span>}
         </button>
       ))}
     </div>
@@ -281,7 +282,7 @@ function useReveal() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const children = entry.target.querySelectorAll(
-              `.${s['step-col']}, .${s['quote-card']}, .${s['stats-band-item']}, .${s['cs-item']}, .${s['level-row']}, .${s['bento-card']}`
+              `.${s['step-col']}, .${s['quote-card']}, .${s['stats-band-item']}, .${s['cs-item']}, .${s['level-row']}, .${s['bento-card']}, .${s['what-card']}`
             )
             children.forEach((child, i) => {
               ;(child as HTMLElement).style.transitionDelay = i * 80 + 'ms'
@@ -555,10 +556,10 @@ const LANGUAGE_CONTENT: Record<string, {
 
 /* ── Subtitle Map ── */
 const subtitles: Record<string, string> = {
-  conversation: 'Describe the scene — Lingle Agent becomes whoever you need. A waiter, a hiring manager, a debate partner, a patient tutor. Just start talking.',
-  lesson: 'Tell Lingle Agent what you want to learn. It builds a structured lesson around it — grammar, vocabulary, patterns — with practice woven in from the start.',
-  immersion: 'Pick a scenario. Lingle Agent generates a native-style exchange, reads it aloud, then walks you through every choice — so you can jump straight in.',
-  reference: 'Ask about any grammar point, conjugation pattern, or cultural concept. Lingle generates a clear, textbook-style explanation with examples, tables, and context — all tailored to your level.',
+  conversation: 'Describe the scene — Lingle becomes whoever you need. A waiter, a hiring manager, a debate partner, a patient tutor. Just start talking.',
+  lesson: 'Coming soon — Tell Lingle what you want to learn. It builds a structured lesson around it — grammar, vocabulary, patterns — with practice woven in from the start.',
+  immersion: 'Coming soon — Pick a scenario. Lingle generates a native-style exchange, reads it aloud, then walks you through every choice — so you can jump straight in.',
+  reference: 'Coming soon — Ask about any grammar point, conjugation pattern, or cultural concept. Lingle generates a clear, textbook-style explanation with examples, tables, and context — all tailored to your level.',
 }
 
 export default function LandingPage() {
@@ -774,14 +775,48 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className={s['hero-social']}>
-          <div className={s['avatar-stack']}>
-            {['KS', 'MR', 'TN', '+'].map((letter) => (
-              <div key={letter} className={s['avatar-sm']}>{letter}</div>
-            ))}
+      </section>
+
+      {/* ── WHAT IS LINGLE ── */}
+      <section className={s['what-section']}>
+        <div className={s['what-inner']}>
+          <span className={s['what-label']}>What is Lingle</span>
+          <h2 className={s['what-headline']}>Structured practice for<br/><em className={s['what-headline-em']}>deliberate learners.</em></h2>
+          <p className={s['what-lead']}>There&rsquo;s a gap between memorizing words and actually speaking. Lingle sits in that gap. Describe what you want to practice &mdash; a scenario, a grammar point, a situation &mdash; and it generates a full conversational session around it, calibrated to your level, with real corrections built in.</p>
+
+          <div className={`${s['what-grid']} ${s.reveal}`}>
+            <div className={s['what-card']}>
+              <div className={s['what-card-num']}>1</div>
+              <div>
+                <div className={s['what-card-title']}>You set the curriculum</div>
+                <div className={s['what-card-body']}>&ldquo;Practice ordering food&rdquo; creates a different restaurant, a different server, different conversational wrinkles every time. No fixed syllabus &mdash; you practice exactly what you need, when you need it.</div>
+              </div>
+            </div>
+
+            <div className={s['what-card']}>
+              <div className={s['what-card-num']}>2</div>
+              <div>
+                <div className={s['what-card-title']}>Corrections that don&rsquo;t baby you</div>
+                <div className={s['what-card-body']}>When you make a mistake, the AI recasts the correct form naturally in its response &mdash; the way a good tutor would. Every correction is surfaced visually so nothing slips past.</div>
+              </div>
+            </div>
+
+            <div className={s['what-card']}>
+              <div className={s['what-card-num']}>3</div>
+              <div>
+                <div className={s['what-card-title']}>Voice and text, side by side</div>
+                <div className={s['what-card-body']}>Push-to-talk voice conversations with real-time streaming. The AI speaks back sentence by sentence. Text is always there alongside &mdash; read along, review, or switch freely.</div>
+              </div>
+            </div>
+
+            <div className={s['what-card']}>
+              <div className={s['what-card-num']}>4</div>
+              <div>
+                <div className={s['what-card-title']}>Difficulty that matches you</div>
+                <div className={s['what-card-body']}>Six calibrated levels control vocabulary, grammar complexity, script annotations, and register. Set it once &mdash; everything adapts. No hand-holding at the top, no overwhelm at the bottom.</div>
+              </div>
+            </div>
           </div>
-          <span className={s.stars}>★★★★★</span>
-          <span>2,400+ learners in beta</span>
         </div>
       </section>
 
@@ -894,7 +929,8 @@ export default function LandingPage() {
       <section className={s['bento-section']} id="modes">
         <div className={s['bento-inner']}>
           <div className={`${s['bento-header']} ${s.reveal}`}>
-            <h2 className={s['bento-heading']}>Four ways to practice</h2>
+            <h2 className={s['bento-heading']}>One way to practice today.</h2>
+            <p className={s['bento-heading-dim']}>Three more coming.</p>
           </div>
 
           <div className={s['bento-grid']}>
@@ -943,7 +979,8 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Lesson — grammar lesson mockup */}
-            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-lesson']} ${s.reveal}`}>
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-lesson']} ${s['bento-card-soon']} ${s.reveal}`}>
+              <div className={s['bento-soon-badge']}>Coming soon</div>
               <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
                 <div className={`${s['bm-window']} ${s['bm-light']}`}>
                   <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
@@ -968,7 +1005,8 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3: Immersion — audio player mockup */}
-            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-immersion']} ${s.reveal}`}>
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-immersion']} ${s['bento-card-soon']} ${s.reveal}`}>
+              <div className={s['bento-soon-badge']}>Coming soon</div>
               <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
                 <div className={`${s['bm-window']} ${s['bm-light']}`}>
                   <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
@@ -1006,7 +1044,8 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4: Reference — resource grid mockup */}
-            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-reference']} ${s.reveal}`}>
+            <div className={`${s['bento-card']} ${s['bento-card-light']} ${s['bento-card-reference']} ${s['bento-card-soon']} ${s.reveal}`}>
+              <div className={s['bento-soon-badge']}>Coming soon</div>
               <div className={`${s['bento-mockup-wrap']} ${s['bento-mockup-light']}`}>
                 <div className={`${s['bm-window']} ${s['bm-light']}`}>
                   <div className={`${s['bm-chrome']} ${s['bm-chrome-light']}`}>
@@ -1102,79 +1141,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── STATS BAND ── */}
-      <div className={s['stats-band']}>
-        <div className={s['stats-band-inner']}>
-          <div className={`${s['stats-band-item']} ${s.reveal}`}>
-            <span className={s['sbi-num']}>89%</span>
-            <div className={s['sbi-title']}>30-day retention</div>
-            <div className={s['sbi-desc']}>Duolingo streaks are brittle. Real conversation is sticky.</div>
-          </div>
-          <div className={`${s['stats-band-item']} ${s.reveal}`}>
-            <span className={s['sbi-num']}>18K+</span>
-            <div className={s['sbi-title']}>Conversations started</div>
-            <div className={s['sbi-desc']}>By 2,400+ beta learners across every level and scenario.</div>
-          </div>
-          <div className={`${s['stats-band-item']} ${s.reveal}`}>
-            <span className={s['sbi-num']}><span className={s['sbi-num-em']}>Zero</span></span>
-            <div className={s['sbi-title']}>Wasted sessions</div>
-            <div className={s['sbi-desc']}>Every session is annotated, saved, and ready to review.</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── QUOTES / TESTIMONIALS ── */}
-      <section className={s['quotes-section']}>
-        <div className={s['quotes-inner']}>
-          <div className={`${s['quotes-header']} ${s.reveal}`}>
-            <h2 className={s['quotes-header-title']}>What people <span className={s['quotes-header-title-em']}>actually</span> notice.</h2>
-          </div>
-          <div className={s['quotes-grid']}>
-            <div className={`${s['quote-card']} ${s['quote-card-featured']} ${s.reveal}`}>
-              <p className={s['quote-text']}>&ldquo;For the first time I feel like I&apos;m having a real conversation — not completing exercises. After 20 minutes I was genuinely tired from thinking in my target language.&rdquo;</p>
-              <div className={s['quote-footer']}>
-                <div className={s['quote-avatar']}>KS</div>
-                <div>
-                  <div className={s['quote-name']}>Kenji S.</div>
-                  <div className={s['quote-meta']}>Intermediate · 8 months</div>
-                </div>
-
-              </div>
-            </div>
-            <div className={`${s['quote-card']} ${s['quote-card-regular']} ${s.reveal}`}>
-              <p className={s['quote-text']}>&ldquo;I used a word from a session at a real restaurant without thinking. That&apos;s never happened with any other app.&rdquo;</p>
-              <div className={s['quote-footer']}>
-                <div className={s['quote-avatar']}>MR</div>
-                <div>
-                  <div className={s['quote-name']}>Maya R.</div>
-                  <div className={s['quote-meta']}>Beginner → Intermediate in 4 months</div>
-                </div>
-              </div>
-            </div>
-            <div className={`${s['quote-card']} ${s['quote-card-regular']} ${s.reveal}`}>
-              <p className={s['quote-text']}>&ldquo;The corrections never feel like corrections. The conversation just... flows. Somehow I&apos;m absorbing the right forms without being stopped.&rdquo;</p>
-              <div className={s['quote-footer']}>
-                <div className={s['quote-avatar']}>TN</div>
-                <div>
-                  <div className={s['quote-name']}>Tom N.</div>
-                  <div className={s['quote-meta']}>Intermediate · 1 year</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── FINAL CTA ── */}
       <section className={s['final-cta']}>
         <div className={s['final-cta-inner']}>
           <div className={s.reveal}>
             <h2 className={s['fctl-big']}>Stop studying.<br/>Start <span className={s['fctl-big-em']}>speaking.</span></h2>
-            <p className={s['fctl-sub']}>Free during beta. No credit card. Have your first voice conversation in under a minute.</p>
+            <p className={s['fctl-sub']}>Free during beta. No credit card needed. Sign in with Google and start speaking.</p>
           </div>
           <div className={`${s['final-cta-right']} ${s.reveal}`}>
             <Link href="/sign-in" className={s['btn-cta-primary']}>Start speaking free →</Link>
-            <span className={s['cta-footnote']}>No account needed to try</span>
+            <span className={s['cta-footnote']}>Free tier includes 10 minutes of conversation daily</span>
           </div>
         </div>
       </section>

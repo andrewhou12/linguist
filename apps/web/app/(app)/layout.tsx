@@ -424,7 +424,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-6 h-[48px] border-b border-border shrink-0 relative z-10 bg-bg">
+        <header className="flex items-center justify-between px-6 h-[48px] border-b border-border shrink-0 relative bg-bg">
           <div className="flex items-center gap-1.5 text-[14px] text-text-muted">
             <span>Lingle</span>
             <ChevronRightIcon className="w-3 h-3" />
