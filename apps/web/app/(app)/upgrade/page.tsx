@@ -229,14 +229,14 @@ function PlanPageInner() {
           <div className="mb-5">
             <h2 className="text-[18px] font-semibold text-text-primary mb-1">Early Adopter</h2>
             <p className="text-[13px] text-text-secondary mb-4">
-              Unlimited practice at a locked-in launch price.
+              We&apos;re shipping new features every week and improving Lingle as fast as we can. Lock in the launch price now — it&apos;s yours forever, even as the product gets better!
             </p>
             <div className="flex items-baseline gap-1">
               <span className="text-[36px] font-semibold text-text-primary leading-none">$5</span>
-              <span className="text-[14px] text-text-muted">per month</span>
+              <span className="text-[14px] text-text-muted">per month, forever</span>
             </div>
             <p className="text-[12px] text-text-muted mt-1">
-              <span className="line-through">$8/mo</span> — price locked for early supporters
+              <span className="line-through">$8/mo</span> — price will never increase for early adopters
             </p>
           </div>
 
@@ -294,10 +294,10 @@ function PlanPageInner() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-[15px] font-semibold text-text-primary">Can&apos;t pay? Help us build Lingle instead.</h3>
+                <h3 className="text-[15px] font-semibold text-text-primary">Can&apos;t pay? No worries — help us build Lingle instead! :)</h3>
               </div>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
-                Get full unlimited access for free — no credit card needed. In exchange, we ask that you genuinely use Lingle every day, hop on a 30-minute call with us to share feedback, and show it to a few friends (with proof). We&apos;re building this for real learners, and your input is worth more than $5/mo to us.
+                We&apos;ll give you full unlimited access for free! No credit card, no catch. All we ask is that you please use Lingle regularly, hop on a quick 30-minute call with us to share your honest feedback, and show it to a few friends (with proof, please!). We&apos;re a tiny team trying to build something great for real learners — and honestly, your input is worth way more than $5/mo to us!
               </p>
               <a
                 href="https://calendly.com/andrew-lingle/30min"
