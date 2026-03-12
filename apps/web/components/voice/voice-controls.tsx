@@ -154,6 +154,9 @@ export function VoiceControls({
           <>
             <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">Space</kbd>
             <span>to talk</span>
+            <span className="mx-0.5 text-border-strong">&middot;</span>
+            <kbd className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-bg-pure border border-border text-text-secondary shadow-[0_1px_0_rgba(0,0,0,.06)]">F</kbd>
+            <span>for help</span>
           </>
         )}
         {isTalking && (

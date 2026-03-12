@@ -159,6 +159,11 @@ export function VoiceConversationView() {
   }, [])
 
   const handleDebriefDone = useCallback(() => {
+    // Flag to show heartfelt message on return to prompt screen (first session only)
+    if (!localStorage.getItem('lingle:first-session-done')) {
+      localStorage.setItem('lingle:first-session-done', '1')
+      localStorage.setItem('lingle:show-heartfelt', '1')
+    }
     router.push('/conversation')
   }, [router])
 

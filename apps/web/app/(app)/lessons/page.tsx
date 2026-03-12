@@ -50,6 +50,13 @@ export default function LessonsPage() {
         <span className="text-[13px] text-text-muted font-medium">Under construction</span>
       </div>
 
+      <a
+        href="/upgrade"
+        className="mt-4 text-[13px] text-accent-brand hover:underline font-medium"
+      >
+        Become an Early Adopter to try it first
+      </a>
+
       <div className="mt-10 w-full max-w-[440px] grid grid-cols-2 gap-3">
         {FEATURES.map((feature) => (
           <div

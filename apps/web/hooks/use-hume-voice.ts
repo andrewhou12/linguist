@@ -338,6 +338,7 @@ export function useHumeVoice(opts: {
     speed: 1,
     setSpeed: () => {},
     sendTextMessage,
+    sendSilentMessage: sendTextMessage,
     isActive,
     error,
     sessionId,

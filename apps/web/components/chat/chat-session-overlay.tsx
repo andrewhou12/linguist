@@ -123,10 +123,17 @@ export function ChatSessionOverlay({
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
       const remaining = Math.max(0, initialUsage.remainingSeconds - elapsed)
       setUsageRemainingSeconds(remaining)
-      if (remaining <= 0) setShowUsageLimitModal(true)
+      if (remaining <= 0) {
+        setShowUsageLimitModal(true)
+        // Force-end the session server-side so usage is recorded
+        if (!endingRef.current) {
+          endingRef.current = true
+          api.conversationEnd(sessionIdRef.current).catch(() => {})
+        }
+      }
     }
     tick()
-    const interval = setInterval(tick, 15_000)
+    const interval = setInterval(tick, 5_000)
     return () => clearInterval(interval)
   }, [initialUsage])
 
@@ -585,8 +592,6 @@ export function ChatSessionOverlay({
         isOpen={planOpen}
         plan={sessionPlan}
         onCollapse={() => setPlanOpen(false)}
-        onSteer={handleSteer}
-        onPlanSave={handlePlanSave}
         steeringMessages={steeringMessages}
         currentSectionId={sectionTracking?.currentSectionId}
         completedSectionIds={sectionTracking?.completedSectionIds}
@@ -859,7 +864,6 @@ export function ChatSessionOverlay({
 
       <UsageLimitModal
         open={showUsageLimitModal}
-        onClose={() => setShowUsageLimitModal(false)}
         usedMinutes={usageLimitMinutes}
         limitMinutes={usageLimitMinutes}
       />

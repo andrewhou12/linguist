@@ -13,6 +13,15 @@ export class PCMStreamPlayer {
   private _playbackRate = 1.0
   private _totalScheduledDuration = 0
   private residualBuffer: Uint8Array | null = null
+  private playGeneration = 0
+  private lastSampleValue = 0
+  // Debug diagnostics — flip via: window.__VOICE_DEBUG = true
+  static get debug(): boolean {
+    return typeof window !== 'undefined' && !!(window as any).__VOICE_DEBUG
+  }
+  private chunkIndex = 0
+  private underrunCount = 0
+  private prevLastSample = 0
 
   // Min 256 samples (~16ms at 16kHz) to avoid scheduling tiny buffers that cause clicks
   private static readonly MIN_SAMPLES = 256
@@ -76,15 +85,22 @@ export class PCMStreamPlayer {
     this.stopCurrentPlayback()
 
     const ctx = this.ensureContext()
+    const gen = ++this.playGeneration
     this._playing = true
     this.reader = stream.getReader()
     this._totalScheduledDuration = 0
     this.residualBuffer = null
+    this.lastSampleValue = 0
+    this.chunkIndex = 0
+    this.underrunCount = 0
+    this.prevLastSample = 0
     // Reset nextStartTime to now for each new sentence
     this.nextStartTime = ctx.currentTime
     this.playStartTime = ctx.currentTime
 
     try {
+      let flushedResidualAsLast = false
+
       while (this._playing) {
         const { done, value } = await this.reader.read()
         if (done || !this._playing) break
@@ -124,8 +140,45 @@ export class PCMStreamPlayer {
         const len = this.residualBuffer.length - (this.residualBuffer.length % 2)
         if (len >= 2) {
           this.scheduleChunk(ctx, this.residualBuffer.slice(0, len), true)
+          flushedResidualAsLast = true
         }
         this.residualBuffer = null
+      }
+
+      // If stream ended cleanly with no residual fade-out, schedule a tiny tail
+      // that ramps from lastSampleValue → 0 to prevent an abrupt cutoff click
+      if (this._playing && !flushedResidualAsLast && this.lastSampleValue !== 0) {
+        const tailSamples = PCMStreamPlayer.FADE_OUT_SAMPLES
+        const tail = new Float32Array(tailSamples)
+        for (let i = 0; i < tailSamples; i++) {
+          tail[i] = this.lastSampleValue * (1 - i / tailSamples)
+        }
+        const buffer = ctx.createBuffer(1, tailSamples, this.sampleRate)
+        buffer.copyToChannel(tail, 0)
+        const source = ctx.createBufferSource()
+        source.buffer = buffer
+        source.playbackRate.value = this._playbackRate
+        source.connect(ctx.destination)
+        if (this.nextStartTime < ctx.currentTime) {
+          this.nextStartTime = ctx.currentTime
+        }
+        source.start(this.nextStartTime)
+        const tailDuration = tailSamples / this.sampleRate
+        this.nextStartTime += tailDuration / this._playbackRate
+        this.scheduledNodes.push(source)
+        source.onended = () => {
+          const idx = this.scheduledNodes.indexOf(source)
+          if (idx !== -1) this.scheduledNodes.splice(idx, 1)
+        }
+      }
+
+      // Debug: log playback summary
+      if (PCMStreamPlayer.debug) {
+        console.log(
+          `[voice-debug:summary] gen:${gen} chunks:${this.chunkIndex} dur:${(this._totalScheduledDuration * 1000).toFixed(0)}ms` +
+          ` underruns:${this.underrunCount} lastSample:${this.lastSampleValue.toFixed(4)}` +
+          ` flushedAsLast:${flushedResidualAsLast} tailScheduled:${!flushedResidualAsLast && this.lastSampleValue !== 0}`
+        )
       }
 
       // Wait for all scheduled audio to finish playing.
@@ -140,13 +193,17 @@ export class PCMStreamPlayer {
         console.error('[pcm-player] stream error:', err)
       }
     } finally {
-      this._playing = false
-      this.reader = null
+      if (gen === this.playGeneration) {
+        this._playing = false
+        this.reader = null
+      } else {
+        console.log(`[pcm-player] stale play() gen=${gen} skipping cleanup (current=${this.playGeneration})`)
+      }
     }
   }
 
-  // Fade-out last ~4ms (64 samples at 16kHz) to prevent end-of-sentence pops
-  private static readonly FADE_OUT_SAMPLES = 64
+  // Fade-out last ~16ms (256 samples at 16kHz) to prevent end-of-sentence pops
+  private static readonly FADE_OUT_SAMPLES = 256
 
   private scheduleChunk(ctx: AudioContext, data: Uint8Array, isLast = false) {
     if (!this._playing) return
@@ -158,6 +215,9 @@ export class PCMStreamPlayer {
     for (let i = 0; i < numSamples; i++) {
       float32[i] = view.getInt16(i * 2, true) / 32768.0
     }
+
+    // Track the last sample value for fade-out tail scheduling
+    this.lastSampleValue = float32[numSamples - 1]
 
     // Apply fade-out on the last chunk to prevent clicks from non-zero final samples
     if (isLast && numSamples > PCMStreamPlayer.FADE_OUT_SAMPLES) {
@@ -176,15 +236,34 @@ export class PCMStreamPlayer {
     source.connect(ctx.destination)
 
     const chunkDuration = numSamples / this.sampleRate
+    const aheadBy = this.nextStartTime - ctx.currentTime
+    const wasUnderrun = this.nextStartTime < ctx.currentTime
 
     // Don't schedule in the past
-    if (this.nextStartTime < ctx.currentTime) {
+    if (wasUnderrun) {
       this.nextStartTime = ctx.currentTime
+      this.underrunCount++
+    }
+
+    // Debug: log scheduling details per chunk
+    if (PCMStreamPlayer.debug) {
+      const firstSample = float32[0]
+      const lastSample = float32[numSamples - 1]
+      const discontinuity = this.chunkIndex > 0 ? Math.abs(firstSample - this.prevLastSample) : 0
+      console.log(
+        `[voice-debug:schedule] chunk#${this.chunkIndex} samples:${numSamples} dur:${(chunkDuration * 1000).toFixed(1)}ms` +
+        ` ahead:${(aheadBy * 1000).toFixed(1)}ms${wasUnderrun ? ' UNDERRUN' : ''}` +
+        ` first:${firstSample.toFixed(4)} last:${lastSample.toFixed(4)}` +
+        (discontinuity > 0.1 ? ` DISCONTINUITY:${discontinuity.toFixed(4)}` : '') +
+        (isLast ? ' [LAST]' : '')
+      )
+      this.prevLastSample = lastSample
     }
 
     source.start(this.nextStartTime)
     this.nextStartTime += chunkDuration / this._playbackRate
     this._totalScheduledDuration += chunkDuration
+    this.chunkIndex++
 
     this.scheduledNodes.push(source)
 
@@ -211,6 +290,7 @@ export class PCMStreamPlayer {
     this.residualBuffer = null
     this._totalScheduledDuration = 0
     this.nextStartTime = 0
+    this.lastSampleValue = 0
   }
 
   private stopCurrentPlayback() {
@@ -225,6 +305,7 @@ export class PCMStreamPlayer {
     this.scheduledNodes = []
     this._playing = false
     this.residualBuffer = null
+    this.lastSampleValue = 0
   }
 
   /** Close the AudioContext entirely (call on unmount) */

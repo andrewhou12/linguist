@@ -14,6 +14,7 @@ const HINT_IDS = [
   'hint_voice_spacebar',
   'hint_voice_subtitles',
   'hint_voice_feedback',
+  'hint_click_words',
 ] as const
 
 export type HintId = (typeof HINT_IDS)[number]

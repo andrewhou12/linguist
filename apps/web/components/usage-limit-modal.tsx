@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation'
 
 interface UsageLimitModalProps {
   open: boolean
-  onClose: () => void
+  onClose?: () => void
   usedMinutes: number
   limitMinutes: number
 }
 
-export function UsageLimitModal({ open, onClose, usedMinutes, limitMinutes }: UsageLimitModalProps) {
+export function UsageLimitModal({ open, usedMinutes, limitMinutes }: UsageLimitModalProps) {
   const router = useRouter()
   const [showHeartfelt, setShowHeartfelt] = useState(false)
 
@@ -29,11 +29,8 @@ export function UsageLimitModal({ open, onClose, usedMinutes, limitMinutes }: Us
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      {/* Backdrop — not dismissible */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Modal */}
       <div className="relative bg-bg-pure rounded-2xl shadow-pop border border-border-subtle max-w-[480px] w-full mx-4 overflow-hidden">
@@ -87,10 +84,10 @@ export function UsageLimitModal({ open, onClose, usedMinutes, limitMinutes }: Us
                 Become an Early Adopter — $5/mo
               </button>
               <button
-                onClick={onClose}
+                onClick={() => router.push('/conversation')}
                 className="w-full py-2.5 px-4 rounded-lg bg-transparent text-text-secondary text-[14px] font-medium transition-colors hover:bg-bg-hover cursor-pointer border-none"
               >
-                Maybe later
+                Come back tomorrow
               </button>
             </div>
           </div>

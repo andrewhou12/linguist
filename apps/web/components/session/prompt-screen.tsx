@@ -334,6 +334,12 @@ export function PromptScreen({ targetLanguage, error, isLoading, onStart }: Prom
                   {selectedMode === 'immersion' && 'Immersive listening and reading exercises are being built. Stay tuned.'}
                   {selectedMode === 'reference' && 'A quick-reference tool for grammar, vocabulary, and usage questions is in the works.'}
                 </p>
+                <a
+                  href="/upgrade"
+                  className="mt-3 text-[13px] text-accent-brand hover:underline font-medium"
+                >
+                  Become an Early Adopter to try it first
+                </a>
               </div>
             )}
 

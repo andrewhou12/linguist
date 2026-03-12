@@ -1,30 +1,22 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { XMarkIcon, ArrowRightIcon, Cog6ToothIcon, CheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { useRef, useEffect } from 'react'
+import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
 import type { SessionPlan } from '@/lib/session-plan'
 import { isConversationPlan, isTutorPlan } from '@/lib/session-plan'
-
-export interface SessionSettings {
-  vocabCards: boolean
-}
 
 interface SessionPlanSidebarProps {
   isOpen: boolean
   plan: SessionPlan | null
   onCollapse: () => void
-  onSteer: (text: string) => void
-  onPlanSave?: (planText: string) => void
   steeringMessages: Array<{ text: string; time: string }>
   className?: string
   currentSectionId?: string
   completedSectionIds?: string[]
-  sessionSettings?: SessionSettings
-  onSettingsChange?: (settings: SessionSettings) => void
 }
 
-function planToText(plan: SessionPlan): string {
+export function planToText(plan: SessionPlan): string {
   const lines: string[] = []
 
   if (isConversationPlan(plan)) {
@@ -66,52 +58,9 @@ function planToText(plan: SessionPlan): string {
 }
 
 export function SessionPlanSidebar({
-  isOpen, plan, onCollapse, onSteer, onPlanSave, steeringMessages, currentSectionId, completedSectionIds, className,
-  sessionSettings, onSettingsChange,
+  isOpen, plan, onCollapse, steeringMessages, currentSectionId, completedSectionIds, className,
 }: SessionPlanSidebarProps) {
-  const [inputValue, setInputValue] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
-  const [editText, setEditText] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
-  const [showPlanEditor, setShowPlanEditor] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const editRef = useRef<HTMLTextAreaElement>(null)
-
-  const handleSubmit = useCallback(() => {
-    const val = inputValue.trim()
-    if (!val) return
-    onSteer(val)
-    setInputValue('')
-    if (inputRef.current) inputRef.current.style.height = 'auto'
-  }, [inputValue, onSteer])
-
-  const handleEditStart = useCallback(() => {
-    if (plan) {
-      setEditText(planToText(plan))
-    }
-    setIsEditing(true)
-  }, [plan])
-
-  const handleEditSave = useCallback(() => {
-    const trimmed = editText.trim()
-    if (!trimmed) return
-    setIsEditing(false)
-    onPlanSave?.(trimmed)
-  }, [editText, onPlanSave])
-
-  const handleEditCancel = useCallback(() => {
-    setIsEditing(false)
-    setEditText('')
-  }, [])
-
-  // Focus edit textarea when entering edit mode
-  useEffect(() => {
-    if (isEditing && editRef.current) {
-      editRef.current.focus()
-      editRef.current.selectionStart = editRef.current.value.length
-    }
-  }, [isEditing])
 
   // Scroll to bottom when steering messages change
   useEffect(() => {
@@ -132,92 +81,16 @@ export function SessionPlanSidebar({
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border shrink-0">
         <div className="text-[15px] font-semibold text-text-primary tracking-[-0.02em]">Session Plan</div>
-        <div className="flex items-center gap-1">
-          {!isEditing && plan && (
-            <button
-              onClick={() => setShowSettings(s => !s)}
-              className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary shrink-0",
-                showSettings && 'bg-bg-hover text-text-primary',
-              )}
-              title="Session settings"
-            >
-              <Cog6ToothIcon className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={onCollapse}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary shrink-0"
-          >
-            <XMarkIcon className="w-[18px] h-[18px]" />
-          </button>
-        </div>
+        <button
+          onClick={onCollapse}
+          className="w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary shrink-0"
+        >
+          <XMarkIcon className="w-[18px] h-[18px]" />
+        </button>
       </div>
 
       {/* Plan content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pt-4 pb-3 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-border-strong [&::-webkit-scrollbar-thumb]:rounded-sm">
-        {/* Settings section */}
-        {showSettings && (
-          <div className="bg-bg-secondary rounded-xl px-4 py-3 border border-border-subtle space-y-3 mb-4 animate-[voice-fade-up_0.2s_ease_both]">
-            {/* Vocabulary cards toggle */}
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-medium text-text-primary">Vocabulary cards</span>
-              <button
-                onClick={() => onSettingsChange?.({ ...sessionSettings!, vocabCards: !sessionSettings?.vocabCards })}
-                className={cn(
-                  'relative w-9 h-5 rounded-full border-none cursor-pointer transition-colors',
-                  sessionSettings?.vocabCards !== false ? 'bg-accent-brand' : 'bg-border-strong',
-                )}
-              >
-                <span className={cn(
-                  'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform',
-                  sessionSettings?.vocabCards !== false ? 'left-[18px]' : 'left-0.5',
-                )} />
-              </button>
-            </div>
-
-            {/* Collapsible plan editor */}
-            <div>
-              <button
-                onClick={() => {
-                  if (!showPlanEditor && plan) setEditText(planToText(plan))
-                  setShowPlanEditor(p => !p)
-                }}
-                className="flex items-center gap-1.5 text-[13px] font-medium text-text-secondary bg-transparent border-none cursor-pointer hover:text-text-primary transition-colors"
-              >
-                <ChevronDownIcon className={cn('w-3.5 h-3.5 transition-transform', showPlanEditor && 'rotate-180')} />
-                Edit plan
-              </button>
-              {showPlanEditor && (
-                <div className="mt-2 flex flex-col gap-2">
-                  <textarea
-                    ref={editRef}
-                    value={editText}
-                    onChange={e => setEditText(e.target.value)}
-                    className="w-full min-h-[140px] px-3 py-2.5 font-sans text-[13px] text-text-primary bg-bg-pure border border-border rounded-lg outline-none resize-y leading-[1.6] focus:border-border-strong transition-shadow"
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => setShowPlanEditor(false)}
-                      className="px-3 py-1.5 text-[12px] text-text-secondary bg-transparent border border-border rounded-lg cursor-pointer transition-colors hover:bg-bg-hover"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => { handleEditSave(); setShowPlanEditor(false) }}
-                      disabled={!editText.trim()}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium text-white bg-accent-brand border-none rounded-lg cursor-pointer transition-all hover:bg-[#111] disabled:opacity-30 disabled:pointer-events-none"
-                    >
-                      <CheckIcon className="w-3 h-3" />
-                      Save
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="voice-plan-body">
             {plan && <PlanContent plan={plan} currentSectionId={currentSectionId} completedSectionIds={completedSectionIds} />}
 
@@ -233,37 +106,6 @@ export function SessionPlanSidebar({
             ))}
           </div>
       </div>
-
-      {/* Steering input */}
-      {(
-        <div className="shrink-0 border-t border-border px-4 py-3 flex flex-col gap-2">
-          <div className="text-[13px] font-medium text-text-muted">Adjust plan</div>
-          <div className="relative bg-bg-pure border border-border rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)] transition-[border-color,box-shadow] duration-150 focus-within:border-border-strong focus-within:shadow-[0_2px_8px_rgba(0,0,0,.06),0_1px_4px_rgba(0,0,0,.04)]">
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={e => {
-                setInputValue(e.target.value)
-                e.target.style.height = 'auto'
-                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px'
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
-              }}
-              rows={1}
-              placeholder="e.g. talk more about travel..."
-              className="w-full px-4 py-3 pr-12 font-sans text-[14px] text-text-primary bg-transparent border-none outline-none resize-none leading-[1.5] min-h-[44px] max-h-[100px] placeholder:text-text-muted"
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!inputValue.trim()}
-              className="absolute right-2 bottom-2 w-8 h-8 rounded-lg border-none cursor-pointer bg-accent-brand flex items-center justify-center transition-all shrink-0 hover:bg-[#111] disabled:pointer-events-none"
-            >
-              <ArrowRightIcon className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -60,6 +60,7 @@ export interface UseVoiceConversationReturn {
   speed: number
   setSpeed: (speed: number) => void
   sendTextMessage: (text: string) => void
+  sendSilentMessage: (text: string) => void
   isActive: boolean
   error: string | null
   sessionId: string | null
@@ -291,7 +292,11 @@ export function useVoiceConversation(
             fsmRef.current.onTTSStarted()
             console.log(`[voice-stream:client] TTFA ${(performance.now() - t0).toFixed(0)}ms`)
           }
-          try { audio.ctrl?.enqueue(pcm) } catch {}
+          try {
+            audio.ctrl?.enqueue(pcm)
+          } catch (enqueueErr) {
+            console.warn('[voice-debug:bridge] enqueue FAILED — audio chunk dropped', enqueueErr)
+          }
         },
         onSentenceStart: (sentence) => {
           if (gen !== voiceStreamGenRef.current) return
@@ -644,6 +649,9 @@ export function useVoiceConversation(
       getVoicePlayer().warmup()
       sonioxRef.current.warmup?.()
       try {
+        // Fetch remaining usage for expiry timer
+        const usageInfo = await api.usageGet().catch(() => null)
+
         setSessionId(existingSessionId)
         setSessionPlan(existingPlan)
         setMessages([])
@@ -658,6 +666,15 @@ export function useVoiceConversation(
         durationIntervalRef.current = setInterval(() => {
           setDuration((d) => d + 1)
         }, 1000)
+
+        // Auto-end session when daily limit expires (free plan enforcement)
+        if (usageInfo && usageInfo.remainingSeconds > 0 && usageInfo.remainingSeconds < Infinity && usageInfo.limitSeconds !== -1) {
+          if (sessionExpiryRef.current) clearTimeout(sessionExpiryRef.current)
+          sessionExpiryRef.current = setTimeout(() => {
+            console.log('[voice] session expired — daily limit reached')
+            endSessionRef.current()
+          }, usageInfo.remainingSeconds * 1000)
+        }
 
         await fsmRef.current.startSession(autoEndpoint)
 
@@ -715,6 +732,10 @@ export function useVoiceConversation(
 
   const sendTextMessage = useCallback((text: string) => {
     fsmRef.current.sendTextMessage(text)
+  }, [])
+
+  const sendSilentMessage = useCallback((text: string) => {
+    fsmRef.current.sendSilentMessage(text)
   }, [])
 
   // Derive section tracking from latest analysis result
@@ -782,6 +803,7 @@ export function useVoiceConversation(
     speed: tts.speed,
     setSpeed: tts.setSpeed,
     sendTextMessage,
+    sendSilentMessage,
     isActive,
     error: error || soniox.error,
     sessionId,

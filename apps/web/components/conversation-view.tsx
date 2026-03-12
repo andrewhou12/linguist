@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
@@ -16,6 +16,7 @@ import { BeginOverlay } from '@/components/session/begin-overlay'
 import { SessionDebrief } from '@/components/session/session-debrief'
 import { ChatSessionOverlay } from '@/components/chat/chat-session-overlay'
 import { UsageLimitModal } from '@/components/usage-limit-modal'
+import { HeartfeltModal } from '@/components/heartfelt-modal'
 
 export function ConversationView() {
   return <ConversationViewInner />
@@ -32,12 +33,23 @@ function ConversationViewInner() {
   const [isLoading, setIsLoading] = useState(false)
   const [showUsageLimitModal, setShowUsageLimitModal] = useState(false)
   const [usageLimitMinutes, setUsageLimitMinutes] = useState(10)
+  const [showHeartfelt, setShowHeartfelt] = useState(false)
 
   // Fetch profile + usage on mount
   useEffect(() => {
     api.profileGet().then(setProfile).catch(() => {})
     api.usageGet().then(setUsage).catch(() => {})
   }, [])
+
+  // Show heartfelt message when returning from first session
+  useEffect(() => {
+    if (viewState.type === 'prompt' && localStorage.getItem('lingle:show-heartfelt')) {
+      localStorage.removeItem('lingle:show-heartfelt')
+      // Also mark the limit modal version as seen
+      localStorage.setItem('lingle:seen-limit-message', '1')
+      setShowHeartfelt(true)
+    }
+  }, [viewState.type])
 
   const handleStart = useCallback(async (prompt: string, mode: ScenarioMode, inputMode: 'chat' | 'voice') => {
     setError(null)
@@ -106,6 +118,11 @@ function ConversationViewInner() {
   }, [])
 
   const handleDebriefDone = useCallback(() => {
+    // Flag to show heartfelt message on return to prompt screen (first session only)
+    if (!localStorage.getItem('lingle:first-session-done')) {
+      localStorage.setItem('lingle:first-session-done', '1')
+      localStorage.setItem('lingle:show-heartfelt', '1')
+    }
     setViewState({ type: 'prompt' })
   }, [])
 
@@ -165,9 +182,13 @@ function ConversationViewInner() {
 
       <UsageLimitModal
         open={showUsageLimitModal}
-        onClose={() => setShowUsageLimitModal(false)}
         usedMinutes={usageLimitMinutes}
         limitMinutes={usageLimitMinutes}
+      />
+
+      <HeartfeltModal
+        open={showHeartfelt}
+        onClose={() => setShowHeartfelt(false)}
       />
     </>
   )

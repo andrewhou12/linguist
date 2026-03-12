@@ -64,6 +64,7 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
   const [steerMessages, setSteerMessages] = useState<SteerMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const [introduceNewItems, setIntroduceNewItems] = useState(false)
 
   const title = getTitle(plan)
   const subtitle = getSubtitle(plan)
@@ -78,8 +79,12 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
   }, [inputValue])
 
   const handleBegin = useCallback(() => {
-    onBegin(steerMessages.map(m => m.text))
-  }, [onBegin, steerMessages])
+    const notes = steerMessages.map(m => m.text)
+    if (introduceNewItems) {
+      notes.push('Feel free to introduce new vocabulary and grammar slightly above the learner\'s level. Sprinkle in 1-2 stretch items per response.')
+    }
+    onBegin(notes)
+  }, [onBegin, steerMessages, introduceNewItems])
 
   // Build plan detail sections
   const sections = buildPlanSections(plan)
@@ -229,6 +234,35 @@ export function BeginOverlay({ plan, mode, profile, onBegin, onBack, hintText }:
             ))}
           </motion.div>
         )}
+
+        {/* Session settings */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="mb-6"
+        >
+          <div className="px-4 py-3.5 rounded-xl bg-bg-pure border border-border shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[13px] font-medium text-text-primary">Introduce new vocabulary/grammar</span>
+                <p className="text-[11px] text-text-muted mt-0.5 leading-[1.4]">When on, the AI will use words and grammar slightly above your level</p>
+              </div>
+              <button
+                onClick={() => setIntroduceNewItems(v => !v)}
+                className={cn(
+                  'relative w-9 h-5 rounded-full border-none cursor-pointer transition-colors shrink-0 ml-3',
+                  introduceNewItems ? 'bg-accent-brand' : 'bg-border-strong',
+                )}
+              >
+                <span className={cn(
+                  'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform',
+                  introduceNewItems ? 'left-[18px]' : 'left-0.5',
+                )} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Adjust input */}
         <motion.div

@@ -199,6 +199,23 @@ export function VoiceLiveSubtitles({
 
   const tokens = useMemo(() => tokenizeWords(cleanAiText, lang), [cleanAiText, lang])
 
+  // Phrase selection via drag
+  const handleTextSelect = useCallback(() => {
+    const sel = window.getSelection()
+    if (!sel || sel.type !== 'Range') return
+    const text = sel.toString().trim()
+    if (!text || text.length < 2) return
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    setLookupAnchor({
+      word: text,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 6,
+    })
+    onLookup?.(text, cleanAiText)
+    sel.removeAllRanges()
+  }, [onLookup, cleanAiText])
+
   // Determine what to show
   const showUser = !!userText
   const showAI = !!cleanAiText
@@ -260,9 +277,22 @@ export function VoiceLiveSubtitles({
             className="flex flex-col items-center gap-1"
           >
             <div className="w-5 h-px bg-border-strong mb-0.5" />
+            {!isDismissed('hint_click_words') && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5, duration: 0.4 }}
+                className="text-[11px] text-text-muted mb-1 pointer-events-auto cursor-pointer"
+                onClick={() => dismiss('hint_click_words')}
+              >
+                click any word to look it up
+              </motion.p>
+            )}
             <div
+              onMouseUp={handleTextSelect}
+              onClick={() => { if (!isDismissed('hint_click_words')) dismiss('hint_click_words') }}
               className={cn(
-                `text-[14.5px] leading-[1.7] text-text-secondary italic`,
+                `text-[14.5px] leading-[1.7] text-text-secondary italic pointer-events-auto select-text`,
                 fontClean,
               )}
             >
@@ -271,7 +301,7 @@ export function VoiceLiveSubtitles({
                   <span
                     key={i}
                     onClick={(e) => handleWordClick(t.segment, e)}
-                    className="cursor-pointer hover:underline hover:decoration-border-strong hover:underline-offset-2 transition-colors duration-150 pointer-events-auto"
+                    className="cursor-pointer underline decoration-dotted decoration-border-strong/40 underline-offset-[3px] hover:decoration-solid hover:decoration-border-strong hover:underline-offset-2 transition-all duration-150 pointer-events-auto"
                   >
                     {t.segment}
                   </span>
@@ -287,7 +317,7 @@ export function VoiceLiveSubtitles({
             {/* Action buttons */}
             <CoachMark
               hintId="hint_voice_subtitles"
-              content="Tap Translate for English or Suggest for response ideas."
+              content="Tap any word above to look it up instantly. Select a phrase for multi-word lookup. Use Translate and Suggest for quick help."
               side="bottom"
               show={isDismissed('hint_voice_feedback') && !isDismissed('hint_voice_subtitles') && !!cleanAiText}
               onDismiss={() => dismiss('hint_voice_subtitles')}
@@ -321,53 +351,57 @@ export function VoiceLiveSubtitles({
                 </button>
               </div>
 
-              {/* Tool response card */}
-              <AnimatePresence>
-                {(translation || suggestion || suggestionLoading) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
-                  >
-                    {/* Translation */}
-                    {translation && (
-                      <div>
-                        <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                          <LanguageIcon className="w-3.5 h-3.5" />
-                          Translation
-                        </div>
-                        <div className="text-[14px] text-text-primary leading-[1.6] font-sans">
-                          {translation}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Suggestion */}
-                    {(suggestion || suggestionLoading) && (
-                      <div>
-                        <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                          <LightBulbIcon className="w-3.5 h-3.5" />
-                          Suggestion
-                        </div>
-                        {suggestionLoading ? (
-                          <div className="flex items-center gap-2.5 py-1.5">
-                            <Spinner size={16} />
-                            <span className="text-[13px] text-text-secondary">Thinking of a response...</span>
-                          </div>
-                        ) : suggestion && (
-                          <div className={cn("text-[14px] text-text-primary leading-[1.6] font-sans whitespace-pre-wrap", fontClean)}>
-                            {suggestion}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
             </CoachMark>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Translation card — separate from AI text so it persists when user starts talking */}
+      <AnimatePresence>
+        {translation && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
+          >
+            <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+              <LanguageIcon className="w-3.5 h-3.5" />
+              Translation
+            </div>
+            <div className="text-[14px] text-text-primary leading-[1.6] font-sans">
+              {translation}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Suggestion card — separate from translation */}
+      <AnimatePresence>
+        {(suggestion || suggestionLoading) && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
+          >
+            <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+              <LightBulbIcon className="w-3.5 h-3.5" />
+              Suggestion
+            </div>
+            {suggestionLoading ? (
+              <div className="flex items-center gap-2.5 py-1.5">
+                <Spinner size={16} />
+                <span className="text-[13px] text-text-secondary">Thinking of a response...</span>
+              </div>
+            ) : suggestion && (
+              <div className={cn("text-[14px] text-text-primary leading-[1.6] font-sans whitespace-pre-wrap", fontClean)}>
+                {suggestion}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -408,7 +442,7 @@ export function VoiceLiveSubtitles({
                   {onOpenChat && (
                     <button
                       onClick={() => {
-                        onOpenChat(`Tell me more about: ${lookupResult.word} (${lookupResult.meaning})`)
+                        onOpenChat(lookupResult.word)
                         setLookupAnchor(null)
                       }}
                       className="text-[12px] text-text-muted font-medium hover:text-text-secondary mt-1 text-left cursor-pointer bg-transparent border-none p-0 transition-colors"

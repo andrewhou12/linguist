@@ -15,11 +15,13 @@ import { SessionNotesPanel } from '@/components/session/session-notes-panel'
 import { VoiceLiveSubtitles } from './voice-live-subtitles'
 import { VoiceTranscriptPanel } from './voice-transcript-panel'
 import { UnifiedChatOverlay } from './unified-chat-overlay'
+import { SessionSettingsPanel } from './session-settings-panel'
 import { VoiceControls, type ActivePanel } from './voice-controls'
 import { VoiceFallbackInput } from './voice-fallback-input'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EndConfirmation } from '@/components/session/end-confirmation'
 import { FeedbackCardFlipper } from './feedback-card-flipper'
+import { Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
 export type { SessionEndData } from '@/lib/session-types'
@@ -85,6 +87,11 @@ function SessionOverlayInner({
   const [newFeedbackFlash, setNewFeedbackFlash] = useState(false)
   const feedbackFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showChat, setShowChat] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [viewedFeedbackCount, setViewedFeedbackCount] = useState(0)
+  const [chatLookupWord, setChatLookupWord] = useState<string | null>(null)
+  const [showHelpNudge, setShowHelpNudge] = useState(false)
+  const helpNudgeShownRef = useRef(false)
 
   // Help panel state removed — now in UnifiedChatOverlay
 
@@ -104,12 +111,27 @@ function SessionOverlayInner({
   const [precachedSuggestion, setPrecachedSuggestion] = useState<string | null>(null)
 
   // ── Session settings ──
-  const [sessionSettings, setSessionSettings] = useState<{ vocabCards: boolean }>({ vocabCards: true })
+  const [sessionSettings, setSessionSettings] = useState<{ vocabCards: boolean; introduceNewItems: boolean; autoTranslate: boolean; autoSuggest: boolean }>({ vocabCards: true, introduceNewItems: false, autoTranslate: false, autoSuggest: false })
 
   // ── Steering ──
   const [steeringMessages, setSteeringMessages] = useState<Array<{ text: string; time: string }>>(
     steeringNotes?.map(text => ({ text, time: '0:00' })) || [],
   )
+
+  // Send steering message when introduceNewItems setting changes (skip initial render)
+  const introduceNewItemsMounted = useRef(false)
+  useEffect(() => {
+    if (!introduceNewItemsMounted.current) {
+      introduceNewItemsMounted.current = true
+      return
+    }
+    // Only send a message when toggling — the default (OFF) is baked into the system prompt
+    if (sessionSettings.introduceNewItems) {
+      handleSteer('Feel free to introduce new vocabulary and grammar slightly above my level.')
+    } else {
+      handleSteer('Stay within my current level. Don\'t introduce new vocabulary or grammar above my level.')
+    }
+  }, [sessionSettings.introduceNewItems])
 
   const startedRef = useRef(false)
 
@@ -143,24 +165,27 @@ function SessionOverlayInner({
     return `${m}:${s.toString().padStart(2, '0')}`
   }, [])
 
-  // Steering handler
+  // Steering handler — sends silently (not shown in transcript/subtitles)
   const handleSteer = useCallback((text: string) => {
     setSteeringMessages(prev => [...prev, { text, time: formatTime(voice.duration) }])
-    voice.sendTextMessage(`[Learner instruction: ${text}]`)
-  }, [voice.duration, voice.sendTextMessage, formatTime])
+    voice.sendSilentMessage(`[Learner instruction: ${text}]`)
+  }, [voice.duration, voice.sendSilentMessage, formatTime])
 
-  // Plan save handler
+  // Plan save handler — sends silently
   const handlePlanSave = useCallback((planText: string) => {
-    // Send as steering message so the AI adapts
-    voice.sendTextMessage(`[Plan updated by learner: ${planText}]`)
+    voice.sendSilentMessage(`[Plan updated by learner: ${planText}]`)
     setSteeringMessages(prev => [...prev, { text: 'Plan edited', time: formatTime(voice.duration) }])
-  }, [voice.sendTextMessage, voice.duration, formatTime])
+  }, [voice.sendSilentMessage, voice.duration, formatTime])
 
   // ── Feedback aggregation (from analysis results) ──
   const feedbackCount = useMemo(() => {
     let count = 0
     for (const result of Object.values(voice.analysisResults)) {
-      count += result.corrections.length + (result.naturalnessFeedback?.length || 0)
+      count += result.corrections.length
+        + (result.naturalnessFeedback?.length || 0)
+        + (result.alternativeExpressions?.length || 0)
+        + (result.registerMismatches?.length || 0)
+        + (result.conversationalTips?.length || 0)
     }
     return count
   }, [voice.analysisResults])
@@ -184,9 +209,11 @@ function SessionOverlayInner({
     setShowChat(true)
   }, [])
 
-  // Retry with visual feedback
+  // Retry with visual feedback — clear subtitles so user sees a fresh slate
   const handleRetry = useCallback(() => {
     voice.retryLast()
+    setExchangeUserLine(null)
+    setExchangeAILine(null)
     setShowRetryFeedback(true)
     if (retryFeedbackTimerRef.current) clearTimeout(retryFeedbackTimerRef.current)
     retryFeedbackTimerRef.current = setTimeout(() => setShowRetryFeedback(false), 1500)
@@ -218,6 +245,15 @@ function SessionOverlayInner({
     }
     prevAnalysisCountRef.current = count
   }, [voice.analysisResults])
+
+  // Mark feedback as viewed when chat overlay is open
+  useEffect(() => {
+    if (showChat) {
+      setViewedFeedbackCount(feedbackCount)
+    }
+  }, [showChat, feedbackCount])
+
+  const unviewedFeedbackCount = feedbackCount - viewedFeedbackCount
 
   // Help/feedback handled by UnifiedChatOverlay
 
@@ -379,7 +415,7 @@ function SessionOverlayInner({
   const [exchangeAILine, setExchangeAILine] = useState<typeof voice.transcript[0] | null>(null)
   const prevTranscriptLenRef = useRef(0)
 
-  // When user starts talking, clear the exchange
+  // When user starts talking, clear the exchange lines (but NOT suggestion/translation — those stay visible)
   const hasPartial = !!voice.partialText
   useEffect(() => {
     if (voice.isTalking || hasPartial) {
@@ -388,13 +424,15 @@ function SessionOverlayInner({
     }
   }, [voice.isTalking, hasPartial])
 
-  // Clear translation + suggestion when AI line changes (new response)
+  // Clear translation + suggestion only when a NEW AI response arrives (not when cleared to null)
   const exchangeAITimestamp = exchangeAILine?.timestamp
   useEffect(() => {
-    setTranslation(null)
-    setPrecachedTranslation(null)
-    setSuggestion(null)
-    setPrecachedSuggestion(null)
+    if (exchangeAITimestamp) {
+      setTranslation(null)
+      setPrecachedTranslation(null)
+      setSuggestion(null)
+      setPrecachedSuggestion(null)
+    }
   }, [exchangeAITimestamp])
 
   // Pre-cache translation + suggestion when AI line finalizes
@@ -406,7 +444,12 @@ function SessionOverlayInner({
       body: JSON.stringify({ text: exchangeAILine.text }),
     })
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.translation) setPrecachedTranslation(data.translation) })
+      .then(data => {
+        if (data?.translation) {
+          setPrecachedTranslation(data.translation)
+          if (sessionSettings.autoTranslate) setTranslation(data.translation)
+        }
+      })
       .catch(() => {})
 
     // Pre-cache suggestion
@@ -420,9 +463,14 @@ function SessionOverlayInner({
       body: JSON.stringify({ recentHistory }),
     })
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.suggestion) setPrecachedSuggestion(data.suggestion) })
+      .then(data => {
+        if (data?.suggestion) {
+          setPrecachedSuggestion(data.suggestion)
+          if (sessionSettings.autoSuggest) setSuggestion(data.suggestion)
+        }
+      })
       .catch(() => {})
-  }, [exchangeAILine?.isFinal, exchangeAILine?.text])
+  }, [exchangeAILine?.isFinal, exchangeAILine?.text, sessionSettings.autoTranslate, sessionSettings.autoSuggest])
 
   // When new transcript lines appear, update the exchange
   useEffect(() => {
@@ -458,10 +506,43 @@ function SessionOverlayInner({
     }))
   }, [voice.transcript, latestCorrection, formatTime])
 
-  // Close active panel when user starts talking
+  // Show help nudge after the user's first completed exchange (2+ transcript lines = user + AI)
   useEffect(() => {
-    if (voice.isTalking) setRightPanel(null)
+    if (helpNudgeShownRef.current || voice.transcript.length < 2) return
+    // Wait for the first AI response to finalize
+    const hasUserLine = voice.transcript.some(t => t.role === 'user')
+    const hasAILine = voice.transcript.some(t => t.role === 'assistant')
+    if (hasUserLine && hasAILine) {
+      helpNudgeShownRef.current = true
+      // Show after a brief delay so it doesn't compete with the first response
+      const showTimer = setTimeout(() => setShowHelpNudge(true), 1500)
+      // Auto-dismiss after 6 seconds
+      const hideTimer = setTimeout(() => setShowHelpNudge(false), 7500)
+      return () => { clearTimeout(showTimer); clearTimeout(hideTimer) }
+    }
+  }, [voice.transcript])
+
+  // Close active panel when user starts talking; dismiss help nudge
+  useEffect(() => {
+    if (voice.isTalking) {
+      setRightPanel(null)
+      setShowHelpNudge(false)
+    }
   }, [voice.isTalking])
+
+  // F hotkey to toggle chat overlay
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'f' || e.key === 'F') {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
+        e.preventDefault()
+        setShowChat(c => !c)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   // Derive current section label for nav bar
   const currentPlan = voice.sessionPlan || existingPlan || null
@@ -480,7 +561,7 @@ function SessionOverlayInner({
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
         duration={voice.duration}
-        onOpenFullPlan={() => setPlanOpen(true)}
+        onOpenFullPlan={() => setShowSettings(true)}
       />
 
       {/* Full Session Plan sidebar overlay (left, on top of flow panel) */}
@@ -488,13 +569,9 @@ function SessionOverlayInner({
         isOpen={planOpen}
         plan={voice.sessionPlan || existingPlan || null}
         onCollapse={() => setPlanOpen(false)}
-        onSteer={handleSteer}
-        onPlanSave={handlePlanSave}
         steeringMessages={steeringMessages}
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
-        sessionSettings={sessionSettings}
-        onSettingsChange={setSessionSettings}
         className="z-[15]"
       />
 
@@ -526,10 +603,22 @@ function SessionOverlayInner({
           onEnd={requestEnd}
           currentSectionLabel={currentSectionLabel}
           inputMode="voice"
+          rightSlot={
+            <button
+              onClick={() => setShowSettings(s => !s)}
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary',
+                showSettings && 'bg-bg-hover text-text-primary',
+              )}
+              title="Session settings"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+            </button>
+          }
         />
 
-        {/* Main stage */}
-        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden relative pl-[310px] pr-[310px]">
+        {/* Main stage — scrollable when content overflows */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto overflow-x-visible relative pl-[310px] pr-[310px]">
           {/* Starting overlay */}
           {isStarting && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg">
@@ -611,7 +700,10 @@ function SessionOverlayInner({
               onSuggest={handleSuggest}
               suggestion={suggestion}
               suggestionLoading={suggestionLoading}
-              onOpenChat={(context) => setShowChat(true)}
+              onOpenChat={(context) => {
+                if (context) setChatLookupWord(context)
+                setShowChat(true)
+              }}
             />
           </div>
 
@@ -630,14 +722,25 @@ function SessionOverlayInner({
             )}
           </AnimatePresence>
 
-        </main>
+          {/* Help nudge — appears once after first exchange, auto-dismisses */}
+          <AnimatePresence>
+            {showHelpNudge && (
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.4 }}
+                onClick={() => { setShowHelpNudge(false); setShowChat(true) }}
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-pure border border-border shadow-[0_2px_8px_rgba(0,0,0,.06)] cursor-pointer transition-all hover:bg-bg-hover hover:border-border-strong hover:shadow-[0_4px_12px_rgba(0,0,0,.08)] active:scale-[0.97]"
+              >
+                <span className="text-[13px] text-text-secondary">Stuck or need help?</span>
+                <span className="text-[12px] font-medium text-accent-brand">Open chat</span>
+                <kbd className="font-mono text-[10px] font-medium px-1 py-0.5 rounded bg-bg-secondary border border-border text-text-muted">F</kbd>
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-        {/* Feedback card flipper (bottom-right) */}
-        <FeedbackCardFlipper
-          analysisResults={voice.analysisResults}
-          onRetry={handleRetry}
-          onOpenChat={() => setRightPanel('feedback')}
-        />
+        </main>
 
         {/* Voice controls */}
         <VoiceControls
@@ -646,7 +749,7 @@ function SessionOverlayInner({
           onTalkStart={voice.startTalking}
           onTalkEnd={voice.stopTalking}
           onTalkCancel={voice.cancelTalking}
-          correctionsCount={feedbackCount}
+          correctionsCount={unviewedFeedbackCount}
           activePanel={rightPanel}
           onRetry={handleRetry}
           canRetry={voice.transcript.length >= 2}
@@ -662,6 +765,13 @@ function SessionOverlayInner({
         />
       </div>
 
+      {/* Feedback card flipper (bottom-right, outside z-[1] stacking context so it renders over session notes) */}
+      <FeedbackCardFlipper
+        analysisResults={voice.analysisResults}
+        onRetry={handleRetry}
+        onOpenChat={() => setShowChat(true)}
+      />
+
       {/* Transcript panel (right slide) */}
       <VoiceTranscriptPanel
         isOpen={rightPanel === 'transcript'}
@@ -676,6 +786,21 @@ function SessionOverlayInner({
         analysisResults={voice.analysisResults}
         recentHistory={voice.transcript.slice(-6).map(t => ({ role: t.role, content: t.text }))}
         onRetry={handleRetry}
+        lookupWord={chatLookupWord}
+        onClearLookupWord={() => setChatLookupWord(null)}
+      />
+
+      {/* Session settings modal */}
+      <SessionSettingsPanel
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={sessionSettings}
+        onSettingsChange={setSessionSettings}
+        plan={voice.sessionPlan || existingPlan || null}
+        onPlanSave={handlePlanSave}
+        onSteer={handleSteer}
+        currentSectionId={voice.sectionTracking?.currentSectionId}
+        completedSectionIds={voice.sectionTracking?.completedSectionIds}
       />
 
 

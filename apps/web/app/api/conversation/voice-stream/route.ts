@@ -158,15 +158,32 @@ export const POST = withAuth(async (request, { userId }) => {
     const cartesiaWs = getCartesiaWs()
     cartesiaWs.warmup()
 
-    const dispatchSentence = (sentence: string) => {
-      const sentenceLang = detectSentenceLanguage(sentence, targetLangCode)
+    // Buffer for short clause fragments (e.g., "えっと、", "へー、") that generate
+    // disproportionately long TTS audio when sent alone. Merged with the next sentence.
+    const SENTENCE_TERMINATOR = /[。！？.!?\n]$/
+    const MIN_TTS_LENGTH = 8
+    let pendingFragment = ''
+
+    const dispatchSentence = (sentence: string, forceFlush = false) => {
+      const combined = pendingFragment + sentence
+      pendingFragment = ''
+
+      const sentenceLang = detectSentenceLanguage(combined, targetLangCode)
       // Only strip non-target-language content for CJK languages where Latin chars reliably indicate English
       const cleaned = sentenceLang === 'en'
-        ? cleanForTTS(sentence)
+        ? cleanForTTS(combined)
         : isCJK
-          ? stripNonTargetLanguage(cleanForTTS(sentence))
-          : cleanForTTS(sentence)
+          ? stripNonTargetLanguage(cleanForTTS(combined))
+          : cleanForTTS(combined)
       if (!cleaned || PUNCTUATION_ONLY.test(cleaned)) return
+
+      // Buffer short fragments that don't end with a sentence terminator —
+      // Cartesia generates 2-3x expected audio for tiny comma-terminated inputs
+      if (!forceFlush && cleaned.length < MIN_TTS_LENGTH && !SENTENCE_TERMINATOR.test(cleaned)) {
+        pendingFragment = combined
+        console.log(`[voice-stream] buffering short fragment (${cleaned.length} chars): "${cleaned}"`)
+        return
+      }
 
       const idx = sentenceCount++
       audioChain = audioChain.then(async () => {
@@ -304,7 +321,11 @@ export const POST = withAuth(async (request, { userId }) => {
       // Flush remaining text
       const remaining = tracker.flush(fullText)
       if (remaining) {
-        dispatchSentence(remaining)
+        dispatchSentence(remaining, true)
+      }
+      // Force-dispatch any buffered short fragment that wasn't merged
+      if (pendingFragment) {
+        dispatchSentence('', true)
       }
 
       // Wait for all TTS audio to be streamed
