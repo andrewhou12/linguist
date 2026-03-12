@@ -15,6 +15,13 @@ function getCartesiaVoice(langCode: string): string | undefined {
   return process.env[`CARTESIA_VOICE_${langCode.toUpperCase()}`]
 }
 
+function getSentenceControls(text: string): { speed: number; emotion?: string[] } {
+  const trimmed = text.trim()
+  if (trimmed.length < 12) return { speed: 0 }
+  if (/[？?]$/.test(trimmed)) return { speed: -0.05, emotion: ['curiosity'] }
+  return { speed: -0.1 }
+}
+
 export const POST = withAuth(async (request) => {
   const body = await request.json()
   const { text, voice: voiceParam, speed, ttsProvider: ttsProviderParam, targetLanguage } = body
@@ -82,6 +89,7 @@ async function synthesizeWithCartesia(text: string, langCode: string): Promise<R
     return NextResponse.json({ error: `No Cartesia voice configured for ${langCode}` }, { status: 500 })
   }
 
+  const controls = getSentenceControls(text)
   const response = await fetch('https://api.cartesia.ai/tts/bytes', {
     method: 'POST',
     headers: {
@@ -92,12 +100,16 @@ async function synthesizeWithCartesia(text: string, langCode: string): Promise<R
     body: JSON.stringify({
       model_id: 'sonic-multilingual',
       transcript: text,
-      voice: { mode: 'id', id: voiceId },
+      voice: {
+        mode: 'id',
+        id: voiceId,
+        __experimental_controls: controls,
+      },
       language: langCode,
       output_format: {
         container: 'wav',
         encoding: 'pcm_s16le',
-        sample_rate: 24000,
+        sample_rate: 16000,
       },
     }),
   })

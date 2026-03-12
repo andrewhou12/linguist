@@ -1,62 +1,50 @@
 import { NextResponse } from 'next/server'
-import { generateObject } from 'ai'
+import { streamObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-helpers'
+
+export const maxDuration = 60
 import { withUsageCheck } from '@/lib/usage-guard'
 import { prisma } from '@lingle/db'
 
 const voiceAnalysisSchema = z.object({
   corrections: z.array(z.object({
-    original: z.string().describe('The incorrect phrase only (not the full sentence)'),
+    original: z.string().describe('The incorrect phrase only'),
     corrected: z.string().describe('The corrected phrase'),
-    explanation: z.string().describe('One sentence max. No numbered lists.'),
-    grammarPoint: z.string().optional().describe('2-3 word grammar label, e.g. "particle を"'),
-  })).describe('Genuine grammar/vocab errors only. Never flag punctuation, formatting, or transcription artifacts. 0-2 items max.'),
-  vocabularyCards: z.array(z.object({
-    word: z.string().describe('Word in target language'),
-    reading: z.string().optional().describe('Reading/pronunciation'),
-    meaning: z.string().describe('English meaning'),
-    partOfSpeech: z.string().optional().describe('Part of speech'),
-    exampleSentence: z.string().optional().describe('Example sentence in target language'),
-    notes: z.string().optional().describe('Usage notes'),
-  })).describe('Words from the ASSISTANT\'s message that are above or at the edge of the learner\'s level. 0-3 cards.'),
-  grammarNotes: z.array(z.object({
-    pattern: z.string().describe('Grammar pattern in target language'),
-    meaning: z.string().describe('English meaning'),
-    formation: z.string().describe('How to form it'),
-    examples: z.array(z.object({
-      japanese: z.string(),
-      english: z.string(),
-    })).describe('1-2 examples'),
-    level: z.string().optional().describe('Proficiency level'),
-  })).describe('Grammar patterns from the ASSISTANT\'s message that are above or at the edge of the learner\'s level. 0-2 notes.'),
+    explanation: z.string().describe('One short sentence'),
+    grammarPoint: z.string().optional().describe('2-3 word label'),
+  })).describe('Genuine grammar/vocab errors only. 0-2 items max.'),
   naturalnessFeedback: z.array(z.object({
-    original: z.string().describe('What the learner said (grammatically correct but unnatural)'),
+    original: z.string().describe('What the learner said'),
     suggestion: z.string().describe('More natural way to say it'),
-    explanation: z.string().describe('One sentence. Why the suggestion sounds more natural.'),
-  })).describe('At most ONE naturalness suggestion per turn. Only flag clear cases. 0-1 items max.'),
+    explanation: z.string().describe('One sentence'),
+  })).describe('0-1 items max. Only clear cases.'),
+  alternativeExpressions: z.array(z.object({
+    original: z.string().describe('What the learner said'),
+    alternative: z.string().describe('More idiomatic alternative'),
+    explanation: z.string().describe('One sentence'),
+  })).describe('0-1 items max. Only when notably better.'),
   registerMismatches: z.array(z.object({
     original: z.string().describe('What the learner said'),
-    suggestion: z.string().describe('The same idea in the correct register'),
-    expected: z.string().describe('"casual", "polite", or "formal" — the register the conversation calls for'),
-    explanation: z.string().describe('One sentence. Why this register is wrong for the context.'),
-  })).describe('Flag when the learner uses the wrong formality level for the conversation context. 0-1 items max.'),
+    suggestion: z.string().describe('Same idea in the correct register'),
+    expected: z.string().describe('"casual", "polite", or "formal"'),
+    explanation: z.string().describe('One sentence'),
+  })).describe('0-1 items max. Only when formality is clearly wrong for the context.'),
   l1Interference: z.array(z.object({
     original: z.string().describe('What the learner said'),
-    issue: z.string().describe('One sentence describing the native-language pattern bleeding through'),
-    suggestion: z.string().describe('The natural target-language way to express it'),
-  })).describe('Flag when sentence structure, word choice, or phrasing mirrors the learner\'s native language instead of natural target-language patterns. 0-1 items max.'),
-  alternativeExpressions: z.array(z.object({
-    original: z.string().describe('What the learner said (which was correct)'),
-    alternative: z.string().describe('A more idiomatic, common, or nuanced way to say it'),
-    explanation: z.string().describe('One sentence. What makes the alternative better or different — collocation, nuance, or register.'),
-  })).describe('When the learner\'s phrasing is correct but there\'s a notably better or more idiomatic alternative. Includes collocation improvements. 0-1 items max.'),
-  takeaways: z.array(z.string()).describe('0-2 short bullet-point notes of notable things from this turn the learner should remember: key expressions, cultural context, usage tips, or "aha moments". Only include genuinely memorable insights, not routine exchanges. Most turns should have 0.'),
+    issue: z.string().describe('One sentence describing the native-language pattern'),
+    suggestion: z.string().describe('Natural target-language way to express it'),
+  })).describe('0-1 items max. Only when sentence structure clearly mirrors the native language.'),
+  conversationalTips: z.array(z.object({
+    tip: z.string().describe('Short actionable tip'),
+    explanation: z.string().describe('One sentence — why it matters culturally/pragmatically'),
+  })).describe('0-1 items max. Only when the learner misses a clear social/cultural cue.'),
+  takeaways: z.array(z.string()).describe('0-1 high-level session notes. Only genuinely memorable insights. Most turns should have 0.'),
   sectionTracking: z.object({
-    currentSectionId: z.string().describe('ID of the section currently being discussed'),
-    completedSectionIds: z.array(z.string()).describe('IDs of sections that have been fully covered'),
-  }).optional().describe('Track conversation skeleton progress. Only include if session has sections.'),
+    currentSectionId: z.string(),
+    completedSectionIds: z.array(z.string()),
+  }).optional().describe('Track conversation section progress. Only if sections exist.'),
 })
 
 export const POST = withAuth(withUsageCheck(async (request, { userId: _userId }) => {
@@ -105,37 +93,51 @@ export const POST = withAuth(withUsageCheck(async (request, { userId: _userId })
   const spokenRule = SPOKEN_LANGUAGE_RULES[profile?.targetLanguage ?? session.targetLanguage ?? ''] || ''
 
   try {
-    const { object } = await generateObject({
+    const result = streamObject({
       model: anthropic('claude-haiku-4-5-20251001'),
       schema: voiceAnalysisSchema,
-      prompt: `You are a language learning analysis engine. Analyze this voice conversation exchange and extract teaching feedback.
+      prompt: `Analyze ONLY what the LEARNER said in this exchange. The assistant's message is provided for context only — do NOT analyze it or suggest how the learner should respond to it.
 
-${historyBlock}Latest exchange:
-Learner: ${userMessage}
-Assistant: ${assistantMessage}
+${historyBlock}Learner said: ${userMessage}
+Assistant replied: ${assistantMessage}
 
-Learner info:
-- Target language: ${profile?.targetLanguage ?? session.targetLanguage}
-- Native language: ${profile?.nativeLanguage ?? 'English'}
-- Difficulty level: ${profile?.difficultyLevel ?? 3}
+Target: ${profile?.targetLanguage ?? session.targetLanguage} | Native: ${profile?.nativeLanguage ?? 'English'} | Level: ${profile?.difficultyLevel ?? 3}
 ${registerBlock}${sectionsBlock}
+CRITICAL — IGNORE THESE (they are NOT errors):
+- Transcription artifacts (punctuation, spacing, formatting from speech-to-text).
+- Casual vs. formal variants of the same expression (e.g. ている↔てる, ではない↔じゃない). These are style choices, NOT errors. NEVER flag one as a correction of the other.
+${spokenRule ? `- ${spokenRule}\n` : ''}
 Rules:
-- Only flag GENUINE grammar/vocabulary errors — not stylistic choices, casual speech, or natural variation.
-- IGNORE transcription artifacts: the learner's text comes from speech-to-text, so missing punctuation, wrong quote marks, spacing issues, or minor formatting differences are NOT errors. Never correct punctuation or formatting.
-${spokenRule ? `- ${spokenRule}\n` : ''}- Keep explanations to ONE concise sentence. No multi-part explanations, no numbered lists.
-- Vocabulary cards: Scan the ASSISTANT's message for words that are above or at the edge of the learner's difficulty level (level ${profile?.difficultyLevel ?? 3}). These are words the learner likely doesn't know yet but encountered in context. Include 0-3 cards per turn. Skip basic words the learner clearly already knows. Focus on the most useful/memorable ones.
-- Grammar notes: Scan the ASSISTANT's message for grammar patterns above or at the edge of the learner's level. These are forms the learner may not have studied yet. Include 0-2 notes per turn. Skip patterns the learner has clearly been using correctly themselves.
-- Naturalness feedback: Only if the learner's sentence is grammatically correct but clearly textbook-ish. 0-1 items max.
-- Register mismatches: If the expected register is specified above, check if the learner used the wrong formality level. e.g. using です/ます in a casual conversation, or casual forms in a polite/formal setting. 0-1 items max. Only flag clear mismatches, not borderline cases.
-- L1 interference: Check if the learner's sentence structure, word order, or phrasing mirrors ${profile?.nativeLanguage ?? 'English'} patterns instead of natural ${profile?.targetLanguage ?? session.targetLanguage}. Common examples: direct translation of idioms, wrong word order calqued from the native language, using words in ways that only make sense from the native language perspective. 0-1 items max. Only flag when it's clearly L1 influence, not just a generic error.
-- Alternative expressions: If the learner said something correct but there's a notably more idiomatic, natural, or commonly-used alternative (including better collocations), suggest it. This expands their active repertoire. 0-1 items max. Only suggest when the alternative is genuinely better, not just different.
-- Be extremely selective overall. Each feedback type is 0-1 items max. A typical turn should have feedback in only 1-2 categories, not all of them. Don't overwhelm the learner.
-- sectionTracking: If conversation sections are provided above, identify which section is currently active based on the conversation context, and which sections have been fully covered. Only include this field if sections are provided.`,
+- ONLY analyze the learner's message above. Do NOT give tips about how to respond to the assistant.
+- corrections: Flag genuine grammar/vocabulary errors in what the learner said. Keep explanations to one sentence. Do NOT flag casual/formal alternations as errors.
+- naturalnessFeedback: Flag textbook-ish phrasing the learner used that a native speaker would say differently. 0-1 max.
+- alternativeExpressions: Suggest more idiomatic ways to express what the learner said. 0-1 max.
+- registerMismatches: Flag when the learner's formality level is wrong for the conversation context. 0-1 max.
+- l1Interference: Flag when the learner's sentence structure or word choice mirrors ${profile?.nativeLanguage ?? 'English'} instead of natural ${profile?.targetLanguage ?? session.targetLanguage}. 0-1 max.
+- conversationalTips: Flag cultural/pragmatic issues in what the learner said (was too direct, missed a social cue in their response, etc.). Do NOT suggest what to say next. 0-1 max.
+- takeaways: A memorable insight from what the learner encountered — a key expression, cultural note, or "aha moment." 0-1 max.
+- Focus on the 1-2 most useful items per turn. If the learner's message was perfect, return empty arrays.`,
     })
 
-    return NextResponse.json(object)
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const partial of result.partialObjectStream) {
+            controller.enqueue(encoder.encode(JSON.stringify(partial) + '\n'))
+          }
+        } catch (err) {
+          console.error('[voice-analyze] Stream error:', err)
+        }
+        controller.close()
+      },
+    })
+
+    return new Response(stream, {
+      headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
+    })
   } catch (err) {
     console.error('[voice-analyze] Analysis failed:', err)
-    return NextResponse.json({ corrections: [], vocabularyCards: [], grammarNotes: [], naturalnessFeedback: [], registerMismatches: [], l1Interference: [], alternativeExpressions: [], takeaways: [], sectionTracking: undefined })
+    return NextResponse.json({ corrections: [], naturalnessFeedback: [], alternativeExpressions: [], registerMismatches: [], l1Interference: [], conversationalTips: [], takeaways: [], sectionTracking: undefined })
   }
 }))

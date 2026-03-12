@@ -3,6 +3,8 @@ import { generateObject } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-helpers'
+
+export const maxDuration = 60
 import { withUsageCheck, getUsageInfo } from '@/lib/usage-guard'
 import { prisma } from '@lingle/db'
 import { buildSystemPrompt } from '@/lib/experience-prompt'
@@ -13,6 +15,7 @@ import type { Prisma } from '@prisma/client'
 import { MODE_TOOLS } from '@/lib/conversation-tools'
 import { getLanguageById } from '@/lib/languages'
 import { getVarietySeed } from '@/lib/conversation-variety'
+import { warmSessionCache } from '@/lib/conversation-session-cache'
 
 // --- Per-mode Zod schemas ---
 
@@ -251,7 +254,9 @@ export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
   const resolvedMode = mode || 'conversation'
   const level = getDifficultyLevel(profile.difficultyLevel, profile.targetLanguage)
 
-  const availableTools = MODE_TOOLS[resolvedMode as ScenarioMode] ?? MODE_TOOLS.conversation
+  const availableTools = inputMode === 'voice'
+    ? ['updateSessionPlan']
+    : MODE_TOOLS[resolvedMode as ScenarioMode] ?? MODE_TOOLS.conversation
   const langConfig = getLanguageById(profile.targetLanguage)
   const registerOpts = langConfig?.registerOptions || '"casual", "polite", or "mixed"'
 
@@ -262,6 +267,7 @@ export const POST = withAuth(withUsageCheck(async (request, { userId }) => {
     nativeLanguage: profile.nativeLanguage,
     targetLanguage: profile.targetLanguage,
     availableTools,
+    voiceMode: inputMode === 'voice',
   })
 
   // Generate structured session plan via Haiku with mode-specific schema
@@ -312,28 +318,37 @@ Make the plan specific to the user's prompt and difficulty level.`
     plan = getFallbackPlan(resolvedMode, sessionFocus)
   }
 
-  const session = await prisma.conversationSession.create({
-    data: {
-      userId,
-      mode: resolvedMode,
-      inputMode: inputMode || null,
-      targetLanguage: profile.targetLanguage,
-      transcript: [],
-      targetsPlanned: {},
-      targetsHit: [],
-      errorsLogged: [],
-      avoidanceEvents: [],
-      sessionPlan: plan as unknown as Prisma.InputJsonValue,
-      systemPrompt,
-    },
-  })
+  // Parallelize session creation, profile update, and usage check
+  const [session, , { remainingSeconds, plan: userPlan }] = await Promise.all([
+    prisma.conversationSession.create({
+      data: {
+        userId,
+        mode: resolvedMode,
+        inputMode: inputMode || null,
+        targetLanguage: profile.targetLanguage,
+        transcript: [],
+        targetsPlanned: {},
+        targetsHit: [],
+        errorsLogged: [],
+        avoidanceEvents: [],
+        sessionPlan: plan as unknown as Prisma.InputJsonValue,
+        systemPrompt,
+      },
+    }),
+    prisma.learnerProfile.update({
+      where: { userId },
+      data: { totalSessions: { increment: 1 } },
+    }),
+    getUsageInfo(userId),
+  ])
 
-  await prisma.learnerProfile.update({
-    where: { userId },
-    data: { totalSessions: { increment: 1 } },
+  // Pre-warm session cache so the first voice-stream call hits memory instead of DB
+  warmSessionCache(session.id, {
+    systemPrompt,
+    sessionPlan: plan,
+    mode: resolvedMode,
+    targetLanguage: profile.targetLanguage,
   })
-
-  const { remainingSeconds, plan: userPlan } = await getUsageInfo(userId)
 
   return NextResponse.json({ _sessionId: session.id, sessionFocus, plan, remainingSeconds, userPlan })
 }))

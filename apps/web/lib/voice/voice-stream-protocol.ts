@@ -43,6 +43,17 @@ export interface VoiceStreamCallbacks {
   onError: (error: string) => void
 }
 
+/** Check if voice debug logging is enabled (set window.__VOICE_DEBUG = true in console) */
+function isDebug(): boolean {
+  return typeof window !== 'undefined' && (window as any).__VOICE_DEBUG
+}
+
+/** Simple fingerprint for duplicate detection: length + first 4 samples as hex */
+function chunkFingerprint(data: Uint8Array): string {
+  const head = Array.from(data.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return `${data.length}:${head}`
+}
+
 /**
  * Parse a binary voice-stream response into callbacks.
  * Handles frame reassembly across network chunk boundaries.
@@ -55,6 +66,15 @@ export async function parseVoiceStream(
   const decoder = new TextDecoder()
   let buffer = new Uint8Array(0)
   let fullText = ''
+
+  // Debug tracking
+  const debug = isDebug()
+  let audioChunkCount = 0
+  let audioTotalBytes = 0
+  let sentenceAudioChunks = 0
+  let sentenceAudioBytes = 0
+  let currentSentence = ''
+  const recentFingerprints: string[] = []
 
   try {
     while (true) {
@@ -83,16 +103,49 @@ export async function parseVoiceStream(
             fullText += decoder.decode(payload)
             callbacks.onTextDelta(fullText)
             break
-          case FRAME.AUDIO:
+          case FRAME.AUDIO: {
+            // Debug: track audio stats and detect duplicates
+            if (debug) {
+              audioChunkCount++
+              audioTotalBytes += payload.length
+              sentenceAudioChunks++
+              sentenceAudioBytes += payload.length
+
+              const fp = chunkFingerprint(payload)
+              if (recentFingerprints.includes(fp)) {
+                console.warn(`[voice-debug:parse] DUPLICATE chunk detected! fp:${fp} chunk#${audioChunkCount}`)
+              }
+              recentFingerprints.push(fp)
+              if (recentFingerprints.length > 20) recentFingerprints.shift()
+            }
             callbacks.onAudioChunk(payload)
             break
+          }
           case FRAME.SENTENCE_START:
-            callbacks.onSentenceStart(decoder.decode(payload))
+            currentSentence = decoder.decode(payload)
+            sentenceAudioChunks = 0
+            sentenceAudioBytes = 0
+            if (debug) {
+              console.log(`[voice-debug:parse] SENTENCE_START "${currentSentence.slice(0, 50)}"`)
+            }
+            callbacks.onSentenceStart(currentSentence)
             break
           case FRAME.SENTENCE_END:
+            if (debug) {
+              console.log(
+                `[voice-debug:parse] SENTENCE_END chunks:${sentenceAudioChunks} bytes:${sentenceAudioBytes}` +
+                ` (${(sentenceAudioBytes / 32000).toFixed(2)}s) "${currentSentence.slice(0, 30)}"`
+              )
+            }
             callbacks.onSentenceEnd()
             break
           case FRAME.DONE:
+            if (debug) {
+              console.log(
+                `[voice-debug:parse] DONE totalAudioChunks:${audioChunkCount} totalBytes:${audioTotalBytes}` +
+                ` (${(audioTotalBytes / 32000).toFixed(2)}s) textLen:${fullText.length}`
+              )
+            }
             callbacks.onDone(fullText)
             return
           case FRAME.ERROR:
@@ -103,6 +156,9 @@ export async function parseVoiceStream(
     }
 
     // Stream ended without explicit DONE frame
+    if (debug) {
+      console.warn(`[voice-debug:parse] stream ended WITHOUT DONE frame! chunks:${audioChunkCount} bytes:${audioTotalBytes}`)
+    }
     callbacks.onDone(fullText)
   } finally {
     reader.releaseLock()

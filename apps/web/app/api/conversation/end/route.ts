@@ -6,6 +6,8 @@ import { withAuth } from '@/lib/api-helpers'
 import { prisma } from '@lingle/db'
 import type { Prisma } from '@prisma/client'
 
+export const maxDuration = 120
+
 export const POST = withAuth(async (request, { userId }) => {
   void userId // used implicitly via dbSession.userId
   const { sessionId } = await request.json()
@@ -13,10 +15,7 @@ export const POST = withAuth(async (request, { userId }) => {
   const dbSession = await prisma.conversationSession.findUnique({ where: { id: sessionId } })
   if (!dbSession) return NextResponse.json(null)
 
-  const duration = Math.min(
-    Math.floor((Date.now() - dbSession.timestamp.getTime()) / 1000),
-    3600 // cap at 60 min per session
-  )
+  const duration = Math.floor((Date.now() - dbSession.timestamp.getTime()) / 1000)
 
   const transcript = dbSession.transcript as Array<{ role: string; content: string }> | null
 

@@ -282,7 +282,7 @@ function useReveal() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const children = entry.target.querySelectorAll(
-              `.${s['step-col']}, .${s['quote-card']}, .${s['stats-band-item']}, .${s['cs-item']}, .${s['level-row']}, .${s['bento-card']}, .${s['what-card']}`
+              `.${s['step-col']}, .${s['quote-card']}, .${s['stats-band-item']}, .${s['cs-item']}, .${s['level-row']}, .${s['bento-card']}, .${s['what-card']}, .${s['native-item']}`
             )
             children.forEach((child, i) => {
               ;(child as HTMLElement).style.transitionDelay = i * 80 + 'ms'
@@ -306,15 +306,6 @@ function useReveal() {
   return ref
 }
 
-/* ── Level Preview Data ── */
-const levelData: { num: number; width: string; name: string; tag: string; preview: string }[] = [
-  { num: 1, width: '17%', name: 'Beginner', tag: 'Basic', preview: 'Simple phrases with full translation support. One sentence at a time.' },
-  { num: 2, width: '33%', name: 'Elementary', tag: 'Guided', preview: 'Short sentences with key vocabulary highlighted. Annotations for complex words.' },
-  { num: 3, width: '50%', name: 'Intermediate', tag: 'Mixed', preview: 'Natural sentences mixing familiar and new patterns. Less English scaffolding.' },
-  { num: 4, width: '67%', name: 'Upper-Int.', tag: 'Natural', preview: 'Fluid conversation at natural speed. Colloquial expressions and contractions.' },
-  { num: 5, width: '83%', name: 'Advanced', tag: 'Fluent', preview: 'Complex topics, nuanced vocabulary, idiomatic speech. Minimal English.' },
-  { num: 6, width: '100%', name: 'Near-Native', tag: 'Native', preview: 'Unrestricted vocabulary and grammar. Regional expressions and slang.' },
-]
 
 /* ── Language Pills ── */
 const LANG_PILLS = [
@@ -554,13 +545,6 @@ const LANGUAGE_CONTENT: Record<string, {
   },
 }
 
-/* ── Subtitle Map ── */
-const subtitles: Record<string, string> = {
-  conversation: 'Describe the scene — Lingle becomes whoever you need. A waiter, a hiring manager, a debate partner, a patient tutor. Just start talking.',
-  lesson: 'Coming soon — Tell Lingle what you want to learn. It builds a structured lesson around it — grammar, vocabulary, patterns — with practice woven in from the start.',
-  immersion: 'Coming soon — Pick a scenario. Lingle generates a native-style exchange, reads it aloud, then walks you through every choice — so you can jump straight in.',
-  reference: 'Coming soon — Ask about any grammar point, conjugation pattern, or cultural concept. Lingle generates a clear, textbook-style explanation with examples, tables, and context — all tailored to your level.',
-}
 
 export default function LandingPage() {
   const revealRef = useReveal()
@@ -569,70 +553,35 @@ export default function LandingPage() {
   const [promptValue, setPromptValue] = useState('')
   const [placeholderVisible, setPlaceholderVisible] = useState(true)
   const [promptFocused, setPromptFocused] = useState(false)
-  const [heroSubSwitching, setHeroSubSwitching] = useState(false)
-  const [heroSub, setHeroSub] = useState(subtitles.conversation)
-  const [activeLevel, setActiveLevel] = useState(2)
-  const [lvFading, setLvFading] = useState(false)
   const [activeLang, setActiveLang] = useState<string | null>(null)
+  const [langOpen, setLangOpen] = useState(false)
+  const [cycleLangIdx, setCycleLangIdx] = useState(0)
   const promptRef = useRef<HTMLTextAreaElement>(null)
-  const levelRowsRef = useRef<HTMLDivElement>(null)
-  const userPausedRef = useRef(false)
-  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const langDropRef = useRef<HTMLDivElement>(null)
+
+  /* ── Auto-cycle language name under prompt ── */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCycleLangIdx(i => (i + 1) % LANG_PILLS.length)
+    }, 2400)
+    return () => clearInterval(interval)
+  }, [])
+
+  /* ── Close lang dropdown on outside click ── */
+  useEffect(() => {
+    if (!langOpen) return
+    const handler = (e: MouseEvent) => {
+      if (langDropRef.current && !langDropRef.current.contains(e.target as Node)) setLangOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [langOpen])
 
   /* ── Language-aware content ── */
   const langContent = activeLang ? LANGUAGE_CONTENT[activeLang] : null
   const currentChips = langContent?.chips ?? DEFAULT_CHIPS
   const currentPlaceholders = langContent?.placeholders ?? DEFAULT_PLACEHOLDERS
   const currentPromptMap = langContent?.promptMap ?? DEFAULT_PROMPT_MAP
-
-  /* ── Auto-cycle levels when in view ── */
-  useEffect(() => {
-    const container = levelRowsRef.current
-    if (!container) return
-
-    let lvIdx = 1 // start at level 2 (0-based index)
-    let intervalId: ReturnType<typeof setInterval> | null = null
-
-    function advanceLevel() {
-      if (userPausedRef.current) return
-      lvIdx = (lvIdx + 1) % levelData.length
-      setLvFading(true)
-      setTimeout(() => {
-        setActiveLevel(levelData[lvIdx].num)
-        setLvFading(false)
-      }, 300)
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            intervalId = setInterval(advanceLevel, 1800)
-            observer.disconnect()
-          }
-        })
-      },
-      { threshold: 0.4 }
-    )
-
-    observer.observe(container)
-
-    return () => {
-      observer.disconnect()
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [])
-
-  const handleLevelClick = useCallback((num: number) => {
-    userPausedRef.current = true
-    setLvFading(true)
-    setTimeout(() => {
-      setActiveLevel(num)
-      setLvFading(false)
-    }, 300)
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
-    resumeTimerRef.current = setTimeout(() => { userPausedRef.current = false }, 6000)
-  }, [])
 
   const handlePromptSubmit = useCallback(() => {
     const text = promptValue.trim()
@@ -641,14 +590,6 @@ export default function LandingPage() {
     router.push('/get-started')
   }, [promptValue, activeMode, router])
 
-  const handleModeChange = useCallback((mode: string) => {
-    setActiveMode(mode)
-    setHeroSubSwitching(true)
-    setTimeout(() => {
-      setHeroSub(subtitles[mode])
-      setHeroSubSwitching(false)
-    }, 260)
-  }, [])
 
   const fillPrompt = useCallback((label: string) => {
     const text = currentPromptMap[label] || label
@@ -708,11 +649,9 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <p className={`${s['hero-sub']} ${heroSubSwitching ? s['hero-sub-switching'] : ''}`}>
-          {heroSub}
+        <p className={s['hero-sub']}>
+          Deliberate language speaking practice in any context. Describe the scene and just start talking.
         </p>
-
-        <ModeSwitcher activeMode={activeMode} onModeChange={handleModeChange} />
 
         {/* THE PROMPT */}
         <div className={s['prompt-wrap']}>
@@ -749,6 +688,27 @@ export default function LandingPage() {
               </div>
             </div>
             <div className={s['prompt-footer']}>
+              <div className={s['lang-drop-wrap']} ref={langDropRef}>
+                <button className={s['lang-drop-btn']} onClick={() => setLangOpen(!langOpen)}>
+                  <span className={s['lang-drop-flag']}>{activeLang ? LANG_PILLS.find(l => l.id === activeLang)?.flag : '\uD83C\uDF10'}</span>
+                  <span className={s['lang-drop-text']}>{activeLang ? LANG_PILLS.find(l => l.id === activeLang)?.label : 'Language'}</span>
+                  <svg className={`${s['lang-drop-chevron']} ${langOpen ? s['lang-drop-chevron-open'] : ''}`} width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                {langOpen && (
+                  <div className={s['lang-drop-menu']}>
+                    {LANG_PILLS.map((lp) => (
+                      <button
+                        key={lp.id}
+                        className={`${s['lang-drop-item']} ${activeLang === lp.id ? s['lang-drop-item-active'] : ''}`}
+                        onClick={() => { setActiveLang(activeLang === lp.id ? null : lp.id); setLangOpen(false) }}
+                      >
+                        <span>{lp.flag}</span>
+                        <span>{lp.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button className={s['prompt-send']} title="Start practice" onClick={handlePromptSubmit}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M1 8L15 1L8 15L6.5 9.5L1 8Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
@@ -757,18 +717,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* LANGUAGE PILLS */}
-          <div className={s['lang-pills']}>
-            {LANG_PILLS.map((lp) => (
-              <button
-                key={lp.id}
-                className={`${s['lang-pill']} ${activeLang === lp.id ? s['lang-pill-active'] : ''}`}
-                onClick={() => setActiveLang(activeLang === lp.id ? null : lp.id)}
-              >
-                <span className={s['lang-pill-flag']}>{lp.flag}</span>
-                {lp.label}
-              </button>
-            ))}
+          {/* CYCLING LANGUAGE LINE */}
+          <div className={s['lang-cycle']}>
+            Available in <span className={s['lang-cycle-name']} key={cycleLangIdx}>{LANG_PILLS[cycleLangIdx].flag} {LANG_PILLS[cycleLangIdx].label}</span>
           </div>
 
           {/* EXAMPLE CHIPS */}
@@ -786,7 +737,7 @@ export default function LandingPage() {
       {/* ── WHAT IS LINGLE ── */}
       <section className={s['what-section']}>
         <div className={s['what-inner']}>
-          <span className={s['what-label']}>What is Lingle</span>
+          <span className={s['what-label']}>What is Lingle?</span>
           <h2 className={s['what-headline']}>Structured practice for<br/><em className={s['what-headline-em']}>deliberate learners.</em></h2>
           <p className={s['what-lead']}>There&rsquo;s a gap between memorizing words and actually speaking. Lingle sits in that gap. Describe what you want to practice &mdash; a scenario, a grammar point, a situation &mdash; and it generates a full conversational session around it, calibrated to your level, with real corrections built in.</p>
 
@@ -1007,6 +958,7 @@ export default function LandingPage() {
                 <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Lesson</span>
                 <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Learn exactly<br/>what you ask for.</h3>
                 <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Tell it the grammar point. It builds the full lesson around you.</p>
+                <Link href="/sign-in" className={s['bento-early-adopter']}>Become an Early Adopter to try it first</Link>
               </div>
             </div>
 
@@ -1046,6 +998,7 @@ export default function LandingPage() {
                 <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Immersion</span>
                 <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Hear it native.<br/>Then speak it.</h3>
                 <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Native audio. Read along. Then jump into a live version.</p>
+                <Link href="/sign-in" className={s['bento-early-adopter']}>Become an Early Adopter to try it first</Link>
               </div>
             </div>
 
@@ -1085,35 +1038,35 @@ export default function LandingPage() {
                 <span className={`${s['bento-label']} ${s['bento-label-dark']}`}>Reference</span>
                 <h3 className={`${s['bento-title']} ${s['bento-title-dark']}`}>Textbook depth,<br/>on demand.</h3>
                 <p className={`${s['bento-sub']} ${s['bento-sub-dark']}`}>Ask about any concept. Get a structured explanation — grammar rules, example sets, conjugation tables, cultural context.</p>
+                <Link href="/sign-in" className={s['bento-early-adopter']}>Become an Early Adopter to try it first</Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── ADAPT SECTION — Difficulty levels ── */}
+      {/* ── NATIVE SECTION — What makes it sound real ── */}
       <section className={s['adapt-section']}>
         <div className={s['adapt-inner']}>
           <div className={s.reveal}>
-            <span className={s['adapt-label']}>Six levels</span>
-            <h2 className={s['adapt-title']}>Set it once.<br/>Everything <span className={s['adapt-title-em']}>adapts.</span></h2>
-            <p className={s['adapt-body']}>Vocabulary, grammar complexity, script annotations, register — all controlled by a single level setting. You never have to think about it again.</p>
+            <span className={s['adapt-label']}>Why it sounds real</span>
+            <h2 className={s['adapt-title']}>Not a chatbot.<br/>A real <span className={s['adapt-title-em']}>voice.</span></h2>
+            <p className={s['adapt-body']}>Most AI language tools sound robotic and scripted. Lingle is built from the ground up to sound like an actual person — because that&rsquo;s who you&rsquo;ll be talking to in real life.</p>
           </div>
-          <div className={`${s['adapt-visual']} ${s.reveal}`} ref={levelRowsRef}>
-            {levelData.map((lv) => (
-              <div key={lv.num}>
-                <div
-                  className={`${s['level-row']} ${activeLevel === lv.num ? s['level-row-active'] : ''}`}
-                  onClick={() => handleLevelClick(lv.num)}
-                >
-                  <span className={s['lv-num']}>{lv.num}</span>
-                  <div className={s['lv-track']}><div className={s['lv-fill']} style={{ width: lv.width }} /></div>
-                  <span className={s['lv-name']}>{lv.name}</span>
-                  <span className={s['lv-jp']}>{lv.tag}</span>
+          <div className={`${s['native-list']} ${s.reveal}`}>
+            {[
+              { title: 'Native-speaker voice clones', desc: 'Real voices recorded by native speakers, not generic TTS. You train your ear on actual pronunciation, rhythm, and intonation.' },
+              { title: 'Natural contractions and filler', desc: 'Real speech uses contractions, hedges, and filler words. Lingle includes them at every level so nothing sounds like a textbook.' },
+              { title: 'Register that matches the scene', desc: 'A waiter doesn\'t talk like a professor. Lingle adjusts formality, slang, and tone to match the scenario you set up.' },
+              { title: 'Corrections woven in, not called out', desc: 'When you make a mistake, the AI recasts the correct form in its next sentence — the way a real conversation partner would.' },
+              { title: 'Pacing that feels like a conversation', desc: 'Streaming audio with sub-second latency. No awkward pauses, no waiting for a full response before hearing anything.' },
+            ].map((item, i) => (
+              <div key={i} className={s['native-item']}>
+                <span className={s['native-item-num']}>{i + 1}</span>
+                <div>
+                  <div className={s['native-item-title']}>{item.title}</div>
+                  <div className={s['native-item-desc']}>{item.desc}</div>
                 </div>
-                {activeLevel === lv.num && (
-                  <div className={`${s['lv-preview-jp']} ${lvFading ? s['lv-preview-fading'] : ''}`}>{lv.preview}</div>
-                )}
               </div>
             ))}
           </div>

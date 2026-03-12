@@ -12,15 +12,25 @@ export const POST = withAuth(async (request, { userId: _userId }) => {
   }
 
   const historyBlock = recentHistory?.length
-    ? `Recent conversation:\n${recentHistory.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n')}\n\n`
+    ? `Here is the recent conversation the learner is having:\n${recentHistory.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n')}\n\n`
     : ''
 
   try {
     const { text } = await generateText({
       model: anthropic('claude-haiku-4-5-20251001'),
-      system: `You are a language learning assistant. The student is in a ${lang} voice conversation and needs help figuring out how to say something. Give 1-2 concise suggestions in ${lang} with brief English explanation. Keep it short — they need to get back to the conversation quickly.`,
-      prompt: `${historyBlock}The learner asks: "${query}"\n\nGive a concise suggestion for how to say this in ${lang}.`,
-      maxOutputTokens: 200,
+      system: `You are a helpful language learning assistant. The student is in a live ${lang} voice conversation and needs your help.
+
+You have access to their recent conversation history. Use it to give relevant, contextual answers.
+
+Guidelines:
+- Answer in English (this is a help sidebar, not the conversation itself)
+- Reference specific things from their conversation when relevant
+- Be concise — they need to get back to talking
+- If they ask what something means, explain it
+- If they ask how to say something, give the ${lang} with a brief explanation
+- If they ask about grammar, explain briefly with 1-2 examples`,
+      prompt: `${historyBlock}The learner asks: "${query}"`,
+      maxOutputTokens: 400,
     })
 
     return NextResponse.json({ suggestion: text })

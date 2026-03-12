@@ -13,6 +13,14 @@ const sessionCache = new Map<string, CachedSession>()
  * Look up session data with in-memory caching.
  * systemPrompt/sessionPlan/mode/targetLanguage never change mid-session.
  */
+/**
+ * Pre-warm the session cache from the plan route so the first voice-stream call
+ * hits the in-memory cache instead of doing a cold DB lookup.
+ */
+export function warmSessionCache(sessionId: string, data: CachedSession) {
+  sessionCache.set(sessionId, data)
+}
+
 export async function getSessionWithCache(
   sessionId: string,
   opts?: { bustCache?: boolean },

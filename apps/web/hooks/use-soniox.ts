@@ -46,6 +46,8 @@ export interface UseSonioxOptions {
   nativeLanguageCode?: string
   /** Domain/vocabulary context to bias recognition */
   context?: SonioxContext
+  /** Enable browser noise suppression (default: false — disabled to prevent first-syllable clipping) */
+  noiseSuppression?: boolean
 }
 
 export interface UseSonioxReturn {
@@ -84,6 +86,7 @@ export function useSoniox(
     languageCode = 'ja',
     nativeLanguageCode,
     context,
+    noiseSuppression = false,
   } = options
 
   const [partialText, setPartialText] = useState('')
@@ -181,7 +184,7 @@ export function useSoniox(
         source: new MicrophoneSource({
           constraints: {
             echoCancellation: true,
-            noiseSuppression: false, // Disabled — gates speech onsets after pauses, clipping first syllable
+            noiseSuppression, // Default false — enabling gates speech onsets after pauses, clipping first syllable
             autoGainControl: true,
             channelCount: 1,
           },
@@ -281,7 +284,7 @@ export function useSoniox(
       console.error('[soniox] start error:', err)
       setError(err instanceof Error ? err.message : 'Failed to start recording')
     }
-  }, [endpointDetection, maxEndpointDelayMs, languageCode, nativeLanguageCode, context])
+  }, [endpointDetection, maxEndpointDelayMs, languageCode, nativeLanguageCode, context, noiseSuppression])
 
   const stop = useCallback(async () => {
     const recording = recordingRef.current

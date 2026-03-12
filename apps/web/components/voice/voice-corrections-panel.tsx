@@ -15,7 +15,7 @@ type Grade = 'good' | 'ok' | 'fix'
 
 function gradeForResult(r: TurnAnalysisResult): Grade {
   if (r.corrections.length > 0 || (r.registerMismatches?.length ?? 0) > 0 || (r.l1Interference?.length ?? 0) > 0) return 'fix'
-  if (r.naturalnessFeedback.length > 0 || (r.alternativeExpressions?.length ?? 0) > 0) return 'ok'
+  if (r.naturalnessFeedback.length > 0 || (r.alternativeExpressions?.length ?? 0) > 0 || (r.conversationalTips?.length ?? 0) > 0) return 'ok'
   return 'good'
 }
 
@@ -36,7 +36,7 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
   const entries = Object.entries(turnResults).sort(([a], [b]) => Number(a) - Number(b))
 
   const totalCorrections = entries.reduce((sum, [, r]) => sum + r.corrections.length + (r.registerMismatches?.length ?? 0) + (r.l1Interference?.length ?? 0), 0)
-  const totalTips = entries.reduce((sum, [, r]) => sum + r.naturalnessFeedback.length + (r.alternativeExpressions?.length ?? 0), 0)
+  const totalTips = entries.reduce((sum, [, r]) => sum + r.naturalnessFeedback.length + (r.alternativeExpressions?.length ?? 0) + (r.conversationalTips?.length ?? 0), 0)
   const totalItems = totalCorrections + totalTips
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
         ) : (
           entries.map(([turnIdx, result]) => {
             const grade = gradeForResult(result)
-            const hasContent = result.corrections.length > 0 || result.naturalnessFeedback.length > 0 || (result.registerMismatches?.length ?? 0) > 0 || (result.l1Interference?.length ?? 0) > 0 || (result.alternativeExpressions?.length ?? 0) > 0
+            const hasContent = result.corrections.length > 0 || result.naturalnessFeedback.length > 0 || (result.registerMismatches?.length ?? 0) > 0 || (result.l1Interference?.length ?? 0) > 0 || (result.alternativeExpressions?.length ?? 0) > 0 || (result.conversationalTips?.length ?? 0) > 0
 
             return (
               <div key={turnIdx} className="py-3.5 border-b border-border/60 last:border-b-0">
@@ -100,17 +100,17 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                   <div key={`c-${i}`} className="ml-4 mt-1">
                     <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13.5px] font-jp-clean text-text-muted line-through decoration-text-placeholder/40">{c.original}</span>
+                        <span className="text-[14.5px] font-jp-clean text-text-muted line-through decoration-text-placeholder/40">{c.original}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
                           <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{c.corrected}</span>
+                        <span className="text-[14.5px] font-jp-clean font-semibold text-text-primary">{c.corrected}</span>
                       </div>
                       <div className="flex items-baseline gap-2 mt-2">
                         {c.grammarPoint && (
                           <span className="text-[10.5px] font-medium text-text-secondary bg-bg-secondary rounded-full px-2 py-0.5 shrink-0 font-sans">{c.grammarPoint}</span>
                         )}
-                        <span className="text-[12px] text-text-muted leading-[1.5] font-sans">{c.explanation}</span>
+                        <span className="text-[13px] text-text-muted leading-[1.5] font-sans">{c.explanation}</span>
                       </div>
                     </div>
                   </div>
@@ -125,13 +125,13 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                         <span className="text-[10.5px] font-medium text-text-secondary bg-bg-secondary rounded-full px-2 py-0.5 shrink-0 font-sans">expected: {r.expected}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13.5px] font-jp-clean text-text-muted">{r.original}</span>
+                        <span className="text-[14.5px] font-jp-clean text-text-muted">{r.original}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
                           <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{r.suggestion}</span>
+                        <span className="text-[14.5px] font-jp-clean font-semibold text-text-primary">{r.suggestion}</span>
                       </div>
-                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{r.explanation}</span>
+                      <span className="text-[13px] text-text-muted leading-[1.5] font-sans block mt-2">{r.explanation}</span>
                     </div>
                   </div>
                 ))}
@@ -143,13 +143,13 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                       <div className="flex items-baseline gap-2 mb-1.5">
                         <span className="text-[10.5px] font-medium text-accent-warm bg-warm-soft rounded-full px-2 py-0.5 shrink-0 font-sans">L1 Transfer</span>
                       </div>
-                      <span className="text-[13.5px] font-jp-clean text-text-muted block">{l.original}</span>
-                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-1.5">{l.issue}</span>
+                      <span className="text-[14.5px] font-jp-clean text-text-muted block">{l.original}</span>
+                      <span className="text-[13px] text-text-muted leading-[1.5] font-sans block mt-1.5">{l.issue}</span>
                       <div className="flex items-center gap-2 flex-wrap mt-1.5">
                         <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
                           <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{l.suggestion}</span>
+                        <span className="text-[14.5px] font-jp-clean font-semibold text-text-primary">{l.suggestion}</span>
                       </div>
                     </div>
                   </div>
@@ -160,13 +160,13 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                   <div key={`n-${i}`} className="ml-4 mt-1">
                     <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13.5px] font-jp-clean text-text-secondary">{n.original}</span>
+                        <span className="text-[14.5px] font-jp-clean text-text-secondary">{n.original}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
                           <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{n.suggestion}</span>
+                        <span className="text-[14.5px] font-jp-clean font-semibold text-text-primary">{n.suggestion}</span>
                       </div>
-                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{n.explanation}</span>
+                      <span className="text-[13px] text-text-muted leading-[1.5] font-sans block mt-2">{n.explanation}</span>
                     </div>
                   </div>
                 ))}
@@ -179,13 +179,26 @@ export function VoiceCorrectionsPanel({ isOpen, turnResults, onClose }: VoiceCor
                         <span className="text-[10.5px] font-medium text-accent-brand bg-blue-soft rounded-full px-2 py-0.5 shrink-0 font-sans">Alternative</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13.5px] font-jp-clean text-text-secondary">{a.original}</span>
+                        <span className="text-[14.5px] font-jp-clean text-text-secondary">{a.original}</span>
                         <svg width="12" height="12" viewBox="0 0 12 12" className="text-text-placeholder shrink-0">
                           <path d="M1 6h9M7 3l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[13.5px] font-jp-clean font-semibold text-text-primary">{a.alternative}</span>
+                        <span className="text-[14.5px] font-jp-clean font-semibold text-text-primary">{a.alternative}</span>
                       </div>
-                      <span className="text-[12px] text-text-muted leading-[1.5] font-sans block mt-2">{a.explanation}</span>
+                      <span className="text-[13px] text-text-muted leading-[1.5] font-sans block mt-2">{a.explanation}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Conversational tips */}
+                {result.conversationalTips?.map((t, i) => (
+                  <div key={`ct-${i}`} className="ml-4 mt-1">
+                    <div className="bg-bg-pure border border-border rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="flex items-baseline gap-2 mb-1.5">
+                        <span className="text-[10.5px] font-medium text-purple bg-purple-soft rounded-full px-2 py-0.5 shrink-0 font-sans">Culture tip</span>
+                      </div>
+                      <span className="text-[14.5px] font-sans font-medium text-text-primary block">{t.tip}</span>
+                      <span className="text-[13px] text-text-muted leading-[1.5] font-sans block mt-1.5">{t.explanation}</span>
                     </div>
                   </div>
                 ))}

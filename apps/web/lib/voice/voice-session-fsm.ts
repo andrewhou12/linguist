@@ -38,6 +38,27 @@ export interface VoiceAnalysisResult {
     suggestion: string
     explanation: string
   }>
+  registerMismatches?: Array<{
+    original: string
+    suggestion: string
+    expected: string
+    explanation: string
+  }>
+  l1Interference?: Array<{
+    original: string
+    issue: string
+    suggestion: string
+  }>
+  alternativeExpressions?: Array<{
+    original: string
+    alternative: string
+    explanation: string
+  }>
+  conversationalTips?: Array<{
+    tip: string
+    explanation: string
+  }>
+  takeaways?: string[]
   sectionTracking?: {
     currentSectionId: string
     completedSectionIds: string[]
@@ -69,10 +90,12 @@ export interface FSMDeps {
   onStateChange: (state: VoiceState) => void
   onTranscriptUpdate: (fn: (prev: TranscriptLine[]) => TranscriptLine[]) => void
   onAnalysisResult: (turnIdx: number, result: VoiceAnalysisResult) => void
+  onAnalysisStarted?: (turnIdx: number) => void
   onTalkingChange: (talking: boolean) => void
   getSessionId: () => string | null
   getRecentHistory: () => Array<{ role: string; content: string }>
   computeSignals: (utterance: EnrichedUtterance) => { signals: unknown; annotation: string | null }
+  getSectionCount?: () => number
 }
 
 export class VoiceSessionFSM {
@@ -88,6 +111,7 @@ export class VoiceSessionFSM {
   private _firstMessageReceived = false
   private _sendInFlight = false
   private _cancelled = false
+  private _lastSectionTracking: VoiceAnalysisResult['sectionTracking'] = undefined
 
   constructor(deps: FSMDeps) {
     this._deps = deps
@@ -194,7 +218,20 @@ export class VoiceSessionFSM {
 
     this._deps.tts.interrupt()
 
-    const llmText = annotation ? `${text}\n\n${annotation}` : text
+    // Build progress annotation if we have section tracking
+    let progressAnnotation: string | null = null
+    if (this._lastSectionTracking) {
+      const completed = this._lastSectionTracking.completedSectionIds?.length ?? 0
+      const total = this._deps.getSectionCount?.() ?? 0
+      if (total > 0) {
+        progressAnnotation = `[Session progress: completed ${completed}/${total} sections. Current: "${this._lastSectionTracking.currentSectionId}". ${completed < total - 1 ? 'Advance to next section soon.' : 'Wrapping up.'}]`
+      }
+    }
+
+    let llmText = annotation ? `${text}\n\n${annotation}` : text
+    if (progressAnnotation) {
+      llmText += `\n\n${progressAnnotation}`
+    }
     this._deps.tts.reset()
     this._deps.sendMessage(llmText)
     console.log(`[voice:timing] LLM request sent +${(performance.now() - this._utteranceTime).toFixed(0)}ms`)
@@ -240,31 +277,8 @@ export class VoiceSessionFSM {
       const sessionId = this._deps.getSessionId()
       if (userText && sessionId && turnIdx > 0) {
         console.log('[voice] firing Track 2 analysis for turn', turnIdx)
-        fetch('/api/conversation/voice-analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId,
-            userMessage: userText,
-            assistantMessage: assistantText,
-            recentHistory: this._deps.getRecentHistory(),
-          }),
-        })
-          .then((res) => res.ok ? res.json() : null)
-          .then((result) => {
-            if (result) {
-              // Always store — even empty results — so we can show "Good" grade
-              console.log('[voice] analysis result for turn', turnIdx, result)
-              this._deps.onAnalysisResult(turnIdx, {
-                corrections: result.corrections || [],
-                vocabularyCards: result.vocabularyCards || [],
-                grammarNotes: result.grammarNotes || [],
-                naturalnessFeedback: result.naturalnessFeedback || [],
-                sectionTracking: result.sectionTracking || undefined,
-              })
-            }
-          })
-          .catch((err) => console.error('[voice] Track 2 analysis failed:', err))
+        this._deps.onAnalysisStarted?.(turnIdx)
+        this._streamAnalysis(turnIdx, sessionId, userText, assistantText)
       }
     } else {
       this.dispatch('TTS_ENDED')
@@ -319,7 +333,7 @@ export class VoiceSessionFSM {
       this._deps.soniox.resume()
       setTimeout(() => {
         this._deps.soniox.finalize()
-      }, 50)
+      }, 15)
     }
   }
 
@@ -377,6 +391,112 @@ export class VoiceSessionFSM {
     this._deps.tts.reset()
     this._deps.sendMessage(text.trim())
     this.dispatch('LLM_STREAMING')
+  }
+
+  /** Send a message to the AI without adding it to the visible transcript */
+  sendSilentMessage(text: string) {
+    if (!text.trim() || !this._deps.getSessionId()) return
+    this._deps.sendMessage(text.trim())
+  }
+
+  /** Stream analysis results via NDJSON, delivering partial results as items complete */
+  private async _streamAnalysis(turnIdx: number, sessionId: string, userText: string, assistantText: string) {
+    try {
+      const res = await fetch('/api/conversation/voice-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          userMessage: userText,
+          assistantMessage: assistantText,
+          recentHistory: this._deps.getRecentHistory(),
+        }),
+      })
+
+      if (!res.ok || !res.body) {
+        console.error('[voice] analysis fetch failed:', res.status)
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let lastEmitTime = 0
+      let lastParsed: Record<string, unknown> | null = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()! // keep incomplete last line
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            lastParsed = JSON.parse(line)
+            const now = performance.now()
+            // Throttle intermediate updates to ~150ms to avoid excessive re-renders
+            if (now - lastEmitTime < 150) continue
+            lastEmitTime = now
+
+            const cleaned = this._cleanPartialAnalysis(lastParsed!)
+            if (cleaned.sectionTracking) {
+              this._lastSectionTracking = cleaned.sectionTracking
+            }
+            this._deps.onAnalysisResult(turnIdx, cleaned)
+          } catch { /* skip malformed lines */ }
+        }
+      }
+
+      // Always emit the final result (the last partial IS the complete object)
+      if (buffer.trim()) {
+        try { lastParsed = JSON.parse(buffer) } catch { /* use last successful parse */ }
+      }
+      if (lastParsed) {
+        const cleaned = this._cleanPartialAnalysis(lastParsed)
+        if (cleaned.sectionTracking) {
+          this._lastSectionTracking = cleaned.sectionTracking
+        }
+        this._deps.onAnalysisResult(turnIdx, cleaned)
+        console.log('[voice] analysis complete for turn', turnIdx, cleaned)
+      }
+    } catch (err) {
+      console.error('[voice] Track 2 analysis failed:', err)
+    }
+  }
+
+  /** Filter out incomplete items from a partial streamObject result */
+  private _cleanPartialAnalysis(partial: Record<string, unknown>): VoiceAnalysisResult {
+    type Correction = VoiceAnalysisResult['corrections'][number]
+    type Naturalness = VoiceAnalysisResult['naturalnessFeedback'][number]
+    type Alternative = NonNullable<VoiceAnalysisResult['alternativeExpressions']>[number]
+    type Register = NonNullable<VoiceAnalysisResult['registerMismatches']>[number]
+    type L1 = NonNullable<VoiceAnalysisResult['l1Interference']>[number]
+    type Tip = NonNullable<VoiceAnalysisResult['conversationalTips']>[number]
+
+    return {
+      corrections: ((partial.corrections || []) as Partial<Correction>[])
+        .filter((c): c is Correction => !!(c.original && c.corrected && c.explanation)),
+      naturalnessFeedback: ((partial.naturalnessFeedback || []) as Partial<Naturalness>[])
+        .filter((n): n is Naturalness => !!(n.original && n.suggestion && n.explanation)),
+      alternativeExpressions: ((partial.alternativeExpressions || []) as Partial<Alternative>[])
+        .filter((a): a is Alternative => !!(a.original && a.alternative && a.explanation)),
+      registerMismatches: ((partial.registerMismatches || []) as Partial<Register>[])
+        .filter((r): r is Register => !!(r.original && r.suggestion && r.explanation)),
+      l1Interference: ((partial.l1Interference || []) as Partial<L1>[])
+        .filter((l): l is L1 => !!(l.original && l.issue && l.suggestion)),
+      conversationalTips: ((partial.conversationalTips || []) as Partial<Tip>[])
+        .filter((t): t is Tip => !!(t.tip && t.explanation)),
+      takeaways: ((partial.takeaways || []) as unknown[])
+        .filter((t): t is string => typeof t === 'string' && t.length > 0),
+      sectionTracking: (partial.sectionTracking as VoiceAnalysisResult['sectionTracking'])?.currentSectionId
+        ? partial.sectionTracking as VoiceAnalysisResult['sectionTracking']
+        : undefined,
+      vocabularyCards: [],
+      grammarNotes: [],
+    }
   }
 
   resetToIdle() {

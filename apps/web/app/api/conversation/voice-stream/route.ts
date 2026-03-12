@@ -9,8 +9,11 @@ import { truncateMessages, MAX_CONVERSATION_MESSAGES, applyCacheBreakpoint } fro
 import type { ScenarioMode } from '@/lib/experience-scenarios'
 import { createSentenceBoundaryTracker } from '@/lib/voice/sentence-boundary'
 import { parseCartesiaSSE } from '@/lib/cartesia-sse'
+import { getCartesiaWs } from '@/lib/cartesia-ws'
 import { FRAME, encodeFrame } from '@/lib/voice/voice-stream-protocol'
 import { getLanguageById } from '@/lib/languages'
+
+export const maxDuration = 120
 
 const RUBY_REGEX = /\{([^}|]+)\|[^}]+\}/g
 const PAUSE_MARKER_REGEX = /<\d+>/g
@@ -60,6 +63,17 @@ function detectSentenceLanguage(text: string, targetLangCode: string): string {
 
 function cleanForTTS(text: string): string {
   return text.replace(RUBY_REGEX, '$1').replace(PAUSE_MARKER_REGEX, '').trim()
+}
+
+/** Classify a sentence to pick per-sentence Cartesia voice controls */
+function getSentenceControls(text: string): { speed: number; emotion?: string[] } {
+  const trimmed = text.trim()
+  // Short reactions/acknowledgments — natural speed, no slowdown
+  if (trimmed.length < 12) return { speed: 0 }
+  // Questions — slight curiosity, natural pace
+  if (/[？?]$/.test(trimmed)) return { speed: -0.05, emotion: ['curiosity'] }
+  // Longer statements — baseline slight slowdown
+  return { speed: -0.1 }
 }
 
 export const POST = withAuth(async (request, { userId }) => {
@@ -139,15 +153,37 @@ export const POST = withAuth(async (request, { userId }) => {
     let audioChain = Promise.resolve()
     let sentenceCount = 0
 
-    const dispatchSentence = (sentence: string) => {
-      const sentenceLang = detectSentenceLanguage(sentence, targetLangCode)
+    // Use WebSocket for TTS (persistent connection, no per-sentence handshake overhead)
+    // Pre-warm the WS connection in parallel with LLM — saves ~200ms on first sentence
+    const cartesiaWs = getCartesiaWs()
+    cartesiaWs.warmup()
+
+    // Buffer for short clause fragments (e.g., "えっと、", "へー、") that generate
+    // disproportionately long TTS audio when sent alone. Merged with the next sentence.
+    const SENTENCE_TERMINATOR = /[。！？.!?\n]$/
+    const MIN_TTS_LENGTH = 8
+    let pendingFragment = ''
+
+    const dispatchSentence = (sentence: string, forceFlush = false) => {
+      const combined = pendingFragment + sentence
+      pendingFragment = ''
+
+      const sentenceLang = detectSentenceLanguage(combined, targetLangCode)
       // Only strip non-target-language content for CJK languages where Latin chars reliably indicate English
       const cleaned = sentenceLang === 'en'
-        ? cleanForTTS(sentence)
+        ? cleanForTTS(combined)
         : isCJK
-          ? stripNonTargetLanguage(cleanForTTS(sentence))
-          : cleanForTTS(sentence)
+          ? stripNonTargetLanguage(cleanForTTS(combined))
+          : cleanForTTS(combined)
       if (!cleaned || PUNCTUATION_ONLY.test(cleaned)) return
+
+      // Buffer short fragments that don't end with a sentence terminator —
+      // Cartesia generates 2-3x expected audio for tiny comma-terminated inputs
+      if (!forceFlush && cleaned.length < MIN_TTS_LENGTH && !SENTENCE_TERMINATOR.test(cleaned)) {
+        pendingFragment = combined
+        console.log(`[voice-stream] buffering short fragment (${cleaned.length} chars): "${cleaned}"`)
+        return
+      }
 
       const idx = sentenceCount++
       audioChain = audioChain.then(async () => {
@@ -155,37 +191,59 @@ export const POST = withAuth(async (request, { userId }) => {
         try {
           await safeWrite(encodeFrame(FRAME.SENTENCE_START, encoder.encode(cleaned)))
 
-          const response = await fetch('https://api.cartesia.ai/tts/sse', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cartesia-Version': '2024-06-10',
-              'X-API-Key': CARTESIA_API_KEY!,
-            },
-            body: JSON.stringify({
-              model_id: 'sonic-multilingual',
+          const controls = getSentenceControls(cleaned)
+          let pcmStream: ReadableStream<Uint8Array>
+          let usingWs = true
+
+          try {
+            // Try WebSocket first — reuses persistent connection, saves ~50-100ms per sentence
+            pcmStream = cartesiaWs.synthesize({
               transcript: cleaned,
-              voice: { mode: 'id', id: voiceId },
+              voiceId: voiceId!,
               language: sentenceLang,
-              output_format: {
-                container: 'raw',
-                encoding: 'pcm_s16le',
-                sample_rate: 24000,
+              sampleRate: 16000,
+              controls,
+            })
+          } catch {
+            // Fall back to SSE if WebSocket fails
+            usingWs = false
+            const response = await fetch('https://api.cartesia.ai/tts/sse', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cartesia-Version': '2024-06-10',
+                'X-API-Key': CARTESIA_API_KEY!,
               },
-            }),
-          })
+              body: JSON.stringify({
+                model_id: 'sonic-multilingual',
+                transcript: cleaned,
+                voice: {
+                  mode: 'id',
+                  id: voiceId,
+                  __experimental_controls: controls,
+                },
+                language: sentenceLang,
+                output_format: {
+                  container: 'raw',
+                  encoding: 'pcm_s16le',
+                  sample_rate: 16000,
+                },
+              }),
+            })
 
-          const ttfa = performance.now() - tTts
-          console.log(`[voice-stream:timing] cartesia[${idx}] TTFA:${ttfa.toFixed(0)}ms lang:${sentenceLang} "${cleaned.slice(0, 40)}"`)
+            if (!response.ok) {
+              const errorText = await response.text().catch(() => 'unknown')
+              console.error(`[voice-stream] cartesia SSE error[${idx}]:`, response.status, errorText)
+              await safeWrite(encodeFrame(FRAME.SENTENCE_END, new Uint8Array(0)))
+              return
+            }
 
-          if (!response.ok) {
-            const errorText = await response.text().catch(() => 'unknown')
-            console.error(`[voice-stream] cartesia error[${idx}]:`, response.status, errorText)
-            await safeWrite(encodeFrame(FRAME.SENTENCE_END, new Uint8Array(0)))
-            return
+            pcmStream = parseCartesiaSSE(response)
           }
 
-          const pcmStream = parseCartesiaSSE(response)
+          const ttfa = performance.now() - tTts
+          console.log(`[voice-stream:timing] cartesia[${idx}] TTFA:${ttfa.toFixed(0)}ms via:${usingWs ? 'ws' : 'sse'} lang:${sentenceLang} "${cleaned.slice(0, 40)}"`)
+
           const reader = pcmStream.getReader()
           let chunkCount = 0
           let totalBytes = 0
@@ -226,7 +284,7 @@ export const POST = withAuth(async (request, { userId }) => {
         }],
         messages: modelMessages,
         tools,
-        maxOutputTokens: 512,
+        maxOutputTokens: 200,
         onStepFinish: ({ usage, providerMetadata }) => {
           const details = (usage as { inputTokenDetails?: { cacheWriteTokens?: number; cacheReadTokens?: number; noCacheTokens?: number } }).inputTokenDetails
           const cacheWrite = details?.cacheWriteTokens ?? 0
@@ -263,7 +321,11 @@ export const POST = withAuth(async (request, { userId }) => {
       // Flush remaining text
       const remaining = tracker.flush(fullText)
       if (remaining) {
-        dispatchSentence(remaining)
+        dispatchSentence(remaining, true)
+      }
+      // Force-dispatch any buffered short fragment that wasn't merged
+      if (pendingFragment) {
+        dispatchSentence('', true)
       }
 
       // Wait for all TTS audio to be streamed

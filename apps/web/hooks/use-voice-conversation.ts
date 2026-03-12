@@ -60,6 +60,7 @@ export interface UseVoiceConversationReturn {
   speed: number
   setSpeed: (speed: number) => void
   sendTextMessage: (text: string) => void
+  sendSilentMessage: (text: string) => void
   isActive: boolean
   error: string | null
   sessionId: string | null
@@ -79,6 +80,7 @@ export interface UseVoiceConversationReturn {
   analysisResults: Record<number, VoiceAnalysisResult>
   retryLast: () => void
   sectionTracking: SectionTracking | null
+  isAnalyzing: boolean
 }
 
 export function useVoiceConversation(
@@ -100,10 +102,13 @@ export function useVoiceConversation(
   const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(options.sessionPlan ?? null)
   const [isTalking, setIsTalking] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<Record<number, VoiceAnalysisResult>>({})
+  const [pendingAnalysisTurns, setPendingAnalysisTurns] = useState<Set<number>>(new Set())
 
   // Refs for integration points
   const sessionIdRef = useRef<string | null>(sessionId)
   sessionIdRef.current = sessionId
+  const sessionPlanRef = useRef<SessionPlan | null>(sessionPlan)
+  sessionPlanRef.current = sessionPlan
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const endSessionRef = useRef<() => void>(() => {})
@@ -211,7 +216,7 @@ export function useVoiceConversation(
 
   const getVoicePlayer = useCallback((): PCMStreamPlayer => {
     if (!voicePlayerRef.current) {
-      voicePlayerRef.current = new PCMStreamPlayer(24000)
+      voicePlayerRef.current = new PCMStreamPlayer(16000)
     }
     return voicePlayerRef.current
   }, [])
@@ -287,7 +292,11 @@ export function useVoiceConversation(
             fsmRef.current.onTTSStarted()
             console.log(`[voice-stream:client] TTFA ${(performance.now() - t0).toFixed(0)}ms`)
           }
-          try { audio.ctrl?.enqueue(pcm) } catch {}
+          try {
+            audio.ctrl?.enqueue(pcm)
+          } catch (enqueueErr) {
+            console.warn('[voice-debug:bridge] enqueue FAILED — audio chunk dropped', enqueueErr)
+          }
         },
         onSentenceStart: (sentence) => {
           if (gen !== voiceStreamGenRef.current) return
@@ -380,7 +389,13 @@ export function useVoiceConversation(
       sendMessage: (text) => doVoiceStreamRef.current(text),
       onStateChange: setVoiceState,
       onTranscriptUpdate: setTranscript,
-      onAnalysisResult: (turnIdx, result) => setAnalysisResults((prev) => ({ ...prev, [turnIdx]: result })),
+      onAnalysisResult: (turnIdx, result) => {
+        setAnalysisResults((prev) => ({ ...prev, [turnIdx]: result }))
+        setPendingAnalysisTurns((prev) => { const next = new Set(prev); next.delete(turnIdx); return next })
+      },
+      onAnalysisStarted: (turnIdx) => {
+        setPendingAnalysisTurns((prev) => new Set(prev).add(turnIdx))
+      },
       onTalkingChange: setIsTalking,
       getSessionId: () => sessionIdRef.current,
       getRecentHistory: () => voiceHistoryRef.current.slice(-6),
@@ -390,6 +405,11 @@ export function useVoiceConversation(
           nativeLanguageCode: nativeSttCode !== sttLanguageCode ? nativeSttCode : undefined,
         })
         return { signals, annotation: formatSignalsForLLM(signals) }
+      },
+      getSectionCount: () => {
+        const plan = sessionPlanRef.current
+        if (plan && isConversationPlan(plan) && plan.sections) return plan.sections.length
+        return 0
       },
     })
   }
@@ -408,6 +428,11 @@ export function useVoiceConversation(
           nativeLanguageCode: nativeSttCode !== sttLanguageCode ? nativeSttCode : undefined,
         })
         return { signals, annotation: formatSignalsForLLM(signals) }
+      },
+      getSectionCount: () => {
+        const plan = sessionPlanRef.current
+        if (plan && isConversationPlan(plan) && plan.sections) return plan.sections.length
+        return 0
       },
     })
   })
@@ -624,6 +649,9 @@ export function useVoiceConversation(
       getVoicePlayer().warmup()
       sonioxRef.current.warmup?.()
       try {
+        // Fetch remaining usage for expiry timer
+        const usageInfo = await api.usageGet().catch(() => null)
+
         setSessionId(existingSessionId)
         setSessionPlan(existingPlan)
         setMessages([])
@@ -638,6 +666,15 @@ export function useVoiceConversation(
         durationIntervalRef.current = setInterval(() => {
           setDuration((d) => d + 1)
         }, 1000)
+
+        // Auto-end session when daily limit expires (free plan enforcement)
+        if (usageInfo && usageInfo.remainingSeconds > 0 && usageInfo.remainingSeconds < Infinity && usageInfo.limitSeconds !== -1) {
+          if (sessionExpiryRef.current) clearTimeout(sessionExpiryRef.current)
+          sessionExpiryRef.current = setTimeout(() => {
+            console.log('[voice] session expired — daily limit reached')
+            endSessionRef.current()
+          }, usageInfo.remainingSeconds * 1000)
+        }
 
         await fsmRef.current.startSession(autoEndpoint)
 
@@ -697,6 +734,10 @@ export function useVoiceConversation(
     fsmRef.current.sendTextMessage(text)
   }, [])
 
+  const sendSilentMessage = useCallback((text: string) => {
+    fsmRef.current.sendSilentMessage(text)
+  }, [])
+
   // Derive section tracking from latest analysis result
   const sectionTracking = useMemo((): SectionTracking | null => {
     const entries = Object.entries(analysisResults)
@@ -726,6 +767,9 @@ export function useVoiceConversation(
 
     // Interrupt any playing audio
     voiceStreamInterrupt()
+
+    // Ensure sendingRef is cleared so next doVoiceStream isn't blocked
+    sendingRef.current = false
 
     // Reset FSM to IDLE
     fsmRef.current.resetToIdle()
@@ -759,6 +803,7 @@ export function useVoiceConversation(
     speed: tts.speed,
     setSpeed: tts.setSpeed,
     sendTextMessage,
+    sendSilentMessage,
     isActive,
     error: error || soniox.error,
     sessionId,
@@ -778,5 +823,6 @@ export function useVoiceConversation(
     analysisResults,
     retryLast,
     sectionTracking,
+    isAnalyzing: pendingAnalysisTurns.size > 0,
   }
 }

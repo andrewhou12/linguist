@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LanguageIcon, MagnifyingGlassIcon, LightBulbIcon } from '@heroicons/react/24/outline'
+import { LanguageIcon, LightBulbIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/spinner'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -17,6 +17,20 @@ const BRACKET_LATIN = /\[[^\]]*[a-zA-Z][^\]]*\]/g
 
 function stripNonTargetLanguage(text: string): string {
   return text.replace(PAREN_LATIN, '').replace(BRACKET_LATIN, '').replace(/\s{2,}/g, ' ').trim()
+}
+
+function tokenizeWords(text: string, lang: string): Array<{ segment: string; isWordLike: boolean }> {
+  if (!text) return []
+  try {
+    const langCode = lang === 'Japanese' ? 'ja' : lang === 'Chinese' ? 'zh' : 'en'
+    const segmenter = new Intl.Segmenter(langCode, { granularity: 'word' })
+    return Array.from(segmenter.segment(text)).map(s => ({
+      segment: s.segment,
+      isWordLike: s.isWordLike ?? !/^\s+$/.test(s.segment),
+    }))
+  } catch {
+    return [{ segment: text, isWordLike: true }]
+  }
 }
 
 interface CorrectionInfo {
@@ -48,20 +62,18 @@ interface VoiceLiveSubtitlesProps {
   voiceState: string
   /** Whether user is actively holding PTT */
   isTalking: boolean
-  /** Whether lookup mode is active */
-  isLookupActive?: boolean
-  /** Callback when text is selected for lookup */
+  /** Callback when a word is clicked for lookup */
   onLookup?: (word: string, context: string) => void
+  /** Lookup result to display in popover */
+  lookupResult?: { word: string; reading?: string; meaning: string; partOfSpeech?: string; exampleSentence?: string; notes?: string } | null
+  /** Whether lookup is loading */
+  lookupLoading?: boolean
+  /** Open chat with lookup context */
+  onOpenChat?: (context: string) => void
   /** Callback to translate the AI text */
   onTranslate?: (text: string) => void
   /** Current translation to display */
   translation?: string | null
-  /** X-ray token breakdown for the AI line */
-  xrayTokens?: Array<{ surface: string; reading: string; meaning: string; pos: string }> | null
-  /** Whether x-ray is loading */
-  xrayLoading?: boolean
-  /** Callback to trigger x-ray */
-  onXray?: () => void
   /** Callback to trigger suggestion */
   onSuggest?: () => void
   /** Current suggestion to display */
@@ -104,13 +116,12 @@ export function VoiceLiveSubtitles({
   visible,
   voiceState,
   isTalking,
-  isLookupActive,
   onLookup,
+  lookupResult,
+  lookupLoading,
+  onOpenChat,
   onTranslate,
   translation,
-  xrayTokens,
-  xrayLoading,
-  onXray,
   onSuggest,
   suggestion,
   suggestionLoading,
@@ -139,14 +150,71 @@ export function VoiceLiveSubtitles({
     return parseSegments(userLine.text, [correction])
   }, [correction, userLine])
 
-  const handleMouseUp = useCallback(() => {
-    if (!onLookup || !isLookupActive) return
-    const sel = window.getSelection()
-    const selected = sel?.toString().trim()
-    if (selected) {
-      onLookup(selected, cleanAiText)
+  // ── Inline word lookup ──
+  const [lookupAnchor, setLookupAnchor] = useState<{ word: string; x: number; y: number } | null>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  // Dismiss when user starts talking
+  useEffect(() => {
+    if (isTalking) setLookupAnchor(null)
+  }, [isTalking])
+
+  // Dismiss on Escape
+  useEffect(() => {
+    if (!lookupAnchor) return
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLookupAnchor(null)
     }
-  }, [onLookup, isLookupActive, cleanAiText])
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [lookupAnchor])
+
+  // Dismiss on click outside
+  useEffect(() => {
+    if (!lookupAnchor) return
+    const handleClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setLookupAnchor(null)
+      }
+    }
+    // Delay to avoid immediate dismiss from the click that opened it
+    const timer = setTimeout(() => {
+      window.addEventListener('mousedown', handleClick)
+    }, 50)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('mousedown', handleClick)
+    }
+  }, [lookupAnchor])
+
+  const handleWordClick = useCallback((word: string, e: React.MouseEvent<HTMLSpanElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setLookupAnchor({
+      word,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 6,
+    })
+    onLookup?.(word, cleanAiText)
+  }, [onLookup, cleanAiText])
+
+  const tokens = useMemo(() => tokenizeWords(cleanAiText, lang), [cleanAiText, lang])
+
+  // Phrase selection via drag
+  const handleTextSelect = useCallback(() => {
+    const sel = window.getSelection()
+    if (!sel || sel.type !== 'Range') return
+    const text = sel.toString().trim()
+    if (!text || text.length < 2) return
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    setLookupAnchor({
+      word: text,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 6,
+    })
+    onLookup?.(text, cleanAiText)
+    sel.removeAllRanges()
+  }, [onLookup, cleanAiText])
 
   // Determine what to show
   const showUser = !!userText
@@ -158,8 +226,7 @@ export function VoiceLiveSubtitles({
   return (
     <div
       className={cn(
-        'w-full max-w-[460px] mx-auto text-center min-h-[80px] flex flex-col items-center gap-2 transition-opacity duration-300',
-        !isLookupActive && 'pointer-events-none',
+        'w-full max-w-[460px] mx-auto text-center min-h-[80px] flex flex-col items-center gap-2 transition-opacity duration-300 pointer-events-none',
         visible ? 'opacity-100' : 'opacity-0',
         className,
       )}
@@ -210,15 +277,38 @@ export function VoiceLiveSubtitles({
             className="flex flex-col items-center gap-1"
           >
             <div className="w-5 h-px bg-border-strong mb-0.5" />
+            {!isDismissed('hint_click_words') && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5, duration: 0.4 }}
+                className="text-[11px] text-text-muted mb-1 pointer-events-auto cursor-pointer"
+                onClick={() => dismiss('hint_click_words')}
+              >
+                click any word to look it up
+              </motion.p>
+            )}
             <div
-              onMouseUp={isLookupActive ? handleMouseUp : undefined}
+              onMouseUp={handleTextSelect}
+              onClick={() => { if (!isDismissed('hint_click_words')) dismiss('hint_click_words') }}
               className={cn(
-                `text-[14.5px] leading-[1.7] text-text-secondary italic`,
+                `text-[14.5px] leading-[1.7] text-text-secondary italic pointer-events-auto select-text`,
                 fontClean,
-                isLookupActive && 'cursor-text select-text lookup-select',
               )}
             >
-              {cleanAiText}
+              {tokens.map((t, i) =>
+                t.isWordLike ? (
+                  <span
+                    key={i}
+                    onClick={(e) => handleWordClick(t.segment, e)}
+                    className="cursor-pointer underline decoration-dotted decoration-border-strong/40 underline-offset-[3px] hover:decoration-solid hover:decoration-border-strong hover:underline-offset-2 transition-all duration-150 pointer-events-auto"
+                  >
+                    {t.segment}
+                  </span>
+                ) : (
+                  <span key={i}>{t.segment}</span>
+                )
+              )}
               {aiLine && !aiLine.isFinal && (
                 <span className="inline-block w-[2px] h-[0.88em] bg-text-secondary ml-px animate-[blink-cursor_0.65s_step-end_infinite] align-text-bottom" />
               )}
@@ -227,7 +317,7 @@ export function VoiceLiveSubtitles({
             {/* Action buttons */}
             <CoachMark
               hintId="hint_voice_subtitles"
-              content="Tap Translate for English or X-ray to break down each word."
+              content="Tap any word above to look it up instantly. Select a phrase for multi-word lookup. Use Translate and Suggest for quick help."
               side="bottom"
               show={isDismissed('hint_voice_feedback') && !isDismissed('hint_voice_subtitles') && !!cleanAiText}
               onDismiss={() => dismiss('hint_voice_subtitles')}
@@ -247,19 +337,6 @@ export function VoiceLiveSubtitles({
                   Translate
                 </button>
                 <button
-                  onClick={onXray}
-                  disabled={xrayLoading}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-[13px] font-sans cursor-pointer transition-colors',
-                    xrayTokens || xrayLoading
-                      ? 'bg-bg-active border-border-strong text-text-primary font-medium'
-                      : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
-                  )}
-                >
-                  <MagnifyingGlassIcon className="w-3.5 h-3.5" />
-                  X-ray
-                </button>
-                <button
                   onClick={onSuggest}
                   disabled={suggestionLoading}
                   className={cn(
@@ -274,86 +351,108 @@ export function VoiceLiveSubtitles({
                 </button>
               </div>
 
-              {/* Tool response card */}
-              <AnimatePresence>
-                {(translation || xrayTokens || xrayLoading || suggestion || suggestionLoading) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
-                  >
-                    {/* Translation */}
-                    {translation && (
-                      <div>
-                        <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                          <LanguageIcon className="w-3.5 h-3.5" />
-                          Translation
-                        </div>
-                        <div className="text-[14px] text-text-primary leading-[1.6] font-sans">
-                          {translation}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* X-ray */}
-                    {(xrayTokens || xrayLoading) && (
-                      <div>
-                        <div className="text-[12px] font-medium text-text-secondary mb-2 flex items-center gap-1.5">
-                          <MagnifyingGlassIcon className="w-3.5 h-3.5" />
-                          X-ray
-                        </div>
-                        {xrayLoading ? (
-                          <div className="flex items-center gap-2.5 py-1.5">
-                            <Spinner size={16} />
-                            <span className="text-[13px] text-text-secondary">Breaking down sentence...</span>
-                          </div>
-                        ) : xrayTokens && (
-                          <div className="flex flex-wrap gap-2">
-                            {xrayTokens
-                              .filter(t => t.pos !== 'punct')
-                              .map((t, i) => (
-                              <div
-                                key={i}
-                                className="inline-flex flex-col items-center bg-bg-secondary border border-border rounded-md px-2.5 py-2"
-                              >
-                                <span className={cn("text-[14px] font-medium text-text-primary leading-tight", fontClean)}>{t.surface}</span>
-                                {t.reading && t.reading !== t.surface && (
-                                  <span className={cn("text-[11px] text-text-secondary leading-tight mt-0.5", fontClean)}>{t.reading}</span>
-                                )}
-                                <span className="text-[11px] font-sans text-text-secondary leading-tight mt-0.5">{t.meaning}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Suggestion */}
-                    {(suggestion || suggestionLoading) && (
-                      <div>
-                        <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                          <LightBulbIcon className="w-3.5 h-3.5" />
-                          Suggestion
-                        </div>
-                        {suggestionLoading ? (
-                          <div className="flex items-center gap-2.5 py-1.5">
-                            <Spinner size={16} />
-                            <span className="text-[13px] text-text-secondary">Thinking of a response...</span>
-                          </div>
-                        ) : suggestion && (
-                          <div className={cn("text-[14px] text-text-primary leading-[1.6] font-sans whitespace-pre-wrap", fontClean)}>
-                            {suggestion}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
             </CoachMark>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Translation card — separate from AI text so it persists when user starts talking */}
+      <AnimatePresence>
+        {translation && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
+          >
+            <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+              <LanguageIcon className="w-3.5 h-3.5" />
+              Translation
+            </div>
+            <div className="text-[14px] text-text-primary leading-[1.6] font-sans">
+              {translation}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Suggestion card — separate from translation */}
+      <AnimatePresence>
+        {(suggestion || suggestionLoading) && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[440px] bg-bg-pure border border-border-subtle rounded-lg px-5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,.04),0_1px_4px_rgba(0,0,0,.03)]"
+          >
+            <div className="text-[12px] font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+              <LightBulbIcon className="w-3.5 h-3.5" />
+              Suggestion
+            </div>
+            {suggestionLoading ? (
+              <div className="flex items-center gap-2.5 py-1.5">
+                <Spinner size={16} />
+                <span className="text-[13px] text-text-secondary">Thinking of a response...</span>
+              </div>
+            ) : suggestion && (
+              <div className={cn("text-[14px] text-text-primary leading-[1.6] font-sans whitespace-pre-wrap", fontClean)}>
+                {suggestion}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Word lookup popover */}
+      <AnimatePresence>
+        {lookupAnchor && (lookupResult || lookupLoading) && (
+          <motion.div
+            ref={popoverRef}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="fixed z-[100] pointer-events-auto"
+            style={{
+              left: lookupAnchor.x,
+              top: lookupAnchor.y,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="rounded-xl bg-bg-pure border border-border shadow-[0_4px_24px_rgba(0,0,0,.1),0_2px_8px_rgba(0,0,0,.06)] px-4 py-3 w-[260px] text-left not-italic">
+              {lookupLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <Spinner size={16} />
+                </div>
+              ) : lookupResult ? (
+                <div className="flex flex-col gap-1.5">
+                  <div className={cn('text-[16px] font-semibold text-text-primary', fontClean)}>{lookupResult.word}</div>
+                  {lookupResult.reading && (
+                    <div className="text-[13px] text-text-secondary">{lookupResult.reading}</div>
+                  )}
+                  <div className="text-[14px] text-text-primary">{lookupResult.meaning}</div>
+                  {lookupResult.partOfSpeech && (
+                    <span className="inline-flex text-[10.5px] bg-bg-secondary rounded-full px-2 py-0.5 text-text-secondary font-medium w-fit">
+                      {lookupResult.partOfSpeech}
+                    </span>
+                  )}
+                  {onOpenChat && (
+                    <button
+                      onClick={() => {
+                        onOpenChat(lookupResult.word)
+                        setLookupAnchor(null)
+                      }}
+                      className="text-[12px] text-text-muted font-medium hover:text-text-secondary mt-1 text-left cursor-pointer bg-transparent border-none p-0 transition-colors"
+                    >
+                      Continue in chat &rarr;
+                    </button>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

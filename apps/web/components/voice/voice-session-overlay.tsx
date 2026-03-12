@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useVoiceConversation, type UseVoiceConversationReturn } from '@/hooks/use-voice-conversation'
-import { getVoiceToolZone } from '@/lib/voice/voice-tool-zones'
 import type { SessionPlan } from '@/lib/session-plan'
 import { isConversationPlan } from '@/lib/session-plan'
 import { VoiceCentralOrb } from './voice-central-orb'
@@ -15,17 +14,14 @@ import { ConversationFlowPanel } from '@/components/session/conversation-flow-pa
 import { SessionNotesPanel } from '@/components/session/session-notes-panel'
 import { VoiceLiveSubtitles } from './voice-live-subtitles'
 import { VoiceTranscriptPanel } from './voice-transcript-panel'
-import { VoiceCorrectionsPanel } from './voice-corrections-panel'
-import { VoiceHelpPanel } from './voice-help-panel'
-import { VoiceLookupPanel } from './voice-lookup-panel'
+import { UnifiedChatOverlay } from './unified-chat-overlay'
+import { SessionSettingsPanel } from './session-settings-panel'
 import { VoiceControls, type ActivePanel } from './voice-controls'
 import { VoiceFallbackInput } from './voice-fallback-input'
-import { VoiceTurnGrade } from './voice-turn-grade'
+import { motion, AnimatePresence } from 'framer-motion'
 import { EndConfirmation } from '@/components/session/end-confirmation'
-import { ToolToastContainer } from './tool-toast'
-import { ToolTray } from './tool-tray'
-import { VocabularyCard } from '@/components/chat/vocabulary-card'
-import { GrammarNote } from '@/components/chat/grammar-note'
+import { FeedbackCardFlipper } from './feedback-card-flipper'
+import { Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
 export type { SessionEndData } from '@/lib/session-types'
@@ -85,14 +81,19 @@ function SessionOverlayInner({
   const [rightPanel, setRightPanel] = useState<ActivePanel>(null)
   const [showSubtitles, setShowSubtitles] = useState(true)
   const [showKeyboard, setShowKeyboard] = useState(false)
-  const [dismissedToasts, setDismissedToasts] = useState<Set<string>>(new Set())
+  const [notesHighlight, setNotesHighlight] = useState(false)
+  const [showRetryFeedback, setShowRetryFeedback] = useState(false)
+  const retryFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [newFeedbackFlash, setNewFeedbackFlash] = useState(false)
+  const feedbackFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showChat, setShowChat] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [viewedFeedbackCount, setViewedFeedbackCount] = useState(0)
+  const [chatLookupWord, setChatLookupWord] = useState<string | null>(null)
+  const [showHelpNudge, setShowHelpNudge] = useState(false)
+  const helpNudgeShownRef = useRef(false)
 
-  // ── Help panel state ──
-  const [helpMessages, setHelpMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
-    { role: 'ai', text: 'Need help? Describe what you\'re trying to say and I\'ll guide you.' },
-  ])
-  const [helpInput, setHelpInput] = useState('')
-  const [helpLoading, setHelpLoading] = useState(false)
+  // Help panel state removed — now in UnifiedChatOverlay
 
   // ── Lookup state ──
   const [lookupResult, setLookupResult] = useState<{
@@ -104,18 +105,33 @@ function SessionOverlayInner({
   const [translation, setTranslation] = useState<string | null>(null)
   const [precachedTranslation, setPrecachedTranslation] = useState<string | null>(null)
 
-  // ── X-ray state ──
-  const [xrayTokens, setXrayTokens] = useState<Array<{ surface: string; reading: string; meaning: string; pos: string }> | null>(null)
-  const [xrayLoading, setXrayLoading] = useState(false)
-
   // ── Suggestion state ──
   const [suggestion, setSuggestion] = useState<string | null>(null)
   const [suggestionLoading, setSuggestionLoading] = useState(false)
+  const [precachedSuggestion, setPrecachedSuggestion] = useState<string | null>(null)
+
+  // ── Session settings ──
+  const [sessionSettings, setSessionSettings] = useState<{ vocabCards: boolean; introduceNewItems: boolean; autoTranslate: boolean; autoSuggest: boolean }>({ vocabCards: true, introduceNewItems: false, autoTranslate: false, autoSuggest: false })
 
   // ── Steering ──
   const [steeringMessages, setSteeringMessages] = useState<Array<{ text: string; time: string }>>(
     steeringNotes?.map(text => ({ text, time: '0:00' })) || [],
   )
+
+  // Send steering message when introduceNewItems setting changes (skip initial render)
+  const introduceNewItemsMounted = useRef(false)
+  useEffect(() => {
+    if (!introduceNewItemsMounted.current) {
+      introduceNewItemsMounted.current = true
+      return
+    }
+    // Only send a message when toggling — the default (OFF) is baked into the system prompt
+    if (sessionSettings.introduceNewItems) {
+      handleSteer('Feel free to introduce new vocabulary and grammar slightly above my level.')
+    } else {
+      handleSteer('Stay within my current level. Don\'t introduce new vocabulary or grammar above my level.')
+    }
+  }, [sessionSettings.introduceNewItems])
 
   const startedRef = useRef(false)
 
@@ -149,24 +165,27 @@ function SessionOverlayInner({
     return `${m}:${s.toString().padStart(2, '0')}`
   }, [])
 
-  // Steering handler
+  // Steering handler — sends silently (not shown in transcript/subtitles)
   const handleSteer = useCallback((text: string) => {
     setSteeringMessages(prev => [...prev, { text, time: formatTime(voice.duration) }])
-    voice.sendTextMessage(`[Learner instruction: ${text}]`)
-  }, [voice.duration, voice.sendTextMessage, formatTime])
+    voice.sendSilentMessage(`[Learner instruction: ${text}]`)
+  }, [voice.duration, voice.sendSilentMessage, formatTime])
 
-  // Plan save handler
+  // Plan save handler — sends silently
   const handlePlanSave = useCallback((planText: string) => {
-    // Send as steering message so the AI adapts
-    voice.sendTextMessage(`[Plan updated by learner: ${planText}]`)
+    voice.sendSilentMessage(`[Plan updated by learner: ${planText}]`)
     setSteeringMessages(prev => [...prev, { text: 'Plan edited', time: formatTime(voice.duration) }])
-  }, [voice.sendTextMessage, voice.duration, formatTime])
+  }, [voice.sendSilentMessage, voice.duration, formatTime])
 
   // ── Feedback aggregation (from analysis results) ──
   const feedbackCount = useMemo(() => {
     let count = 0
     for (const result of Object.values(voice.analysisResults)) {
-      count += result.corrections.length + (result.naturalnessFeedback?.length || 0)
+      count += result.corrections.length
+        + (result.naturalnessFeedback?.length || 0)
+        + (result.alternativeExpressions?.length || 0)
+        + (result.registerMismatches?.length || 0)
+        + (result.conversationalTips?.length || 0)
     }
     return count
   }, [voice.analysisResults])
@@ -186,99 +205,57 @@ function SessionOverlayInner({
     return { original: c.original, corrected: c.corrected, explanation: c.explanation, grammarPoint: c.grammarPoint }
   }, [latestResult])
 
-  // ── Tool outputs for toasts (corrections now handled by grade indicator) ──
-  const toolOutputs = useMemo(() => {
-    const outputs: Array<{ id: string; toolName: string; output: Record<string, unknown> }> = []
-
-    for (const msg of voice.messages) {
-      if (msg.role !== 'assistant') continue
-      for (const part of msg.parts) {
-        const partType = (part as { type: string }).type
-        if (!partType.startsWith('tool-')) continue
-        const toolName = partType.replace('tool-', '')
-        const zone = getVoiceToolZone(toolName)
-        if (zone !== 'toast') continue
-        // Skip corrections — handled by grade indicator
-        if (toolName === 'showCorrection') continue
-        const toolPart = part as { type: string; state: string; output?: unknown }
-        if (toolPart.state === 'output-available' && toolPart.output) {
-          const id = `${msg.id}-${toolName}-${outputs.length}`
-          outputs.push({ id, toolName, output: toolPart.output as Record<string, unknown> })
-        }
-      }
-    }
-
-    // Only vocab and grammar from analysis — corrections handled by grade
-    for (const [turnIdx, result] of Object.entries(voice.analysisResults)) {
-      for (const card of result.vocabularyCards) {
-        const id = `analysis-${turnIdx}-vocab-${card.word}`
-        outputs.push({ id, toolName: 'showVocabularyCard', output: card as unknown as Record<string, unknown> })
-      }
-      for (const note of result.grammarNotes) {
-        const id = `analysis-${turnIdx}-grammar-${note.pattern}`
-        outputs.push({ id, toolName: 'showGrammarNote', output: note as unknown as Record<string, unknown> })
-      }
-    }
-
-    return outputs
-  }, [voice.messages, voice.analysisResults])
-
-  // Toast management
   const openCorrectionsPanel = useCallback(() => {
-    setRightPanel('feedback')
+    setShowChat(true)
   }, [])
 
-  const activeToasts = useMemo(
-    () => toolOutputs
-      .filter(t => !dismissedToasts.has(t.id))
-      .slice(-3)
-      .map(t => ({
-        id: t.id,
-        content: renderToolCard(t.toolName, t.output),
-        duration: 8000,
-      })),
-    [toolOutputs, dismissedToasts],
-  )
+  // Retry with visual feedback — clear subtitles so user sees a fresh slate
+  const handleRetry = useCallback(() => {
+    voice.retryLast()
+    setExchangeUserLine(null)
+    setExchangeAILine(null)
+    setShowRetryFeedback(true)
+    if (retryFeedbackTimerRef.current) clearTimeout(retryFeedbackTimerRef.current)
+    retryFeedbackTimerRef.current = setTimeout(() => setShowRetryFeedback(false), 1500)
+  }, [voice.retryLast])
 
-  const trayItems = useMemo(
-    () => toolOutputs.map(t => ({ id: t.id, content: renderToolCard(t.toolName, t.output) })),
-    [toolOutputs],
-  )
+  // Flash the feedback chip when new analysis results arrive
+  const prevCorrectionTurnRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (latestTurnIdx === null || latestTurnIdx === prevCorrectionTurnRef.current) return
+    prevCorrectionTurnRef.current = latestTurnIdx
 
-  const handleDismissToast = useCallback((id: string) => {
-    setDismissedToasts(prev => new Set(prev).add(id))
-  }, [])
+    setNewFeedbackFlash(true)
+    if (feedbackFlashTimerRef.current) clearTimeout(feedbackFlashTimerRef.current)
+    feedbackFlashTimerRef.current = setTimeout(() => setNewFeedbackFlash(false), 600)
 
-  // ── Help panel handlers ──
-  const handleHelpSend = useCallback(async () => {
-    if (!helpInput.trim() || helpLoading) return
-    const query = helpInput.trim()
-    setHelpMessages(m => [...m, { role: 'user', text: query }])
-    setHelpInput('')
-    setHelpLoading(true)
-
-    try {
-      const recentHistory = voice.transcript.slice(-6).map(t => ({
-        role: t.role,
-        content: t.text,
-      }))
-      const res = await fetch('/api/conversation/help', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, recentHistory }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setHelpMessages(m => [...m, { role: 'ai', text: data.suggestion }])
-      } else {
-        setHelpMessages(m => [...m, { role: 'ai', text: 'Sorry, I couldn\'t get a suggestion right now.' }])
-      }
-    } catch {
-      setHelpMessages(m => [...m, { role: 'ai', text: 'Something went wrong. Try again.' }])
-    } finally {
-      setHelpLoading(false)
+    return () => {
+      if (feedbackFlashTimerRef.current) clearTimeout(feedbackFlashTimerRef.current)
     }
-  }, [helpInput, helpLoading, voice.transcript])
+  }, [latestTurnIdx])
+
+  // Flash the Session Notes panel when new analysis items arrive
+  const prevAnalysisCountRef = useRef(0)
+  useEffect(() => {
+    const count = Object.keys(voice.analysisResults).length
+    if (count > prevAnalysisCountRef.current) {
+      setNotesHighlight(true)
+      const timer = setTimeout(() => setNotesHighlight(false), 1500)
+      return () => clearTimeout(timer)
+    }
+    prevAnalysisCountRef.current = count
+  }, [voice.analysisResults])
+
+  // Mark feedback as viewed when chat overlay is open
+  useEffect(() => {
+    if (showChat) {
+      setViewedFeedbackCount(feedbackCount)
+    }
+  }, [showChat, feedbackCount])
+
+  const unviewedFeedbackCount = feedbackCount - viewedFeedbackCount
+
+  // Help/feedback handled by UnifiedChatOverlay
 
   // ── Lookup handler ──
   const handleLookup = useCallback(async (word: string, context: string) => {
@@ -328,59 +305,16 @@ function SessionOverlayInner({
     }
   }, [translation, precachedTranslation])
 
-  // ── Translate in help panel ──
-  const handleTranslateLastMessage = useCallback(async () => {
-    const lastAiLine = [...voice.transcript].reverse().find(t => t.role === 'assistant')
-    if (!lastAiLine) return
-    setHelpLoading(true)
-    try {
-      const res = await fetch('/api/conversation/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: lastAiLine.text }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setHelpMessages(m => [...m, { role: 'ai', text: data.translation }])
-      }
-    } catch {
-      setHelpMessages(m => [...m, { role: 'ai', text: 'Translation failed.' }])
-    } finally {
-      setHelpLoading(false)
-    }
-  }, [voice.transcript])
+  // Translation help now handled in UnifiedChatOverlay
 
-  // ── X-ray handler (inline under subtitles) ──
-  const handleXray = useCallback(async () => {
-    // Toggle off if already showing
-    if (xrayTokens) {
-      setXrayTokens(null)
-      return
-    }
-    const lastAiLine = [...voice.transcript].reverse().find(t => t.role === 'assistant')
-    if (!lastAiLine) return
-    setXrayLoading(true)
-    try {
-      const res = await fetch('/api/conversation/xray', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence: lastAiLine.text }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setXrayTokens(data.tokens)
-      }
-    } catch {
-      // silent fail
-    } finally {
-      setXrayLoading(false)
-    }
-  }, [voice.transcript, xrayTokens])
-
-  // ── Suggestion handler (toggle) ──
+  // ── Suggestion handler (toggle, checks pre-cache) ──
   const handleSuggest = useCallback(async () => {
     if (suggestion) {
       setSuggestion(null)
+      return
+    }
+    if (precachedSuggestion) {
+      setSuggestion(precachedSuggestion)
       return
     }
     setSuggestionLoading(true)
@@ -403,7 +337,7 @@ function SessionOverlayInner({
     } finally {
       setSuggestionLoading(false)
     }
-  }, [suggestion, voice.transcript])
+  }, [suggestion, precachedSuggestion, voice.transcript])
 
   // ── End session (with confirmation) ──
   const [showEndConfirm, setShowEndConfirm] = useState(false)
@@ -481,7 +415,7 @@ function SessionOverlayInner({
   const [exchangeAILine, setExchangeAILine] = useState<typeof voice.transcript[0] | null>(null)
   const prevTranscriptLenRef = useRef(0)
 
-  // When user starts talking, clear the exchange
+  // When user starts talking, clear the exchange lines (but NOT suggestion/translation — those stay visible)
   const hasPartial = !!voice.partialText
   useEffect(() => {
     if (voice.isTalking || hasPartial) {
@@ -490,16 +424,18 @@ function SessionOverlayInner({
     }
   }, [voice.isTalking, hasPartial])
 
-  // Clear translation + xray + suggestion when AI line changes (new response)
+  // Clear translation + suggestion only when a NEW AI response arrives (not when cleared to null)
   const exchangeAITimestamp = exchangeAILine?.timestamp
   useEffect(() => {
-    setTranslation(null)
-    setPrecachedTranslation(null)
-    setXrayTokens(null)
-    setSuggestion(null)
+    if (exchangeAITimestamp) {
+      setTranslation(null)
+      setPrecachedTranslation(null)
+      setSuggestion(null)
+      setPrecachedSuggestion(null)
+    }
   }, [exchangeAITimestamp])
 
-  // Pre-cache translation when AI line finalizes
+  // Pre-cache translation + suggestion when AI line finalizes
   useEffect(() => {
     if (!exchangeAILine?.isFinal || !exchangeAILine.text) return
     fetch('/api/conversation/translate', {
@@ -508,9 +444,33 @@ function SessionOverlayInner({
       body: JSON.stringify({ text: exchangeAILine.text }),
     })
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.translation) setPrecachedTranslation(data.translation) })
+      .then(data => {
+        if (data?.translation) {
+          setPrecachedTranslation(data.translation)
+          if (sessionSettings.autoTranslate) setTranslation(data.translation)
+        }
+      })
       .catch(() => {})
-  }, [exchangeAILine?.isFinal, exchangeAILine?.text])
+
+    // Pre-cache suggestion
+    const recentHistory = voice.transcript.slice(-6).map(t => ({
+      role: t.role,
+      content: t.text,
+    }))
+    fetch('/api/conversation/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recentHistory }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.suggestion) {
+          setPrecachedSuggestion(data.suggestion)
+          if (sessionSettings.autoSuggest) setSuggestion(data.suggestion)
+        }
+      })
+      .catch(() => {})
+  }, [exchangeAILine?.isFinal, exchangeAILine?.text, sessionSettings.autoTranslate, sessionSettings.autoSuggest])
 
   // When new transcript lines appear, update the exchange
   useEffect(() => {
@@ -546,10 +506,43 @@ function SessionOverlayInner({
     }))
   }, [voice.transcript, latestCorrection, formatTime])
 
-  // Close active panel when user starts talking
+  // Show help nudge after the user's first completed exchange (2+ transcript lines = user + AI)
   useEffect(() => {
-    if (voice.isTalking) setRightPanel(null)
+    if (helpNudgeShownRef.current || voice.transcript.length < 2) return
+    // Wait for the first AI response to finalize
+    const hasUserLine = voice.transcript.some(t => t.role === 'user')
+    const hasAILine = voice.transcript.some(t => t.role === 'assistant')
+    if (hasUserLine && hasAILine) {
+      helpNudgeShownRef.current = true
+      // Show after a brief delay so it doesn't compete with the first response
+      const showTimer = setTimeout(() => setShowHelpNudge(true), 1500)
+      // Auto-dismiss after 6 seconds
+      const hideTimer = setTimeout(() => setShowHelpNudge(false), 7500)
+      return () => { clearTimeout(showTimer); clearTimeout(hideTimer) }
+    }
+  }, [voice.transcript])
+
+  // Close active panel when user starts talking; dismiss help nudge
+  useEffect(() => {
+    if (voice.isTalking) {
+      setRightPanel(null)
+      setShowHelpNudge(false)
+    }
   }, [voice.isTalking])
+
+  // F hotkey to toggle chat overlay
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'f' || e.key === 'F') {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
+        e.preventDefault()
+        setShowChat(c => !c)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   // Derive current section label for nav bar
   const currentPlan = voice.sessionPlan || existingPlan || null
@@ -568,7 +561,7 @@ function SessionOverlayInner({
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
         duration={voice.duration}
-        onOpenFullPlan={() => setPlanOpen(true)}
+        onOpenFullPlan={() => setShowSettings(true)}
       />
 
       {/* Full Session Plan sidebar overlay (left, on top of flow panel) */}
@@ -576,8 +569,6 @@ function SessionOverlayInner({
         isOpen={planOpen}
         plan={voice.sessionPlan || existingPlan || null}
         onCollapse={() => setPlanOpen(false)}
-        onSteer={handleSteer}
-        onPlanSave={handlePlanSave}
         steeringMessages={steeringMessages}
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
@@ -585,7 +576,12 @@ function SessionOverlayInner({
       />
 
       {/* Persistent session notes (right) */}
-      <SessionNotesPanel analysisResults={voice.analysisResults} />
+      <SessionNotesPanel
+        analysisResults={voice.analysisResults}
+        highlight={notesHighlight}
+        isAnalyzing={voice.isAnalyzing}
+        onOpenFeedback={openCorrectionsPanel}
+      />
 
       {/* Main layout */}
       <div
@@ -607,10 +603,22 @@ function SessionOverlayInner({
           onEnd={requestEnd}
           currentSectionLabel={currentSectionLabel}
           inputMode="voice"
+          rightSlot={
+            <button
+              onClick={() => setShowSettings(s => !s)}
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary',
+                showSettings && 'bg-bg-hover text-text-primary',
+              )}
+              title="Session settings"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+            </button>
+          }
         />
 
-        {/* Main stage */}
-        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden relative pl-[310px] pr-[310px]">
+        {/* Main stage — scrollable when content overflows */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto overflow-x-visible relative pl-[310px] pr-[310px]">
           {/* Starting overlay */}
           {isStarting && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg">
@@ -684,18 +692,53 @@ function SessionOverlayInner({
               visible={showSubtitles}
               voiceState={voice.voiceState}
               isTalking={voice.isTalking}
-              isLookupActive={rightPanel === 'lookup'}
               onLookup={handleLookup}
+              lookupResult={lookupResult}
+              lookupLoading={lookupLoading}
               onTranslate={handleTranslate}
               translation={translation}
-              xrayTokens={xrayTokens}
-              xrayLoading={xrayLoading}
-              onXray={handleXray}
               onSuggest={handleSuggest}
               suggestion={suggestion}
               suggestionLoading={suggestionLoading}
+              onOpenChat={(context) => {
+                if (context) setChatLookupWord(context)
+                setShowChat(true)
+              }}
             />
           </div>
+
+          {/* Retry feedback flash */}
+          <AnimatePresence>
+            {showRetryFeedback && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-center mt-2"
+              >
+                <span className="text-[13px] text-text-secondary font-medium">Retrying — say it again</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Help nudge — appears once after first exchange, auto-dismisses */}
+          <AnimatePresence>
+            {showHelpNudge && (
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.4 }}
+                onClick={() => { setShowHelpNudge(false); setShowChat(true) }}
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-pure border border-border shadow-[0_2px_8px_rgba(0,0,0,.06)] cursor-pointer transition-all hover:bg-bg-hover hover:border-border-strong hover:shadow-[0_4px_12px_rgba(0,0,0,.08)] active:scale-[0.97]"
+              >
+                <span className="text-[13px] text-text-secondary">Stuck or need help?</span>
+                <span className="text-[12px] font-medium text-accent-brand">Open chat</span>
+                <kbd className="font-mono text-[10px] font-medium px-1 py-0.5 rounded bg-bg-secondary border border-border text-text-muted">F</kbd>
+              </motion.button>
+            )}
+          </AnimatePresence>
 
         </main>
 
@@ -706,15 +749,28 @@ function SessionOverlayInner({
           onTalkStart={voice.startTalking}
           onTalkEnd={voice.stopTalking}
           onTalkCancel={voice.cancelTalking}
-          correctionsCount={feedbackCount}
+          correctionsCount={unviewedFeedbackCount}
           activePanel={rightPanel}
-          onRetry={voice.retryLast}
+          onRetry={handleRetry}
           canRetry={voice.transcript.length >= 2}
+          newFeedbackFlash={newFeedbackFlash}
+          onToggleChat={() => setShowChat(c => !c)}
           onTogglePanel={(panel) => {
-            setRightPanel(p => p === panel ? null : panel)
+            if (panel === 'feedback' || panel === 'help') {
+              setShowChat(c => !c)
+            } else {
+              setRightPanel(p => p === panel ? null : panel)
+            }
           }}
         />
       </div>
+
+      {/* Feedback card flipper (bottom-right, outside z-[1] stacking context so it renders over session notes) */}
+      <FeedbackCardFlipper
+        analysisResults={voice.analysisResults}
+        onRetry={handleRetry}
+        onOpenChat={() => setShowChat(true)}
+      />
 
       {/* Transcript panel (right slide) */}
       <VoiceTranscriptPanel
@@ -723,33 +779,30 @@ function SessionOverlayInner({
         onClose={() => setRightPanel(null)}
       />
 
-      {/* Feedback panel (right slide) */}
-      <VoiceCorrectionsPanel
-        isOpen={rightPanel === 'feedback'}
-        turnResults={voice.analysisResults}
-        onClose={() => setRightPanel(null)}
+      {/* Unified chat overlay (feedback + help merged) */}
+      <UnifiedChatOverlay
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        analysisResults={voice.analysisResults}
+        recentHistory={voice.transcript.slice(-6).map(t => ({ role: t.role, content: t.text }))}
+        onRetry={handleRetry}
+        lookupWord={chatLookupWord}
+        onClearLookupWord={() => setChatLookupWord(null)}
       />
 
-      {/* Help panel (right slide) */}
-      <VoiceHelpPanel
-        isOpen={rightPanel === 'help'}
-        messages={helpMessages}
-        input={helpInput}
-        loading={helpLoading}
-        hasAiMessages={voice.transcript.some(t => t.role === 'assistant')}
-        onInputChange={setHelpInput}
-        onSend={handleHelpSend}
-        onTranslateLastMessage={handleTranslateLastMessage}
-        onClose={() => setRightPanel(null)}
+      {/* Session settings modal */}
+      <SessionSettingsPanel
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={sessionSettings}
+        onSettingsChange={setSessionSettings}
+        plan={voice.sessionPlan || existingPlan || null}
+        onPlanSave={handlePlanSave}
+        onSteer={handleSteer}
+        currentSectionId={voice.sectionTracking?.currentSectionId}
+        completedSectionIds={voice.sectionTracking?.completedSectionIds}
       />
 
-      {/* Lookup panel (right slide) */}
-      <VoiceLookupPanel
-        isOpen={rightPanel === 'lookup'}
-        result={lookupResult}
-        loading={lookupLoading}
-        onClose={() => { setRightPanel(null); setLookupResult(null) }}
-      />
 
       {/* Fallback keyboard */}
       <VoiceFallbackInput
@@ -759,24 +812,8 @@ function SessionOverlayInner({
         disabled={voice.isStreaming}
       />
 
-      {/* Turn grade indicator (bottom right) */}
-      <VoiceTurnGrade
-        latestResult={latestResult}
-        latestTurnIdx={latestTurnIdx}
-        onOpenFeedback={openCorrectionsPanel}
-      />
 
-      {/* Tool toasts (top right per mockup) */}
-      <ToolToastContainer
-        toasts={activeToasts}
-        onDismiss={handleDismissToast}
-        className="!fixed !top-[70px] !right-[18px] !bottom-auto !flex-col !gap-2"
-      />
-
-      {/* Tool tray */}
-      {dismissedToasts.size > 0 && trayItems.length > 0 && (
-        <ToolTray items={trayItems} />
-      )}
+      {/* Tool cards are now shown in the Session Notes panel */}
 
       {/* Inactivity warning */}
       {inactivityWarning && !showEndConfirm && (
@@ -813,29 +850,3 @@ function SessionOverlayInner({
   )
 }
 
-function renderToolCard(toolName: string, output: Record<string, unknown>): React.ReactNode {
-  if (toolName === 'showVocabularyCard') {
-    return (
-      <VocabularyCard
-        word={output.word as string}
-        reading={output.reading as string | undefined}
-        meaning={output.meaning as string}
-        partOfSpeech={output.partOfSpeech as string | undefined}
-        exampleSentence={output.exampleSentence as string | undefined}
-        notes={output.notes as string | undefined}
-      />
-    )
-  }
-  if (toolName === 'showGrammarNote') {
-    return (
-      <GrammarNote
-        pattern={output.pattern as string}
-        meaning={output.meaning as string}
-        formation={output.formation as string}
-        examples={output.examples as { japanese: string; english: string }[]}
-        level={output.level as string | undefined}
-      />
-    )
-  }
-  return null
-}
