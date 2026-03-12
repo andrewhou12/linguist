@@ -7,12 +7,27 @@
       "outputs": ["out/**", ".next/**", "dist/**"],
       "env": [
         "ANTHROPIC_API_KEY",
+        "CARTESIA_API_KEY",
+        "CARTESIA_VOICE_DE",
+        "CARTESIA_VOICE_EN",
+        "CARTESIA_VOICE_ES",
+        "CARTESIA_VOICE_FR",
+        "CARTESIA_VOICE_IT",
+        "CARTESIA_VOICE_JA",
+        "CARTESIA_VOICE_KO",
+        "CARTESIA_VOICE_PT",
+        "CARTESIA_VOICE_ZH",
         "DATABASE_URL",
+        "ELEVENLABS_API_KEY",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
         "OPENAI_API_KEY",
-        "SONIOX_API_KEY"
+        "SONIOX_API_KEY",
+        "STRIPE_EARLY_ADOPTER_PRICE_ID",
+        "STRIPE_PRO_PRICE_ID",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET"
       ]
     },
     "dev": {

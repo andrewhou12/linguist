@@ -27,7 +27,7 @@ export async function POST() {
       })
     }
 
-    const priceId = process.env.STRIPE_EARLY_ADOPTER_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID
+    const priceId = process.env.STRIPE_EARLY_ADOPTER_PRICE_ID?.trim() || process.env.STRIPE_PRO_PRICE_ID?.trim()
     if (!priceId) {
       return NextResponse.json({ error: 'Stripe price ID not configured' }, { status: 500 })
     }
