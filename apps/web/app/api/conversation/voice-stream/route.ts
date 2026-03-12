@@ -157,6 +157,7 @@ export const POST = withAuth(async (request, { userId }) => {
     // Pre-warm the WS connection in parallel with LLM — saves ~200ms on first sentence
     const cartesiaWs = getCartesiaWs()
     cartesiaWs.warmup()
+    let wsDisabled = false // Skip WS after first failure (e.g., bufferutil missing on Vercel)
 
     // Buffer for short clause fragments (e.g., "えっと、", "へー、") that generate
     // disproportionately long TTS audio when sent alone. Merged with the next sentence.
@@ -192,21 +193,54 @@ export const POST = withAuth(async (request, { userId }) => {
           await safeWrite(encodeFrame(FRAME.SENTENCE_START, encoder.encode(cleaned)))
 
           const controls = getSentenceControls(cleaned)
-          let pcmStream: ReadableStream<Uint8Array>
+          let reader: ReadableStreamDefaultReader<Uint8Array>
           let usingWs = true
+          let chunkCount = 0
+          let totalBytes = 0
 
+          // Helper to read all PCM chunks from a stream and write AUDIO frames
+          const readPcmStream = async (r: ReadableStreamDefaultReader<Uint8Array>) => {
+            while (true) {
+              const { done, value } = await r.read()
+              if (done) break
+              if (!value || value.length === 0) continue
+              chunkCount++
+              totalBytes += value.length
+              await safeWrite(encodeFrame(FRAME.AUDIO, value))
+            }
+          }
+
+          // Try WebSocket first — reuses persistent connection, saves ~50-100ms per sentence
           try {
-            // Try WebSocket first — reuses persistent connection, saves ~50-100ms per sentence
-            pcmStream = cartesiaWs.synthesize({
+            if (wsDisabled) throw new Error('WS disabled after previous failure')
+            const wsStream = cartesiaWs.synthesize({
               transcript: cleaned,
               voiceId: voiceId!,
               language: sentenceLang,
               sampleRate: 16000,
               controls,
             })
-          } catch {
-            // Fall back to SSE if WebSocket fails
+            reader = wsStream.getReader()
+            // Verify WS stream works by reading the first chunk — if the WS
+            // connection failed, this is where we'll get the error
+            const first = await reader.read()
+            if (first.done || !first.value || first.value.length === 0) {
+              reader.releaseLock()
+              throw new Error('WS stream returned no audio')
+            }
+            chunkCount++
+            totalBytes += first.value.length
+            await safeWrite(encodeFrame(FRAME.AUDIO, first.value))
+            // First chunk worked — read the rest
+            await readPcmStream(reader)
+          } catch (wsErr) {
+            // WS failed during connect or first read — fall back to SSE
             usingWs = false
+            chunkCount = 0
+            totalBytes = 0
+            wsDisabled = true
+            console.warn(`[voice-stream] WS failed[${idx}], falling back to SSE (disabled for remaining sentences):`, (wsErr as Error)?.message)
+
             const response = await fetch('https://api.cartesia.ai/tts/sse', {
               method: 'POST',
               headers: {
@@ -238,22 +272,15 @@ export const POST = withAuth(async (request, { userId }) => {
               return
             }
 
-            pcmStream = parseCartesiaSSE(response)
+            const sseStream = parseCartesiaSSE(response)
+            reader = sseStream.getReader()
+            await readPcmStream(reader)
           }
 
           const ttfa = performance.now() - tTts
           console.log(`[voice-stream:timing] cartesia[${idx}] TTFA:${ttfa.toFixed(0)}ms via:${usingWs ? 'ws' : 'sse'} lang:${sentenceLang} "${cleaned.slice(0, 40)}"`)
-
-          const reader = pcmStream.getReader()
-          let chunkCount = 0
-          let totalBytes = 0
-
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            chunkCount++
-            totalBytes += value.length
-            await safeWrite(encodeFrame(FRAME.AUDIO, value))
+          if (chunkCount === 0) {
+            console.warn(`[voice-stream] NO AUDIO produced for[${idx}]: "${cleaned.slice(0, 40)}"`)
           }
 
           console.log(`[voice-stream:timing] cartesia[${idx}] done:${(performance.now() - tTts).toFixed(0)}ms chunks:${chunkCount} bytes:${totalBytes} "${cleaned.slice(0, 30)}"`)

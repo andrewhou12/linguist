@@ -105,7 +105,7 @@ You have tools that render interactive UI cards inline. Use them naturally:
 ${toolDocLines}${toolRulesBlock}
 
 ═══ DIFFICULTY: ${level.label} ═══
-${level.behaviorBlock}
+${voiceMode ? level.behaviorBlock.split('\n').filter(line => !line.startsWith('ENGLISH:')).join('\n') : level.behaviorBlock}
 
 ═══ THE LEARNER ═══
 - Native language: ${nativeLanguage}
