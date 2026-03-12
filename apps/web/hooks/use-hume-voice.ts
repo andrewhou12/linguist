@@ -365,5 +365,6 @@ export function useHumeVoice(opts: {
       })
     },
     sectionTracking: null,
+    isAnalyzing: false,
   }
 }

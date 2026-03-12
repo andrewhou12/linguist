@@ -14,13 +14,12 @@ import { ConversationFlowPanel } from '@/components/session/conversation-flow-pa
 import { SessionNotesPanel } from '@/components/session/session-notes-panel'
 import { VoiceLiveSubtitles } from './voice-live-subtitles'
 import { VoiceTranscriptPanel } from './voice-transcript-panel'
-import { VoiceCorrectionsPanel } from './voice-corrections-panel'
-import { VoiceHelpPanel } from './voice-help-panel'
-import { VoiceLookupPanel } from './voice-lookup-panel'
+import { UnifiedChatOverlay } from './unified-chat-overlay'
 import { VoiceControls, type ActivePanel } from './voice-controls'
 import { VoiceFallbackInput } from './voice-fallback-input'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EndConfirmation } from '@/components/session/end-confirmation'
+import { FeedbackCardFlipper } from './feedback-card-flipper'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
 export type { SessionEndData } from '@/lib/session-types'
@@ -81,15 +80,13 @@ function SessionOverlayInner({
   const [showSubtitles, setShowSubtitles] = useState(true)
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [notesHighlight, setNotesHighlight] = useState(false)
-  const [showCorrectionBanner, setShowCorrectionBanner] = useState(false)
-  const correctionBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showRetryFeedback, setShowRetryFeedback] = useState(false)
+  const retryFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [newFeedbackFlash, setNewFeedbackFlash] = useState(false)
+  const feedbackFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showChat, setShowChat] = useState(false)
 
-  // ── Help panel state ──
-  const [helpMessages, setHelpMessages] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([
-    { role: 'ai', text: 'Need help? Describe what you\'re trying to say and I\'ll guide you.' },
-  ])
-  const [helpInput, setHelpInput] = useState('')
-  const [helpLoading, setHelpLoading] = useState(false)
+  // Help panel state removed — now in UnifiedChatOverlay
 
   // ── Lookup state ──
   const [lookupResult, setLookupResult] = useState<{
@@ -101,13 +98,13 @@ function SessionOverlayInner({
   const [translation, setTranslation] = useState<string | null>(null)
   const [precachedTranslation, setPrecachedTranslation] = useState<string | null>(null)
 
-  // ── X-ray state ──
-  const [xrayTokens, setXrayTokens] = useState<Array<{ surface: string; reading: string; meaning: string; pos: string }> | null>(null)
-  const [xrayLoading, setXrayLoading] = useState(false)
-
   // ── Suggestion state ──
   const [suggestion, setSuggestion] = useState<string | null>(null)
   const [suggestionLoading, setSuggestionLoading] = useState(false)
+  const [precachedSuggestion, setPrecachedSuggestion] = useState<string | null>(null)
+
+  // ── Session settings ──
+  const [sessionSettings, setSessionSettings] = useState<{ vocabCards: boolean }>({ vocabCards: true })
 
   // ── Steering ──
   const [steeringMessages, setSteeringMessages] = useState<Array<{ text: string; time: string }>>(
@@ -184,25 +181,31 @@ function SessionOverlayInner({
   }, [latestResult])
 
   const openCorrectionsPanel = useCallback(() => {
-    setRightPanel('feedback')
+    setShowChat(true)
   }, [])
 
-  // Show correction banner when new corrections arrive
+  // Retry with visual feedback
+  const handleRetry = useCallback(() => {
+    voice.retryLast()
+    setShowRetryFeedback(true)
+    if (retryFeedbackTimerRef.current) clearTimeout(retryFeedbackTimerRef.current)
+    retryFeedbackTimerRef.current = setTimeout(() => setShowRetryFeedback(false), 1500)
+  }, [voice.retryLast])
+
+  // Flash the feedback chip when new analysis results arrive
   const prevCorrectionTurnRef = useRef<number | null>(null)
   useEffect(() => {
     if (latestTurnIdx === null || latestTurnIdx === prevCorrectionTurnRef.current) return
     prevCorrectionTurnRef.current = latestTurnIdx
-    if (latestCorrection) {
-      setShowCorrectionBanner(true)
-      if (correctionBannerTimerRef.current) clearTimeout(correctionBannerTimerRef.current)
-      correctionBannerTimerRef.current = setTimeout(() => setShowCorrectionBanner(false), 12000)
-    } else {
-      setShowCorrectionBanner(false)
-    }
+
+    setNewFeedbackFlash(true)
+    if (feedbackFlashTimerRef.current) clearTimeout(feedbackFlashTimerRef.current)
+    feedbackFlashTimerRef.current = setTimeout(() => setNewFeedbackFlash(false), 600)
+
     return () => {
-      if (correctionBannerTimerRef.current) clearTimeout(correctionBannerTimerRef.current)
+      if (feedbackFlashTimerRef.current) clearTimeout(feedbackFlashTimerRef.current)
     }
-  }, [latestTurnIdx, latestCorrection])
+  }, [latestTurnIdx])
 
   // Flash the Session Notes panel when new analysis items arrive
   const prevAnalysisCountRef = useRef(0)
@@ -216,36 +219,7 @@ function SessionOverlayInner({
     prevAnalysisCountRef.current = count
   }, [voice.analysisResults])
 
-  // ── Help panel handlers ──
-  const handleHelpSend = useCallback(async () => {
-    if (!helpInput.trim() || helpLoading) return
-    const query = helpInput.trim()
-    setHelpMessages(m => [...m, { role: 'user', text: query }])
-    setHelpInput('')
-    setHelpLoading(true)
-
-    try {
-      const recentHistory = voice.transcript.slice(-6).map(t => ({
-        role: t.role,
-        content: t.text,
-      }))
-      const res = await fetch('/api/conversation/help', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, recentHistory }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setHelpMessages(m => [...m, { role: 'ai', text: data.suggestion }])
-      } else {
-        setHelpMessages(m => [...m, { role: 'ai', text: 'Sorry, I couldn\'t get a suggestion right now.' }])
-      }
-    } catch {
-      setHelpMessages(m => [...m, { role: 'ai', text: 'Something went wrong. Try again.' }])
-    } finally {
-      setHelpLoading(false)
-    }
-  }, [helpInput, helpLoading, voice.transcript])
+  // Help/feedback handled by UnifiedChatOverlay
 
   // ── Lookup handler ──
   const handleLookup = useCallback(async (word: string, context: string) => {
@@ -295,59 +269,16 @@ function SessionOverlayInner({
     }
   }, [translation, precachedTranslation])
 
-  // ── Translate in help panel ──
-  const handleTranslateLastMessage = useCallback(async () => {
-    const lastAiLine = [...voice.transcript].reverse().find(t => t.role === 'assistant')
-    if (!lastAiLine) return
-    setHelpLoading(true)
-    try {
-      const res = await fetch('/api/conversation/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: lastAiLine.text }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setHelpMessages(m => [...m, { role: 'ai', text: data.translation }])
-      }
-    } catch {
-      setHelpMessages(m => [...m, { role: 'ai', text: 'Translation failed.' }])
-    } finally {
-      setHelpLoading(false)
-    }
-  }, [voice.transcript])
+  // Translation help now handled in UnifiedChatOverlay
 
-  // ── X-ray handler (inline under subtitles) ──
-  const handleXray = useCallback(async () => {
-    // Toggle off if already showing
-    if (xrayTokens) {
-      setXrayTokens(null)
-      return
-    }
-    const lastAiLine = [...voice.transcript].reverse().find(t => t.role === 'assistant')
-    if (!lastAiLine) return
-    setXrayLoading(true)
-    try {
-      const res = await fetch('/api/conversation/xray', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence: lastAiLine.text }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setXrayTokens(data.tokens)
-      }
-    } catch {
-      // silent fail
-    } finally {
-      setXrayLoading(false)
-    }
-  }, [voice.transcript, xrayTokens])
-
-  // ── Suggestion handler (toggle) ──
+  // ── Suggestion handler (toggle, checks pre-cache) ──
   const handleSuggest = useCallback(async () => {
     if (suggestion) {
       setSuggestion(null)
+      return
+    }
+    if (precachedSuggestion) {
+      setSuggestion(precachedSuggestion)
       return
     }
     setSuggestionLoading(true)
@@ -370,7 +301,7 @@ function SessionOverlayInner({
     } finally {
       setSuggestionLoading(false)
     }
-  }, [suggestion, voice.transcript])
+  }, [suggestion, precachedSuggestion, voice.transcript])
 
   // ── End session (with confirmation) ──
   const [showEndConfirm, setShowEndConfirm] = useState(false)
@@ -457,16 +388,16 @@ function SessionOverlayInner({
     }
   }, [voice.isTalking, hasPartial])
 
-  // Clear translation + xray + suggestion when AI line changes (new response)
+  // Clear translation + suggestion when AI line changes (new response)
   const exchangeAITimestamp = exchangeAILine?.timestamp
   useEffect(() => {
     setTranslation(null)
     setPrecachedTranslation(null)
-    setXrayTokens(null)
     setSuggestion(null)
+    setPrecachedSuggestion(null)
   }, [exchangeAITimestamp])
 
-  // Pre-cache translation when AI line finalizes
+  // Pre-cache translation + suggestion when AI line finalizes
   useEffect(() => {
     if (!exchangeAILine?.isFinal || !exchangeAILine.text) return
     fetch('/api/conversation/translate', {
@@ -476,6 +407,20 @@ function SessionOverlayInner({
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (data?.translation) setPrecachedTranslation(data.translation) })
+      .catch(() => {})
+
+    // Pre-cache suggestion
+    const recentHistory = voice.transcript.slice(-6).map(t => ({
+      role: t.role,
+      content: t.text,
+    }))
+    fetch('/api/conversation/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recentHistory }),
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.suggestion) setPrecachedSuggestion(data.suggestion) })
       .catch(() => {})
   }, [exchangeAILine?.isFinal, exchangeAILine?.text])
 
@@ -548,11 +493,18 @@ function SessionOverlayInner({
         steeringMessages={steeringMessages}
         currentSectionId={voice.sectionTracking?.currentSectionId}
         completedSectionIds={voice.sectionTracking?.completedSectionIds}
+        sessionSettings={sessionSettings}
+        onSettingsChange={setSessionSettings}
         className="z-[15]"
       />
 
       {/* Persistent session notes (right) */}
-      <SessionNotesPanel analysisResults={voice.analysisResults} highlight={notesHighlight} />
+      <SessionNotesPanel
+        analysisResults={voice.analysisResults}
+        highlight={notesHighlight}
+        isAnalyzing={voice.isAnalyzing}
+        onOpenFeedback={openCorrectionsPanel}
+      />
 
       {/* Main layout */}
       <div
@@ -651,61 +603,41 @@ function SessionOverlayInner({
               visible={showSubtitles}
               voiceState={voice.voiceState}
               isTalking={voice.isTalking}
-              isLookupActive={rightPanel === 'lookup'}
               onLookup={handleLookup}
+              lookupResult={lookupResult}
+              lookupLoading={lookupLoading}
               onTranslate={handleTranslate}
               translation={translation}
-              xrayTokens={xrayTokens}
-              xrayLoading={xrayLoading}
-              onXray={handleXray}
               onSuggest={handleSuggest}
               suggestion={suggestion}
               suggestionLoading={suggestionLoading}
+              onOpenChat={(context) => setShowChat(true)}
             />
           </div>
 
+          {/* Retry feedback flash */}
+          <AnimatePresence>
+            {showRetryFeedback && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-center mt-2"
+              >
+                <span className="text-[13px] text-text-secondary font-medium">Retrying — say it again</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </main>
 
-        {/* Correction banner with retry */}
-        <AnimatePresence>
-          {showCorrectionBanner && latestCorrection && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
-              className="shrink-0 flex justify-center px-6 pb-2"
-            >
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-bg-pure border border-border-subtle rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] max-w-[500px]">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] font-jp-clean text-text-secondary line-through">{latestCorrection.original}</span>
-                    <span className="text-text-secondary text-[12px]">&rarr;</span>
-                    <span className="text-[13px] font-jp-clean font-medium text-text-primary">{latestCorrection.corrected}</span>
-                  </div>
-                  <div className="text-[12px] text-text-secondary mt-0.5 truncate">{latestCorrection.explanation}</div>
-                </div>
-                <button
-                  onClick={() => {
-                    voice.retryLast()
-                    setShowCorrectionBanner(false)
-                  }}
-                  className="shrink-0 px-3 py-1.5 rounded-md bg-bg-secondary border border-border text-[12px] font-medium text-text-primary cursor-pointer transition-colors hover:bg-bg-hover hover:border-border-strong"
-                >
-                  Retry
-                </button>
-                <button
-                  onClick={() => setShowCorrectionBanner(false)}
-                  className="shrink-0 text-text-secondary hover:text-text-primary transition-colors cursor-pointer bg-transparent border-none p-0"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Feedback card flipper (bottom-right) */}
+        <FeedbackCardFlipper
+          analysisResults={voice.analysisResults}
+          onRetry={handleRetry}
+          onOpenChat={() => setRightPanel('feedback')}
+        />
 
         {/* Voice controls */}
         <VoiceControls
@@ -716,10 +648,16 @@ function SessionOverlayInner({
           onTalkCancel={voice.cancelTalking}
           correctionsCount={feedbackCount}
           activePanel={rightPanel}
-          onRetry={voice.retryLast}
+          onRetry={handleRetry}
           canRetry={voice.transcript.length >= 2}
+          newFeedbackFlash={newFeedbackFlash}
+          onToggleChat={() => setShowChat(c => !c)}
           onTogglePanel={(panel) => {
-            setRightPanel(p => p === panel ? null : panel)
+            if (panel === 'feedback' || panel === 'help') {
+              setShowChat(c => !c)
+            } else {
+              setRightPanel(p => p === panel ? null : panel)
+            }
           }}
         />
       </div>
@@ -731,33 +669,15 @@ function SessionOverlayInner({
         onClose={() => setRightPanel(null)}
       />
 
-      {/* Feedback panel (right slide) */}
-      <VoiceCorrectionsPanel
-        isOpen={rightPanel === 'feedback'}
-        turnResults={voice.analysisResults}
-        onClose={() => setRightPanel(null)}
+      {/* Unified chat overlay (feedback + help merged) */}
+      <UnifiedChatOverlay
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        analysisResults={voice.analysisResults}
+        recentHistory={voice.transcript.slice(-6).map(t => ({ role: t.role, content: t.text }))}
+        onRetry={handleRetry}
       />
 
-      {/* Help panel (right slide) */}
-      <VoiceHelpPanel
-        isOpen={rightPanel === 'help'}
-        messages={helpMessages}
-        input={helpInput}
-        loading={helpLoading}
-        hasAiMessages={voice.transcript.some(t => t.role === 'assistant')}
-        onInputChange={setHelpInput}
-        onSend={handleHelpSend}
-        onTranslateLastMessage={handleTranslateLastMessage}
-        onClose={() => setRightPanel(null)}
-      />
-
-      {/* Lookup panel (right slide) */}
-      <VoiceLookupPanel
-        isOpen={rightPanel === 'lookup'}
-        result={lookupResult}
-        loading={lookupLoading}
-        onClose={() => { setRightPanel(null); setLookupResult(null) }}
-      />
 
       {/* Fallback keyboard */}
       <VoiceFallbackInput

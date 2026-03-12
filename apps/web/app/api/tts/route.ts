@@ -109,7 +109,7 @@ async function synthesizeWithCartesia(text: string, langCode: string): Promise<R
       output_format: {
         container: 'wav',
         encoding: 'pcm_s16le',
-        sample_rate: 24000,
+        sample_rate: 16000,
       },
     }),
   })

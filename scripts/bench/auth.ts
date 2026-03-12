@@ -23,6 +23,9 @@ export async function authenticate(): Promise<{ cookie: string; userId: string }
   const ref = extractProjectRef(url)
   const cookieName = `sb-${ref}-auth-token`
 
+  // @supabase/ssr expects the cookie value to be either raw JSON or
+  // prefixed with "base64-" before the base64url-encoded JSON.
+  // Use the base64- prefix format to avoid cookie encoding issues.
   const sessionPayload = JSON.stringify({
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
@@ -31,8 +34,7 @@ export async function authenticate(): Promise<{ cookie: string; userId: string }
     token_type: data.session.token_type,
   })
 
-  // Base64url encode the session
-  const encoded = Buffer.from(sessionPayload).toString('base64url')
+  const encoded = `base64-${Buffer.from(sessionPayload).toString('base64url')}`
   const cookie = `${cookieName}=${encoded}`
 
   return { cookie, userId: data.user!.id }

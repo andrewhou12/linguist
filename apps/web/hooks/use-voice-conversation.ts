@@ -79,6 +79,7 @@ export interface UseVoiceConversationReturn {
   analysisResults: Record<number, VoiceAnalysisResult>
   retryLast: () => void
   sectionTracking: SectionTracking | null
+  isAnalyzing: boolean
 }
 
 export function useVoiceConversation(
@@ -100,10 +101,13 @@ export function useVoiceConversation(
   const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(options.sessionPlan ?? null)
   const [isTalking, setIsTalking] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<Record<number, VoiceAnalysisResult>>({})
+  const [pendingAnalysisTurns, setPendingAnalysisTurns] = useState<Set<number>>(new Set())
 
   // Refs for integration points
   const sessionIdRef = useRef<string | null>(sessionId)
   sessionIdRef.current = sessionId
+  const sessionPlanRef = useRef<SessionPlan | null>(sessionPlan)
+  sessionPlanRef.current = sessionPlan
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const endSessionRef = useRef<() => void>(() => {})
@@ -211,7 +215,7 @@ export function useVoiceConversation(
 
   const getVoicePlayer = useCallback((): PCMStreamPlayer => {
     if (!voicePlayerRef.current) {
-      voicePlayerRef.current = new PCMStreamPlayer(24000)
+      voicePlayerRef.current = new PCMStreamPlayer(16000)
     }
     return voicePlayerRef.current
   }, [])
@@ -380,7 +384,13 @@ export function useVoiceConversation(
       sendMessage: (text) => doVoiceStreamRef.current(text),
       onStateChange: setVoiceState,
       onTranscriptUpdate: setTranscript,
-      onAnalysisResult: (turnIdx, result) => setAnalysisResults((prev) => ({ ...prev, [turnIdx]: result })),
+      onAnalysisResult: (turnIdx, result) => {
+        setAnalysisResults((prev) => ({ ...prev, [turnIdx]: result }))
+        setPendingAnalysisTurns((prev) => { const next = new Set(prev); next.delete(turnIdx); return next })
+      },
+      onAnalysisStarted: (turnIdx) => {
+        setPendingAnalysisTurns((prev) => new Set(prev).add(turnIdx))
+      },
       onTalkingChange: setIsTalking,
       getSessionId: () => sessionIdRef.current,
       getRecentHistory: () => voiceHistoryRef.current.slice(-6),
@@ -390,6 +400,11 @@ export function useVoiceConversation(
           nativeLanguageCode: nativeSttCode !== sttLanguageCode ? nativeSttCode : undefined,
         })
         return { signals, annotation: formatSignalsForLLM(signals) }
+      },
+      getSectionCount: () => {
+        const plan = sessionPlanRef.current
+        if (plan && isConversationPlan(plan) && plan.sections) return plan.sections.length
+        return 0
       },
     })
   }
@@ -408,6 +423,11 @@ export function useVoiceConversation(
           nativeLanguageCode: nativeSttCode !== sttLanguageCode ? nativeSttCode : undefined,
         })
         return { signals, annotation: formatSignalsForLLM(signals) }
+      },
+      getSectionCount: () => {
+        const plan = sessionPlanRef.current
+        if (plan && isConversationPlan(plan) && plan.sections) return plan.sections.length
+        return 0
       },
     })
   })
@@ -727,6 +747,9 @@ export function useVoiceConversation(
     // Interrupt any playing audio
     voiceStreamInterrupt()
 
+    // Ensure sendingRef is cleared so next doVoiceStream isn't blocked
+    sendingRef.current = false
+
     // Reset FSM to IDLE
     fsmRef.current.resetToIdle()
   }, [voiceStreamInterrupt])
@@ -778,5 +801,6 @@ export function useVoiceConversation(
     analysisResults,
     retryLast,
     sectionTracking,
+    isAnalyzing: pendingAnalysisTurns.size > 0,
   }
 }

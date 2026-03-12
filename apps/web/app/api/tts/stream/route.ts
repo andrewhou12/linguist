@@ -56,7 +56,7 @@ export const POST = withAuth(async (request) => {
       return new Response(readable, {
         headers: {
           'Content-Type': 'audio/pcm',
-          'X-Sample-Rate': '24000',
+          'X-Sample-Rate': '16000',
           'Cache-Control': 'no-cache',
         },
       })
@@ -92,7 +92,7 @@ export const POST = withAuth(async (request) => {
           output_format: {
             container: 'raw',
             encoding: 'pcm_s16le',
-            sample_rate: 24000,
+            sample_rate: 16000,
           },
         }),
       })
@@ -110,19 +110,19 @@ export const POST = withAuth(async (request) => {
       return new Response(pcmStream, {
         headers: {
           'Content-Type': 'audio/pcm',
-          'X-Sample-Rate': '24000',
+          'X-Sample-Rate': '16000',
           'Cache-Control': 'no-cache',
         },
       })
     }
 
-    // ElevenLabs streaming — request PCM 24kHz so client PCMStreamPlayer works as-is
+    // ElevenLabs streaming — request PCM 16kHz to match client PCMStreamPlayer sample rate
     if (!ELEVENLABS_API_KEY) {
       return NextResponse.json({ error: 'ELEVENLABS_API_KEY not configured' }, { status: 500 })
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream?output_format=pcm_24000`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream?output_format=pcm_16000`,
       {
         method: 'POST',
         headers: {
@@ -151,7 +151,7 @@ export const POST = withAuth(async (request) => {
     return new Response(response.body, {
       headers: {
         'Content-Type': 'audio/pcm',
-        'X-Sample-Rate': '24000',
+        'X-Sample-Rate': '16000',
         'Cache-Control': 'no-cache',
       },
     })

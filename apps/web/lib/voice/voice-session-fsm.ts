@@ -38,6 +38,27 @@ export interface VoiceAnalysisResult {
     suggestion: string
     explanation: string
   }>
+  registerMismatches?: Array<{
+    original: string
+    suggestion: string
+    expected: string
+    explanation: string
+  }>
+  l1Interference?: Array<{
+    original: string
+    issue: string
+    suggestion: string
+  }>
+  alternativeExpressions?: Array<{
+    original: string
+    alternative: string
+    explanation: string
+  }>
+  conversationalTips?: Array<{
+    tip: string
+    explanation: string
+  }>
+  takeaways?: string[]
   sectionTracking?: {
     currentSectionId: string
     completedSectionIds: string[]
@@ -69,10 +90,12 @@ export interface FSMDeps {
   onStateChange: (state: VoiceState) => void
   onTranscriptUpdate: (fn: (prev: TranscriptLine[]) => TranscriptLine[]) => void
   onAnalysisResult: (turnIdx: number, result: VoiceAnalysisResult) => void
+  onAnalysisStarted?: (turnIdx: number) => void
   onTalkingChange: (talking: boolean) => void
   getSessionId: () => string | null
   getRecentHistory: () => Array<{ role: string; content: string }>
   computeSignals: (utterance: EnrichedUtterance) => { signals: unknown; annotation: string | null }
+  getSectionCount?: () => number
 }
 
 export class VoiceSessionFSM {
@@ -88,6 +111,7 @@ export class VoiceSessionFSM {
   private _firstMessageReceived = false
   private _sendInFlight = false
   private _cancelled = false
+  private _lastSectionTracking: VoiceAnalysisResult['sectionTracking'] = undefined
 
   constructor(deps: FSMDeps) {
     this._deps = deps
@@ -194,7 +218,20 @@ export class VoiceSessionFSM {
 
     this._deps.tts.interrupt()
 
-    const llmText = annotation ? `${text}\n\n${annotation}` : text
+    // Build progress annotation if we have section tracking
+    let progressAnnotation: string | null = null
+    if (this._lastSectionTracking) {
+      const completed = this._lastSectionTracking.completedSectionIds?.length ?? 0
+      const total = this._deps.getSectionCount?.() ?? 0
+      if (total > 0) {
+        progressAnnotation = `[Session progress: completed ${completed}/${total} sections. Current: "${this._lastSectionTracking.currentSectionId}". ${completed < total - 1 ? 'Advance to next section soon.' : 'Wrapping up.'}]`
+      }
+    }
+
+    let llmText = annotation ? `${text}\n\n${annotation}` : text
+    if (progressAnnotation) {
+      llmText += `\n\n${progressAnnotation}`
+    }
     this._deps.tts.reset()
     this._deps.sendMessage(llmText)
     console.log(`[voice:timing] LLM request sent +${(performance.now() - this._utteranceTime).toFixed(0)}ms`)
@@ -240,6 +277,7 @@ export class VoiceSessionFSM {
       const sessionId = this._deps.getSessionId()
       if (userText && sessionId && turnIdx > 0) {
         console.log('[voice] firing Track 2 analysis for turn', turnIdx)
+        this._deps.onAnalysisStarted?.(turnIdx)
         fetch('/api/conversation/voice-analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -255,13 +293,22 @@ export class VoiceSessionFSM {
             if (result) {
               // Always store — even empty results — so we can show "Good" grade
               console.log('[voice] analysis result for turn', turnIdx, result)
-              this._deps.onAnalysisResult(turnIdx, {
+              const analysisResult: VoiceAnalysisResult = {
                 corrections: result.corrections || [],
                 vocabularyCards: result.vocabularyCards || [],
                 grammarNotes: result.grammarNotes || [],
                 naturalnessFeedback: result.naturalnessFeedback || [],
                 sectionTracking: result.sectionTracking || undefined,
-              })
+                registerMismatches: result.registerMismatches,
+                l1Interference: result.l1Interference,
+                alternativeExpressions: result.alternativeExpressions,
+                conversationalTips: result.conversationalTips,
+                takeaways: result.takeaways,
+              }
+              if (analysisResult.sectionTracking) {
+                this._lastSectionTracking = analysisResult.sectionTracking
+              }
+              this._deps.onAnalysisResult(turnIdx, analysisResult)
             }
           })
           .catch((err) => console.error('[voice] Track 2 analysis failed:', err))
@@ -319,7 +366,7 @@ export class VoiceSessionFSM {
       this._deps.soniox.resume()
       setTimeout(() => {
         this._deps.soniox.finalize()
-      }, 50)
+      }, 15)
     }
   }
 

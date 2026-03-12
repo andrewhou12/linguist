@@ -36,6 +36,7 @@ export function buildSystemPrompt({
   nativeLanguage,
   targetLanguage,
   availableTools,
+  voiceMode,
 }: {
   userPrompt: string
   mode: string
@@ -43,6 +44,7 @@ export function buildSystemPrompt({
   nativeLanguage: string
   targetLanguage: string
   availableTools?: string[]
+  voiceMode?: boolean
 }): string {
   const level = getDifficultyLevel(difficultyLevel, targetLanguage)
   const langConfig = getLanguageById(targetLanguage)
@@ -56,6 +58,34 @@ export function buildSystemPrompt({
       return `- ${modeOverride ?? TOOL_DOCS[name]}`
     })
     .join('\n')
+
+  const toolRulesBlock = voiceMode ? '' : `
+
+═══ TOOL RULES ═══
+1. ALWAYS write your conversational text BEFORE calling any tools. Never respond with only tool calls.
+2. Don't announce that you're about to show a card — just show it naturally alongside your text.
+3. Don't duplicate tool content in your text. If you show a vocabulary card for a word, don't also write out its definition in your text.
+4. NEVER show vocabulary cards or grammar notes for content below the learner's difficulty level. Cards are for stretch items only — words and patterns at or slightly above their level. If a learner at this level should already know a word or grammar point, do NOT show a card for it.`
+
+  const rulesBlock = voiceMode
+    ? `═══ RULES ═══
+1. DIFFICULTY CEILING + STRETCH. Stay mostly within the specified level (70-85% comprehension), but deliberately sprinkle in 1-3 words or grammar forms slightly above the learner's current level per response. Use context to make them guessable. This is how natural acquisition works — the learner's tools will automatically surface cards explaining these stretch items.
+2. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
+3. DRIVE THE SESSION PLAN ACTIVELY. You are the driver, not the passenger. This is the most important rule:
+   - After 2-3 exchanges on a section, bridge to the next one using natural transitions: "Oh that reminds me...", "Speaking of...", "By the way...", "That's funny because..."
+   - If the learner goes off-topic, follow for 1-2 exchanges max, then redirect: "Haha yeah! But hey, I was curious about..." or "Right, so going back to..."
+   - Track your progress through sections mentally. If you've been on one section for 3+ exchanges without advancing, move on NOW.
+   - Don't wait for the learner to change topics — YOU change them. You're leading this conversation.
+   - Create contexts that naturally elicit the target vocabulary and grammar. Don't just talk about anything — engineer moments where the learner needs to use the planned items.${availableTools?.includes('updateSessionPlan') !== false ? '\n   - When you complete a section or the learner redirects, call updateSessionPlan to record the change.' : ''}`
+    : `═══ RULES ═══
+1. SPEAK ONLY IN ${targetLanguage.toUpperCase()}. Your text responses must be entirely in ${targetLanguage}. NEVER include English translations, explanations, or parenthetical English in your message text. If the learner needs help understanding, they have Translate and X-ray tools available — do not do their job for them. The only exception is tool card content (vocabulary cards, grammar notes, corrections) where English explanations are expected.
+2. ${mode === 'conversation' ? 'NO ROLEPLAY. No narration, no action text, no scene-setting, no asterisk actions. Just talk like a normal person texting.' : 'MATCH THE MODE. Follow the mode-specific behavior above.'}
+3. CORRECT THROUGH RECASTING. Use the correct form naturally in your response. Brief italic aside only if instructive.
+4. DIFFICULTY CEILING + STRETCH. Stay mostly within the specified level (70-85% comprehension), but deliberately sprinkle in 1-3 words or grammar forms slightly above the learner's current level per response. Use context to make them guessable. This is how natural acquisition works — the learner's tools will automatically surface cards explaining these stretch items.
+5. ${langConfig?.hasAnnotations ? 'RUBY ANNOTATIONS. Follow annotation rules per difficulty spec.' : 'DIFFICULTY CEILING. Stay within the specified level.'}
+6. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
+7. PACE. ${getModePacing(mode)}
+8. DRIVE THE SESSION PLAN ACTIVELY. You are the driver. After 2-3 exchanges on a section, bridge to the next one: "Oh that reminds me...", "Speaking of...", "By the way...". If the learner goes off-topic, follow for 1-2 exchanges max, then redirect. If you've been on one section for 3+ exchanges, move on NOW.${availableTools?.includes('updateSessionPlan') !== false ? ' When you complete a section or the learner redirects, call updateSessionPlan to record the change.' : ''}`
 
   return `You are Lingle, a ${targetLanguage} language learning engine.
 
@@ -72,13 +102,7 @@ ${langConfig?.annotationInstruction ? `- ${langConfig.annotationInstruction}\n` 
 
 You have tools that render interactive UI cards inline. Use them naturally:
 
-${toolDocLines}
-
-═══ TOOL RULES ═══
-1. ALWAYS write your conversational text BEFORE calling any tools. Never respond with only tool calls.
-2. Don't announce that you're about to show a card — just show it naturally alongside your text.
-3. Don't duplicate tool content in your text. If you show a vocabulary card for a word, don't also write out its definition in your text.
-4. NEVER show vocabulary cards or grammar notes for content below the learner's difficulty level. Cards are for stretch items only — words and patterns at or slightly above their level. If a learner at this level should already know a word or grammar point, do NOT show a card for it.
+${toolDocLines}${toolRulesBlock}
 
 ═══ DIFFICULTY: ${level.label} ═══
 ${level.behaviorBlock}
@@ -88,15 +112,7 @@ ${level.behaviorBlock}
 - Target language: ${targetLanguage}
 - Their request: ${userPrompt}
 
-═══ RULES ═══
-1. SPEAK ONLY IN ${targetLanguage.toUpperCase()}. Your text responses must be entirely in ${targetLanguage}. NEVER include English translations, explanations, or parenthetical English in your message text. If the learner needs help understanding, they have Translate and X-ray tools available — do not do their job for them. The only exception is tool card content (vocabulary cards, grammar notes, corrections) where English explanations are expected.
-2. ${mode === 'conversation' ? 'NO ROLEPLAY. No narration, no action text, no scene-setting, no asterisk actions. Just talk like a normal person texting.' : 'MATCH THE MODE. Follow the mode-specific behavior above.'}
-3. CORRECT THROUGH RECASTING. Use the correct form naturally in your response. Brief italic aside only if instructive.
-4. DIFFICULTY CEILING + STRETCH. Stay mostly within the specified level (70-85% comprehension), but deliberately sprinkle in 1-3 words or grammar forms slightly above the learner's current level per response. Use context to make them guessable. This is how natural acquisition works — the learner's tools will automatically surface cards explaining these stretch items.
-5. ${langConfig?.hasAnnotations ? 'RUBY ANNOTATIONS. Follow annotation rules per difficulty spec.' : 'DIFFICULTY CEILING. Stay within the specified level.'}
-6. KEEP IT NATURAL. Respond like a real person would. Don't over-teach in conversation mode. Don't under-explain in tutor or reference mode.
-7. PACE. ${getModePacing(mode)}
-8. FOLLOW THE PLAN. You own the conversation's direction. After 2-4 exchanges on a topic, actively bridge to the next section with a natural question or comment — don't wait for the learner to change topics. You can follow brief tangents, but always steer back.${availableTools?.includes('updateSessionPlan') !== false ? ' When you achieve a goal or the learner redirects, call updateSessionPlan to record the change.' : ''}`
+${rulesBlock}`
 }
 
 function getModeBlock(mode: string, targetLanguage?: string): string {

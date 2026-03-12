@@ -47,10 +47,18 @@ export function VoiceConversationView() {
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const initRef = useRef(false)
 
-  // Fetch learner profile and usage info once
+  // Fetch learner profile and usage info once, and pre-warm audio infrastructure
   useEffect(() => {
     api.profileGet().then(setProfile).catch(() => {})
     api.usageGet().then(setUsage).catch(() => {})
+    // Pre-warm a global AudioContext on mount so the browser's audio subsystem is initialized.
+    // The actual PCMStreamPlayer creates its own context, but having one already active
+    // eliminates the browser's ~50-200ms cold-start penalty for audio output.
+    try {
+      const ctx = new AudioContext({ sampleRate: 16000 })
+      // Resume immediately in case autoplay policy suspended it
+      ctx.resume().catch(() => {})
+    } catch { /* AudioContext not available (SSR) */ }
   }, [])
 
   // If we have an existing sessionId or a prompt from URL, auto-start planning

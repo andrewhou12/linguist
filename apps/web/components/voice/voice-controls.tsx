@@ -2,9 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import {
-  MagnifyingGlassIcon,
-  QuestionMarkCircleIcon,
-  PencilSquareIcon,
+  ChatBubbleLeftRightIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
@@ -12,7 +10,7 @@ import { useOnboarding } from '@/hooks/use-onboarding'
 import { CoachMark } from '@/components/onboarding/coach-mark'
 import type { VoiceState } from '@/hooks/use-voice-conversation'
 
-export type ActivePanel = 'transcript' | 'feedback' | 'help' | 'lookup' | null
+export type ActivePanel = 'transcript' | 'feedback' | 'help' | null
 
 interface VoiceControlsProps {
   voiceState: VoiceState
@@ -23,8 +21,10 @@ interface VoiceControlsProps {
   correctionsCount: number
   activePanel: ActivePanel
   onTogglePanel: (panel: ActivePanel) => void
+  onToggleChat?: () => void
   onRetry?: () => void
   canRetry?: boolean
+  newFeedbackFlash?: boolean
   className?: string
 }
 
@@ -42,6 +42,8 @@ export function VoiceControls({
   onTogglePanel,
   onRetry,
   canRetry,
+  newFeedbackFlash,
+  onToggleChat,
   className,
 }: VoiceControlsProps) {
   const ringRef = useRef<SVGCircleElement>(null)
@@ -121,28 +123,18 @@ export function VoiceControls({
   }, [canTalk, isTalking, onTalkStart, onTalkEnd, onTalkCancel])
 
   const chips: Array<{
-    id: ActivePanel & string
+    id: ActivePanel & string | 'chat'
     label: string
     badge: number | null
     icon: React.ReactNode
+    isChat?: boolean
   }> = [
     {
-      id: 'lookup',
-      label: 'Look up',
-      badge: null,
-      icon: <MagnifyingGlassIcon className="w-4 h-4" />,
-    },
-    {
-      id: 'help',
-      label: 'Stuck?',
-      badge: null,
-      icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
-    },
-    {
-      id: 'feedback',
-      label: 'Feedback',
+      id: 'chat',
+      label: 'Chat',
       badge: correctionsCount || null,
-      icon: <PencilSquareIcon className="w-4 h-4" />,
+      icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
+      isChat: true,
     },
   ]
 
@@ -238,17 +230,18 @@ export function VoiceControls({
             Retry
           </button>
         )}
-        {chips.map(({ id, label, badge, icon }) => {
-          const isActive = activePanel === id
+        {chips.map(({ id, label, badge, icon, isChat }) => {
+          const isActive = isChat ? false : activePanel === id
           return (
             <button
               key={id}
-              onClick={() => onTogglePanel(isActive ? null : id)}
+              onClick={() => isChat ? onToggleChat?.() : onTogglePanel(isActive ? null : id as ActivePanel)}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[13px] font-sans cursor-pointer transition-colors',
+                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[13px] font-sans cursor-pointer transition-all duration-150',
                 isActive
                   ? 'bg-bg-active border-border-strong text-text-primary font-medium'
                   : 'bg-bg-pure border-border text-text-secondary hover:bg-bg-hover hover:text-text-primary hover:border-border-strong',
+                id === 'feedback' && newFeedbackFlash && 'scale-[1.08] shadow-[0_0_8px_rgba(200,87,42,.3)]',
               )}
             >
               {icon}

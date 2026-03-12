@@ -14,10 +14,10 @@ export class PCMStreamPlayer {
   private _totalScheduledDuration = 0
   private residualBuffer: Uint8Array | null = null
 
-  // Min 256 samples (~11ms at 24kHz) to avoid scheduling tiny buffers that cause clicks
+  // Min 256 samples (~16ms at 16kHz) to avoid scheduling tiny buffers that cause clicks
   private static readonly MIN_SAMPLES = 256
 
-  constructor(sampleRate = 24000) {
+  constructor(sampleRate = 16000) {
     this.sampleRate = sampleRate
   }
 
@@ -145,7 +145,7 @@ export class PCMStreamPlayer {
     }
   }
 
-  // Fade-out last ~2.7ms (64 samples at 24kHz) to prevent end-of-sentence pops
+  // Fade-out last ~4ms (64 samples at 16kHz) to prevent end-of-sentence pops
   private static readonly FADE_OUT_SAMPLES = 64
 
   private scheduleChunk(ctx: AudioContext, data: Uint8Array, isLast = false) {

@@ -104,7 +104,7 @@ export async function runBenchmark(
       sessionCreate: computeStats(successful.map((r) => r.sessionCreateMs).filter((v): v is number => v !== null)),
       ttft: computeStats(
         successful
-          .map((r) => (r.timings?.firstTextDelta !== null ? r.timings!.firstTextDelta - r.timings!.requestStart : null))
+          .map((r) => (r.timings && r.timings.firstTextDelta !== null ? r.timings.firstTextDelta - r.timings.requestStart : null))
           .filter((v): v is number => v !== null),
       ),
       ttfa: computeStats(
@@ -304,4 +304,49 @@ async function runTtsScenario(
     ttsTimings: { ttfb, total, bytes: totalBytes },
     error: null,
   }
+}
+
+// --- CLI entry point ---
+if (require.main === module || process.argv[1]?.endsWith('runner.ts')) {
+  ;(async () => {
+    // Load env from apps/web/.env.local (same as seed-test-user.ts)
+    const fs = await import('fs')
+    const pathMod = await import('path')
+    for (const envFile of [
+      pathMod.resolve(__dirname, '../../apps/web/.env.local'),
+      pathMod.resolve(__dirname, '../../apps/web/.env'),
+    ]) {
+      try {
+        const content = fs.readFileSync(envFile, 'utf-8')
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith('#')) continue
+          const eqIdx = trimmed.indexOf('=')
+          if (eqIdx === -1) continue
+          const key = trimmed.slice(0, eqIdx).trim()
+          const val = trimmed.slice(eqIdx + 1).trim()
+          if (!process.env[key]) process.env[key] = val
+        }
+      } catch { /* file not found, skip */ }
+    }
+
+    const { SCENARIOS } = await import('./scenarios')
+    const { printTable, saveJson } = await import('./reporter')
+    const verbose = process.argv.includes('--verbose') || process.argv.includes('-v')
+    // Allow filtering scenarios via --only=name
+    const onlyArg = process.argv.find(a => a.startsWith('--only='))
+    const onlyName = onlyArg?.split('=')[1]
+    const filteredScenarios = onlyName ? SCENARIOS.filter(s => s.name === onlyName) : SCENARIOS
+    if (filteredScenarios.length === 0) {
+      console.error(`No scenario matching "${onlyName}". Available: ${SCENARIOS.map(s => s.name).join(', ')}`)
+      process.exit(1)
+    }
+    const results = await runBenchmark(filteredScenarios, { verbose: true, iterationOverride: onlyName ? 1 : undefined })
+    printTable(results)
+    const file = saveJson(results)
+    console.log(`Results saved to ${file}`)
+  })().catch((err) => {
+    console.error('Benchmark failed:', err)
+    process.exit(1)
+  })
 }

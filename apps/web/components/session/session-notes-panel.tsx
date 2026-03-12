@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ChevronDownIcon, LightBulbIcon } from '@heroicons/react/24/outline'
+import { useMemo } from 'react'
+import { LightBulbIcon } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
 import { getTargetFontCleanClass } from '@/lib/languages'
 import { useLanguage } from '@/hooks/use-language'
@@ -10,149 +10,144 @@ import type { TurnAnalysisResult } from '@/lib/session-types'
 interface SessionNotesPanelProps {
   analysisResults: Record<number, TurnAnalysisResult>
   highlight?: boolean
+  isAnalyzing?: boolean
+  onOpenFeedback?: () => void
 }
 
-interface CollapsibleSectionProps {
-  title: string
-  count: number
-  accentClass: string
-  defaultOpen?: boolean
-  children: React.ReactNode
+// Border color classes by note type
+const BORDER_COLORS = {
+  correction: 'border-l-accent-warm',
+  production: 'border-l-green',
+  learning: 'border-l-blue',
+  culture: 'border-l-purple',
+  takeaway: 'border-l-green',
+} as const
+
+type NoteType = keyof typeof BORDER_COLORS
+
+interface NarrativeNote {
+  key: string
+  type: NoteType
+  text: string
 }
 
-function CollapsibleSection({ title, count, accentClass, defaultOpen = true, children }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
-
-  return (
-    <div className="border-b border-border last:border-b-0">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 bg-transparent border-none cursor-pointer hover:bg-bg-hover transition-colors"
-      >
-        <span className="text-[13px] font-semibold text-text-primary">{title}</span>
-        <div className="flex items-center gap-2">
-          {count > 0 && (
-            <span className={cn('min-w-[20px] h-[20px] inline-flex items-center justify-center rounded-full text-[11px] font-bold px-1', accentClass)}>
-              {count}
-            </span>
-          )}
-          <ChevronDownIcon className={cn('w-4 h-4 text-text-secondary transition-transform', open && 'rotate-180')} />
-        </div>
-      </button>
-      {open && count > 0 && (
-        <div className="px-5 pb-4">
-          {children}
-        </div>
-      )}
-    </div>
-  )
+function formatCorrectionNote(c: { original: string; corrected: string; explanation: string }): string {
+  return `Cleared confusion on ${c.original} → ${c.corrected} — ${c.explanation}`
 }
 
-export function SessionNotesPanel({ analysisResults, highlight }: SessionNotesPanelProps) {
+function formatRegisterNote(r: { original: string; suggestion: string; explanation: string }): string {
+  return `Register fix: ${r.original} → ${r.suggestion} — ${r.explanation}`
+}
+
+function formatL1Note(l: { original: string; issue: string; suggestion: string }): string {
+  return `Fixed L1 transfer: ${l.issue} — use ${l.suggestion} instead`
+}
+
+function formatAlternativeNote(a: { original: string; alternative: string; explanation: string }): string {
+  return `Learned that ${a.alternative} sounds more natural than ${a.original} — ${a.explanation}`
+}
+
+function formatNaturalnessNote(n: { original: string; suggestion: string; explanation: string }): string {
+  return `Better phrasing: ${n.suggestion} instead of ${n.original}`
+}
+
+function formatGrammarNote(g: { pattern: string; meaning: string }): string {
+  return `Practiced ${g.pattern} — ${g.meaning}`
+}
+
+function formatVocabNote(v: { word: string; meaning: string }): string {
+  return `New word: ${v.word} — ${v.meaning}`
+}
+
+function formatTipNote(t: { tip: string }): string {
+  return t.tip
+}
+
+export function SessionNotesPanel({ analysisResults, highlight, isAnalyzing, onOpenFeedback }: SessionNotesPanelProps) {
   const { targetLanguage } = useLanguage()
   const fontClean = getTargetFontCleanClass(targetLanguage || 'Japanese')
+  void fontClean // used in future inline rendering if needed
 
-  // Aggregate data from all turns
-  const takeaways = useMemo(() => {
-    const items: string[] = []
-    const seen = new Set<string>()
-    for (const result of Object.values(analysisResults)) {
-      for (const t of result.takeaways || []) {
-        if (!seen.has(t)) {
-          seen.add(t)
-          items.push(t)
-        }
-      }
-    }
-    return items
-  }, [analysisResults])
+  // Build narrative notes from all turns, deduplicating by key
+  const notes = useMemo(() => {
+    const noteMap = new Map<string, NarrativeNote>()
 
-  const vocab = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ word: string; reading?: string; meaning: string; partOfSpeech?: string }> = []
     for (const result of Object.values(analysisResults)) {
-      for (const card of result.vocabularyCards) {
-        if (!seen.has(card.word)) {
-          seen.add(card.word)
-          items.push(card)
-        }
-      }
-    }
-    return items
-  }, [analysisResults])
-
-  const corrections = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ original: string; corrected: string; explanation: string }> = []
-    for (const result of Object.values(analysisResults)) {
+      // Corrections
       for (const c of result.corrections) {
-        const key = `${c.original}::${c.corrected}`
-        if (!seen.has(key)) {
-          seen.add(key)
-          items.push(c)
+        const key = `correction::${c.original}::${c.corrected}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'correction', text: formatCorrectionNote(c) })
         }
       }
-    }
-    return items
-  }, [analysisResults])
 
-  const grammar = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ pattern: string; meaning: string }> = []
-    for (const result of Object.values(analysisResults)) {
-      for (const g of result.grammarNotes) {
-        if (!seen.has(g.pattern)) {
-          seen.add(g.pattern)
-          items.push(g)
-        }
-      }
-    }
-    return items
-  }, [analysisResults])
-
-  const registerMismatches = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ original: string; suggestion: string; expected: string; explanation: string }> = []
-    for (const result of Object.values(analysisResults)) {
+      // Register mismatches
       for (const r of result.registerMismatches || []) {
-        if (!seen.has(r.original)) {
-          seen.add(r.original)
-          items.push(r)
+        const key = `register::${r.original}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'correction', text: formatRegisterNote(r) })
         }
       }
-    }
-    return items
-  }, [analysisResults])
 
-  const l1Interference = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ original: string; issue: string; suggestion: string }> = []
-    for (const result of Object.values(analysisResults)) {
+      // L1 interference
       for (const l of result.l1Interference || []) {
-        if (!seen.has(l.original)) {
-          seen.add(l.original)
-          items.push(l)
+        const key = `l1::${l.original}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'correction', text: formatL1Note(l) })
         }
       }
-    }
-    return items
-  }, [analysisResults])
 
-  const alternatives = useMemo(() => {
-    const seen = new Set<string>()
-    const items: Array<{ original: string; alternative: string; explanation: string }> = []
-    for (const result of Object.values(analysisResults)) {
+      // Alternative expressions
       for (const a of result.alternativeExpressions || []) {
-        if (!seen.has(a.original)) {
-          seen.add(a.original)
-          items.push(a)
+        const key = `alt::${a.original}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'learning', text: formatAlternativeNote(a) })
+        }
+      }
+
+      // Naturalness feedback
+      for (const n of result.naturalnessFeedback) {
+        const key = `nat::${n.original}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'learning', text: formatNaturalnessNote(n) })
+        }
+      }
+
+      // Grammar notes
+      for (const g of result.grammarNotes) {
+        const key = `grammar::${g.pattern}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'production', text: formatGrammarNote(g) })
+        }
+      }
+
+      // Vocabulary
+      for (const v of result.vocabularyCards) {
+        const key = `vocab::${v.word}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'learning', text: formatVocabNote(v) })
+        }
+      }
+
+      // Conversational tips
+      for (const t of result.conversationalTips || []) {
+        const key = `tip::${t.tip.slice(0, 30)}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'culture', text: formatTipNote(t) })
+        }
+      }
+
+      // Takeaways
+      for (const t of result.takeaways || []) {
+        const key = `takeaway::${t.slice(0, 30)}`
+        if (!noteMap.has(key)) {
+          noteMap.set(key, { key, type: 'takeaway', text: t })
         }
       }
     }
-    return items
-  }, [analysisResults])
 
-  const totalItems = takeaways.length + vocab.length + corrections.length + grammar.length + registerMismatches.length + l1Interference.length + alternatives.length
+    return Array.from(noteMap.values())
+  }, [analysisResults])
 
   return (
     <div className={cn(
@@ -161,12 +156,20 @@ export function SessionNotesPanel({ analysisResults, highlight }: SessionNotesPa
     )}>
       {/* Header */}
       <div className="px-5 pt-5 pb-4 shrink-0">
-        <span className="text-[13px] font-medium text-text-secondary">Session Notes</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-medium text-text-secondary">Session Notes</span>
+          {isAnalyzing && (
+            <span className="flex items-center gap-1.5 text-[12px] text-text-muted">
+              <span className="w-1 h-1 rounded-full bg-text-muted animate-[voice-loading-dot_1.2s_ease-in-out_infinite]" />
+              Analyzing
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-border-strong [&::-webkit-scrollbar-thumb]:rounded-sm">
-        {totalItems === 0 ? (
+      <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-thumb]:bg-border-strong [&::-webkit-scrollbar-thumb]:rounded-sm">
+        {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
             <div className="w-10 h-10 rounded-full bg-bg-secondary flex items-center justify-center mb-3">
               <LightBulbIcon className="w-5 h-5 text-text-secondary" />
@@ -176,114 +179,35 @@ export function SessionNotesPanel({ analysisResults, highlight }: SessionNotesPa
             </p>
           </div>
         ) : (
-          <>
-            {/* Key Takeaways */}
-            <CollapsibleSection title="Key Takeaways" count={takeaways.length} accentClass="bg-blue-soft text-accent-brand">
-              <div className="flex flex-col gap-2.5">
-                {takeaways.map((t, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <LightBulbIcon className="w-4 h-4 text-accent-brand shrink-0 mt-[2px]" />
-                    <span className="text-[13px] text-text-primary leading-[1.5]">{t}</span>
-                  </div>
-                ))}
+          <div className="flex flex-col gap-2">
+            {notes.map((note) => (
+              <div
+                key={note.key}
+                className={cn(
+                  'border-l-[3px] pl-3 py-2 animate-[voice-fade-up_0.3s_ease_both]',
+                  BORDER_COLORS[note.type],
+                )}
+              >
+                <p className="text-[13px] text-text-primary leading-[1.55]">
+                  {note.text}
+                </p>
               </div>
-            </CollapsibleSection>
-
-            {/* Vocabulary */}
-            <CollapsibleSection title="Vocabulary" count={vocab.length} accentClass="bg-blue-soft text-accent-brand">
-              <div className="flex flex-col gap-2">
-                {vocab.map((v, i) => (
-                  <div key={i} className="px-3 py-2.5 bg-bg-secondary rounded-lg">
-                    <div className="flex items-baseline gap-2">
-                      <span className={cn('text-[14px] font-medium text-text-primary', fontClean)}>{v.word}</span>
-                      {v.reading && v.reading !== v.word && (
-                        <span className={cn('text-[12px] text-text-secondary', fontClean)}>{v.reading}</span>
-                      )}
-                    </div>
-                    <div className="text-[13px] text-text-secondary leading-[1.4] mt-1">{v.meaning}</div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-
-            {/* Corrections */}
-            <CollapsibleSection title="Corrections" count={corrections.length} accentClass="bg-warm-soft text-accent-warm">
-              <div className="flex flex-col gap-2.5">
-                {corrections.map((c, i) => (
-                  <div key={i} className="text-[13px] leading-[1.5]">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('text-text-secondary line-through', fontClean)}>{c.original}</span>
-                      <span className="text-text-secondary">&rarr;</span>
-                      <span className={cn('text-text-primary font-medium', fontClean)}>{c.corrected}</span>
-                    </div>
-                    <div className="text-[12px] text-text-secondary mt-1">{c.explanation}</div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-
-            {/* Register Mismatches */}
-            <CollapsibleSection title="Register" count={registerMismatches.length} accentClass="bg-warm-soft text-accent-warm">
-              <div className="flex flex-col gap-2.5">
-                {registerMismatches.map((r, i) => (
-                  <div key={i} className="text-[13px] leading-[1.5]">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('text-text-secondary', fontClean)}>{r.original}</span>
-                      <span className="text-text-secondary">&rarr;</span>
-                      <span className={cn('text-text-primary font-medium', fontClean)}>{r.suggestion}</span>
-                    </div>
-                    <div className="text-[12px] text-text-secondary mt-1">{r.explanation}</div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-
-            {/* L1 Interference */}
-            <CollapsibleSection title="L1 Interference" count={l1Interference.length} accentClass="bg-warm-soft text-accent-warm">
-              <div className="flex flex-col gap-2.5">
-                {l1Interference.map((l, i) => (
-                  <div key={i} className="text-[13px] leading-[1.5]">
-                    <div className={cn('text-text-secondary', fontClean)}>{l.original}</div>
-                    <div className="text-[12px] text-text-secondary mt-1">{l.issue}</div>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-[12px] text-text-secondary">&rarr;</span>
-                      <span className={cn('text-[13px] text-text-primary font-medium', fontClean)}>{l.suggestion}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-
-            {/* Alternative Expressions */}
-            <CollapsibleSection title="Better Ways to Say It" count={alternatives.length} accentClass="bg-blue-soft text-accent-brand">
-              <div className="flex flex-col gap-2.5">
-                {alternatives.map((a, i) => (
-                  <div key={i} className="text-[13px] leading-[1.5]">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('text-text-secondary', fontClean)}>{a.original}</span>
-                      <span className="text-text-secondary">&rarr;</span>
-                      <span className={cn('text-text-primary font-medium', fontClean)}>{a.alternative}</span>
-                    </div>
-                    <div className="text-[12px] text-text-secondary mt-1">{a.explanation}</div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-
-            {/* Grammar */}
-            <CollapsibleSection title="Grammar" count={grammar.length} accentClass="bg-bg-secondary text-text-secondary">
-              <div className="flex flex-col gap-2">
-                {grammar.map((g, i) => (
-                  <div key={i} className="px-3 py-2.5 bg-bg-secondary rounded-lg">
-                    <div className={cn('text-[14px] font-medium text-text-primary', fontClean)}>{g.pattern}</div>
-                    <div className="text-[13px] text-text-secondary leading-[1.4] mt-1">{g.meaning}</div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          </>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Footer link */}
+      {notes.length > 0 && onOpenFeedback && (
+        <div className="px-5 py-3 border-t border-border shrink-0">
+          <button
+            onClick={onOpenFeedback}
+            className="text-[12px] text-text-muted font-medium bg-transparent border-none cursor-pointer hover:text-text-secondary transition-colors"
+          >
+            See full details &rarr;
+          </button>
+        </div>
+      )}
     </div>
   )
 }
