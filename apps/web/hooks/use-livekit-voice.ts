@@ -292,6 +292,52 @@ export function useLiveKitVoice(opts: {
     [connectToRoom],
   )
 
+  /**
+   * Start a session directly with provided metadata — skips plan generation.
+   * Useful for quick testing of the LiveKit agent.
+   */
+  const startDirect = useCallback(
+    async (metadata: Record<string, unknown>) => {
+      setError(null)
+      try {
+        setSessionId(null)
+        setSessionPlan(null)
+        setTranscript([])
+        setSpokenSentences([])
+        setIsActive(true)
+        setDuration(0)
+        setAnalysisResults({})
+
+        durationIntervalRef.current = setInterval(() => {
+          setDuration((d) => d + 1)
+        }, 1000)
+
+        const tokenRes = await fetch('/api/voice/livekit-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ metadata }),
+        })
+
+        if (!tokenRes.ok) {
+          const body = await tokenRes.json().catch(() => ({}))
+          throw new Error(body.error || `Failed to get LiveKit token (${tokenRes.status})`)
+        }
+
+        const { token, url } = await tokenRes.json()
+        await connectToRoom(token, url)
+      } catch (err) {
+        console.error('[livekit-voice] Failed to start direct session:', err)
+        setError(err instanceof Error ? err.message : 'Failed to start session')
+        setIsActive(false)
+        if (durationIntervalRef.current) {
+          clearInterval(durationIntervalRef.current)
+          durationIntervalRef.current = null
+        }
+      }
+    },
+    [connectToRoom],
+  )
+
   const startSession = useCallback(async () => {
     if (!sessionIdRef.current) return
     setIsActive(true)
@@ -464,6 +510,7 @@ export function useLiveKitVoice(opts: {
     isStreaming: voiceState === 'SPEAKING',
     startNewSession,
     startWithExistingPlan,
+    startDirect,
     startTalking,
     stopTalking,
     cancelTalking,

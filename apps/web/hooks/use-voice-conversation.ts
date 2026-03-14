@@ -71,6 +71,7 @@ export interface UseVoiceConversationReturn {
   isStreaming: boolean
   startNewSession: (prompt: string, mode: string) => Promise<void>
   startWithExistingPlan: (sessionId: string, plan: SessionPlan, prompt: string, steeringNotes?: string[]) => Promise<void>
+  startDirect: (metadata: Record<string, unknown>) => Promise<void>
   startTalking: () => void
   stopTalking: () => void
   cancelTalking: () => void
@@ -816,6 +817,7 @@ export function useVoiceConversation(
     isStreaming,
     startNewSession,
     startWithExistingPlan,
+    startDirect: async () => { /* not supported in default voice provider */ },
     startTalking,
     stopTalking,
     cancelTalking,
