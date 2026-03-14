@@ -49,6 +49,7 @@ interface UnifiedChatOverlayProps {
   onAddNote?: (text: string) => void
   lookupWord?: string | null
   onClearLookupWord?: () => void
+  targetLanguage?: string
 }
 
 function extractFeedbackCards(results: Record<number, TurnAnalysisResult>): FeedbackCard[] {
@@ -190,6 +191,7 @@ export function UnifiedChatOverlay({
   onAddNote,
   lookupWord,
   onClearLookupWord,
+  targetLanguage,
 }: UnifiedChatOverlayProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -260,7 +262,7 @@ export function UnifiedChatOverlay({
       const res = await fetch('/api/conversation/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, recentHistory }),
+        body: JSON.stringify({ query, recentHistory, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -287,7 +289,7 @@ export function UnifiedChatOverlay({
       const res = await fetch('/api/conversation/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, recentHistory }),
+        body: JSON.stringify({ query, recentHistory, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -312,7 +314,7 @@ export function UnifiedChatOverlay({
       const res = await fetch('/api/conversation/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word, context: recentHistory.slice(-2).map(h => h.content).join(' ') }),
+        body: JSON.stringify({ word, context: recentHistory.slice(-2).map(h => h.content).join(' '), targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()

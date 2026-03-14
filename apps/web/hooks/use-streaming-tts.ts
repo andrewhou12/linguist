@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { createSentenceBoundaryTracker } from '@/lib/voice/sentence-boundary'
 import { stripRubyAnnotations } from '@/lib/ruby-annotator'
 import { getTtsProvider } from '@/lib/voice/voice-provider-config'
+import { useLanguage } from './use-language'
 
 interface UseStreamingTTSReturn {
   voiceEnabled: boolean
@@ -16,6 +17,7 @@ export function useStreamingTTS(
   latestAssistantText: string | null,
   isStreaming: boolean
 ): UseStreamingTTSReturn {
+  const { targetLanguage } = useLanguage()
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const trackerRef = useRef(createSentenceBoundaryTracker())
@@ -54,7 +56,7 @@ export function useStreamingTTS(
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: sentence, ttsProvider: getTtsProvider() }),
+        body: JSON.stringify({ text: sentence, ttsProvider: getTtsProvider(), targetLanguage }),
       })
       if (!res.ok || stoppedRef.current) {
         playingRef.current = false

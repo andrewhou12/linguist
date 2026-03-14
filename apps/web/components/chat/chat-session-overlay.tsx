@@ -35,6 +35,7 @@ import { UsageLimitModal } from '@/components/usage-limit-modal'
 import { extractTextFromMessage } from '@/lib/message-utils'
 import { cn } from '@/lib/utils'
 import { useOnboarding } from '@/hooks/use-onboarding'
+import { useLanguage } from '@/hooks/use-language'
 import { CoachMark } from '@/components/onboarding/coach-mark'
 import type { UsageInfo } from '@lingle/shared/types'
 
@@ -60,6 +61,7 @@ export function ChatSessionOverlay({
   onEnd,
 }: ChatSessionOverlayProps) {
   const tts = useTTS()
+  const { targetLanguage } = useLanguage()
 
   // ── State ──
   const [input, setInput] = useState('')
@@ -391,7 +393,7 @@ export function ChatSessionOverlay({
       const res = await fetch('/api/conversation/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, recentHistory }),
+        body: JSON.stringify({ query, recentHistory, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -438,7 +440,7 @@ export function ChatSessionOverlay({
       const res = await fetch('/api/conversation/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: word.trim(), context }),
+        body: JSON.stringify({ word: word.trim(), context, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -489,7 +491,7 @@ export function ChatSessionOverlay({
       const res = await fetch('/api/conversation/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recentHistory }),
+        body: JSON.stringify({ recentHistory, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()

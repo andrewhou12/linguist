@@ -2,8 +2,10 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { getTtsProvider } from '@/lib/voice/voice-provider-config'
+import { useLanguage } from './use-language'
 
 export function useTTS() {
+  const { targetLanguage } = useLanguage()
   const [playingId, setPlayingId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const blobUrlRef = useRef<string | null>(null)
@@ -28,7 +30,7 @@ export function useTTS() {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, ttsProvider: getTtsProvider() }),
+        body: JSON.stringify({ text, ttsProvider: getTtsProvider(), targetLanguage }),
       })
 
       if (!res.ok) {

@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { EndConfirmation } from '@/components/session/end-confirmation'
 import { FeedbackCardFlipper } from './feedback-card-flipper'
 import { Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { useLanguage } from '@/hooks/use-language'
 import { Spinner } from '@/components/spinner'
 import { cn } from '@/lib/utils'
 export type { SessionEndData } from '@/lib/session-types'
@@ -75,6 +76,8 @@ function SessionOverlayInner({
   steeringNotes?: string[]
   onEnd: (data: SessionEndData) => void
 }) {
+  const { targetLanguage } = useLanguage()
+
   // ── Panel state ──
   const [isStarting, setIsStarting] = useState(true)
   const [planOpen, setPlanOpen] = useState(false)
@@ -265,7 +268,7 @@ function SessionOverlayInner({
       const res = await fetch('/api/conversation/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word, context }),
+        body: JSON.stringify({ word, context, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -326,7 +329,7 @@ function SessionOverlayInner({
       const res = await fetch('/api/conversation/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recentHistory }),
+        body: JSON.stringify({ recentHistory, targetLanguage }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -460,7 +463,7 @@ function SessionOverlayInner({
     fetch('/api/conversation/suggest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recentHistory }),
+      body: JSON.stringify({ recentHistory, targetLanguage }),
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -788,6 +791,7 @@ function SessionOverlayInner({
         onRetry={handleRetry}
         lookupWord={chatLookupWord}
         onClearLookupWord={() => setChatLookupWord(null)}
+        targetLanguage={targetLanguage}
       />
 
       {/* Session settings modal */}

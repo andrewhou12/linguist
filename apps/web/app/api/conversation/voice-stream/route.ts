@@ -50,9 +50,13 @@ function getCartesiaVoice(langCode: string): string | undefined {
   return process.env[envKey]
 }
 
-// Detect if a sentence is predominantly English vs CJK-based target language
+// Detect if a sentence is predominantly English vs the target language.
+// For CJK targets, Latin text = English. For Latin-script targets (es, fr, de, etc.),
+// we can't distinguish by script, so always assume target language.
 const CJK_RANGE = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf\uff00-\uff9f\uac00-\ud7af\u1100-\u11ff]/g
-function detectSentenceLanguage(text: string, targetLangCode: string): string {
+function detectSentenceLanguage(text: string, targetLangCode: string, isCJK: boolean): string {
+  // For non-CJK target languages (Spanish, French, etc.), Latin text IS the target language
+  if (!isCJK) return targetLangCode
   const cjkCount = (text.match(CJK_RANGE) || []).length
   const latinCount = (text.match(LATIN_CHAR) || []).length
   // If more Latin chars than CJK, treat as English
@@ -169,7 +173,7 @@ export const POST = withAuth(async (request, { userId }) => {
       const combined = pendingFragment + sentence
       pendingFragment = ''
 
-      const sentenceLang = detectSentenceLanguage(combined, targetLangCode)
+      const sentenceLang = detectSentenceLanguage(combined, targetLangCode, isCJK)
       // Only strip non-target-language content for CJK languages where Latin chars reliably indicate English
       const cleaned = sentenceLang === 'en'
         ? cleanForTTS(combined)
